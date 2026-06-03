@@ -9,11 +9,19 @@ const Header = ({ title }) => {
 
     const isActive = (path) => location.pathname === path;
 
+    // Helper to get module prefix
+    const getModulePath = (path) => {
+        if (location.pathname.startsWith('/admin')) return `/admin${path}`;
+        if (location.pathname.startsWith('/rector')) return `/rector${path}`;
+        if (location.pathname.startsWith('/student')) return `/student${path}`;
+        return path;
+    };
+
     return (
         <>
             {/* Header */}
             <div className="topbar">
-                <Link to="/dashboard" className="logo" style={{ textDecoration: 'none', color: 'inherit' }}>
+                <Link to={getModulePath('/dashboard')} className="logo" style={{ textDecoration: 'none', color: 'inherit' }}>
                     <i className="fas fa-building"></i> HostelCare
                 </Link>
                 <div className="user-profile">
@@ -26,24 +34,24 @@ const Header = ({ title }) => {
                         <div className="dropdown-menu extended">
                             <div className="dropdown-header">Notifications Center</div>
                             <a href="#" className="dropdown-list-item">
-                                <div className="icon-circle" style={{ background: '#4e73df' }}>
-                                    <i className="fas fa-file-invoice-dollar"></i>
+                                <div className="icon-circle" style={{ background: '#e74a3b' }}>
+                                    <i className="fas fa-calendar-times"></i>
                                 </div>
                                 <div className="content">
-                                    <span style={{ fontWeight: 600, fontSize: '13px', color: '#333' }}>Fee Payment Alert</span>
-                                    <div className="small-text">45 Students pending fees</div>
+                                    <span style={{ fontWeight: 600, fontSize: '13px', color: '#333' }}>Fee Payment Deadline</span>
+                                    <div className="small-text">Today is the last day for fee payment without fine.</div>
                                 </div>
                             </a>
                             <a href="#" className="dropdown-list-item">
-                                <div className="icon-circle" style={{ background: '#1cc88a' }}>
-                                    <i className="fas fa-donate"></i>
+                                <div className="icon-circle" style={{ background: '#4e73df' }}>
+                                    <i className="fas fa-bullhorn"></i>
                                 </div>
                                 <div className="content">
-                                    <span style={{ fontWeight: 600, fontSize: '13px', color: '#333' }}>New Complaint</span>
-                                    <div className="small-text">Room 201: Fan issue</div>
+                                    <span style={{ fontWeight: 600, fontSize: '13px', color: '#333' }}>New Announcement</span>
+                                    <div className="small-text">Annual Hostel Night registrations are now open!</div>
                                 </div>
                             </a>
-                            <Link to="/notifications" style={{ display: 'block', textAlign: 'center', padding: '10px', fontSize: '12px', color: '#858796', textDecoration: 'none' }}>
+                            <Link to={getModulePath('/notifications')} style={{ display: 'block', textAlign: 'center', padding: '10px', fontSize: '12px', color: '#858796', textDecoration: 'none' }}>
                                 Show All Alerts
                             </Link>
                         </div>
@@ -59,20 +67,20 @@ const Header = ({ title }) => {
                             <div className="dropdown-header">Message Center</div>
                             <a href="#" className="dropdown-list-item">
                                 <div className="icon-circle" style={{ background: '#f6c23e' }}>
-                                    <i className="fas fa-exclamation-triangle"></i>
+                                    <i className="fas fa-file-invoice-dollar"></i>
                                 </div>
                                 <div className="content">
-                                    <span style={{ fontWeight: 600, fontSize: '13px', color: '#333' }}>Admin Office</span>
-                                    <div className="small-text">Urgent: Submit monthly report</div>
+                                    <span style={{ fontWeight: 600, fontSize: '13px', color: '#333' }}>Fee Status Alert</span>
+                                    <div className="small-text">Your pending fee of ₹12,500 is due by 15th Feb.</div>
                                 </div>
                             </a>
                             <a href="#" className="dropdown-list-item">
                                 <div className="icon-circle" style={{ background: '#e74a3b' }}>
-                                    <i className="fas fa-user"></i>
+                                    <i className="fas fa-calendar-check"></i>
                                 </div>
                                 <div className="content">
-                                    <span style={{ fontWeight: 600, fontSize: '13px', color: '#333' }}>Warden B</span>
-                                    <div className="small-text">Requesting meeting tomorrow</div>
+                                    <span style={{ fontWeight: 600, fontSize: '13px', color: '#333' }}>Attendance Alert</span>
+                                    <div className="small-text">Your attendance is not recorded today. Please mark your presence.</div>
                                 </div>
                             </a>
                             <a href="#" style={{ display: 'block', textAlign: 'center', padding: '10px', fontSize: '12px', color: '#858796', textDecoration: 'none' }}>
@@ -85,10 +93,19 @@ const Header = ({ title }) => {
                         className={`profile-dropdown ${profileOpen ? 'active' : ''}`}
                         onClick={() => setProfileOpen(!profileOpen)}
                     >
-                        <div className="user-avatar"><i className="fas fa-female"></i></div>
-                        <span>Mrs. Kumar <i className="fas fa-chevron-down"></i></span>
+                        <div className="user-avatar">
+                            {location.pathname.startsWith('/student') ? <i className="fas fa-user-graduate"></i> : 
+                             location.pathname.startsWith('/rector') ? <i className="fas fa-female"></i> : 
+                             <i className="fas fa-user-shield"></i>}
+                        </div>
+                        <span>
+                            {location.pathname.startsWith('/student') ? 'Student User' : 
+                             location.pathname.startsWith('/rector') ? 'Mrs. Priya Kumar' : 
+                             'Administrator'} 
+                            <i className="fas fa-chevron-down" style={{ marginLeft: '5px', fontSize: '12px' }}></i>
+                        </span>
                         <div className="dropdown-menu">
-                            <a href="#" className="dropdown-item"><i className="fas fa-sign-out-alt"></i> Sign Out</a>
+                            <Link to="/login" className="dropdown-item"><i className="fas fa-sign-out-alt"></i> Sign Out</Link>
                         </div>
                     </div>
                 </div>
@@ -100,17 +117,36 @@ const Header = ({ title }) => {
 
             {/* Navigation */}
             <div className="navbar">
-                <Link to="/dashboard" className={isActive('/dashboard') ? 'active' : ''}><i className="fas fa-tachometer-alt"></i> Dashboard</Link>
-                <Link to="/notifications" className={isActive('/notifications') ? 'active' : ''}><i className="fas fa-bell"></i> Notifications</Link>
-                <Link to="/students" className={isActive('/students') ? 'active' : ''}><i className="fas fa-user-friends"></i> Girls</Link>
-                <Link to="/gatepass" className={isActive('/gatepass') ? 'active' : ''}><i className="fas fa-ticket-alt"></i> Gate Pass</Link>
-                <Link to="/complaints" className={isActive('/complaints') ? 'active' : ''}><i className="fas fa-exclamation-circle"></i> Complaints</Link>
-                <Link to="/announcements" className={isActive('/announcements') ? 'active' : ''}><i className="fas fa-bullhorn"></i> Announcements</Link>
-                <Link to="/reports" className={isActive('/reports') ? 'active' : ''}><i className="fas fa-file-alt"></i> Reports</Link>
-                <Link to="/settings" className={isActive('/settings') ? 'active' : ''}><i className="fas fa-cog"></i> Settings</Link>
+                <Link to={getModulePath('/dashboard')} className={isActive(getModulePath('/dashboard')) ? 'active' : ''}><i className="fas fa-tachometer-alt"></i> Dashboard</Link>
+                {location.pathname.startsWith('/admin') && (
+                    <>
+                        <Link to="/admin/rectors" className={isActive('/admin/rectors') ? 'active' : ''}><i className="fas fa-user-tie"></i> Rectors</Link>
+                        <Link to="/admin/workers" className={isActive('/admin/workers') ? 'active' : ''}><i className="fas fa-tools"></i> Workers</Link>
+                    </>
+                )}
+                {location.pathname.startsWith('/rector') && (
+                    <>
+                        <Link to="/rector/students" className={isActive('/rector/students') ? 'active' : ''}><i className="fas fa-users"></i> Students</Link>
+                        <Link to="/rector/gatepass" className={isActive('/rector/gatepass') ? 'active' : ''}><i className="fas fa-id-card"></i> Gate Pass</Link>
+                    </>
+                )}
+                {location.pathname.startsWith('/student') && (
+                    <>
+                        <Link to="/student/attendance" className={isActive('/student/attendance') ? 'active' : ''}><i className="fas fa-calendar-check"></i> Attendance</Link>
+                        <Link to="/student/gatepass" className={isActive('/student/gatepass') ? 'active' : ''}><i className="fas fa-id-card"></i> Gate Pass</Link>
+                    </>
+                )}
+                <Link to={getModulePath('/mess-menu')} className={isActive(getModulePath('/mess-menu')) ? 'active' : ''}><i className="fas fa-utensils"></i> Mess Menu</Link>
+                {(location.pathname.startsWith('/admin') || location.pathname.startsWith('/rector')) && (
+                    <Link to={getModulePath('/reports')} className={isActive(getModulePath('/reports')) ? 'active' : ''}><i className="fas fa-chart-line"></i> Reports</Link>
+                )}
+                <Link to={getModulePath('/complaints')} className={isActive(getModulePath('/complaints')) ? 'active' : ''}><i className="fas fa-exclamation-circle"></i> Complaints</Link>
+                <Link to={getModulePath('/announcements')} className={isActive(getModulePath('/announcements')) ? 'active' : ''}><i className="fas fa-bullhorn"></i> Announcements</Link>
+                <Link to={getModulePath('/settings')} className={isActive(getModulePath('/settings')) ? 'active' : ''}><i className="fas fa-cog"></i> Settings</Link>
             </div>
         </>
     );
+
 };
 
 export default Header;

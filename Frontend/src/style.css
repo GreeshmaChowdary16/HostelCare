@@ -1,26 +1,39 @@
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
 
 :root {
-    /* STRICT COLOR PALETTE */
+    /* PREMIUM COLOR PALETTE - Based on Rector Module */
     --primary: #4e73df;
-    --primary-soft: #bac8f3;
+    --primary-dark: #224abe;
+    --primary-soft: #eaecf4;
     --secondary: #858796;
+    --success: #1cc88a;
+    --info: #36b9cc;
+    --warning: #f6c23e;
+    --danger: #e74a3b;
+    --dark: #5a5c69;
 
-    /* Strict Pastel Backgrounds */
-    --bg-color: #EAF4FB;
+    /* Backgrounds */
+    --bg-color: #f8f9fc;
+    --white: #ffffff;
 
     /* Text Colors */
-    --text-primary: #333333;
-    --text-secondary: #666666;
+    --text-primary: #5a5c69;
+    --text-secondary: #858796;
+    --text-dark: #333333;
 
-    /* Status Badges */
-    --status-resolved: #CFF5E7;
-    --status-progress: #FFF3CD;
-    --status-pending: #F8D7DA;
-    --status-new: #D6E4FF;
+    /* Status Badges - Rector Style */
+    --status-resolved: #d4edda;
+    --status-resolved-text: #155724;
+    --status-progress: #fff3cd;
+    --status-progress-text: #856404;
+    --status-pending: #fadbd8;
+    --status-pending-text: #e74a3b;
+    --status-new: #e3f2fd;
+    --status-new-text: #004085;
 
-    /* Other vars */
-    --card-shadow: 0 4px 6px rgba(0, 0, 0, 0.02), 0 1px 3px rgba(0, 0, 0, 0.05);
+    /* Shadows */
+    --card-shadow: 0 4px 6px rgba(0, 0, 0, 0.04), 0 1px 3px rgba(0, 0, 0, 0.02);
+    --hover-shadow: 0 10px 15px rgba(0, 0, 0, 0.05);
 }
 
 * {
@@ -481,31 +494,32 @@ td {
 }
 
 .status-badge {
-    padding: 4px 10px;
-    border-radius: 12px;
+    padding: 5px 12px;
+    border-radius: 15px;
     font-size: 11px;
     font-weight: 700;
+    text-transform: uppercase;
 }
 
 .status-pending {
     background: var(--status-pending);
-    color: #721c24;
+    color: var(--status-pending-text);
 }
 
 .status-progress,
 .status-in-progress {
     background: var(--status-progress);
-    color: #856404;
+    color: var(--status-progress-text);
 }
 
 .status-resolved {
     background: var(--status-resolved);
-    color: #155724;
+    color: var(--status-resolved-text);
 }
 
 .status-new {
     background: var(--status-new);
-    color: #004085;
+    color: var(--status-new-text);
 }
 
 /* Daily Reports Mini-Stats */

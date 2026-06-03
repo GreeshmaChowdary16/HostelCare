@@ -1,5 +1,6 @@
 import React from 'react';
-import Header from '../components/Header';
+import { Link } from 'react-router-dom';
+import Header from '../../../components/Header';
 
 const Dashboard = () => {
     return (
@@ -302,6 +303,13 @@ const Dashboard = () => {
                                 </div>
                                 <div className="stat-desc">Active Issues</div>
                             </div>
+                            <Link to="/rector/reports" className="stat-card-modern" style={{ background: '#6f42c1', textDecoration: 'none' }}>
+                                <div>
+                                    <div className="stat-label">OPERATIONAL REPORTS</div>
+                                    <div className="stat-value"><i className="fas fa-file-invoice"></i></div>
+                                </div>
+                                <div className="stat-desc">Submit Attendance & Mess Logs</div>
+                            </Link>
                         </div>
                     </div>
 

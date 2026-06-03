@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import Header from '../components/Header';
+import Header from '../../../components/Header';
 
 const Complaints = () => {
     return (
@@ -335,6 +335,7 @@ const Complaints = () => {
                                     <th>Student</th>
                                     <th>Category</th>
                                     <th>Complaint Info</th>
+                                    <th>Assigned Worker</th>
                                     <th>Status / Tracking</th>
                                     <th>Action</th>
                                 </tr>
@@ -345,6 +346,10 @@ const Complaints = () => {
                                     <td>John Doe</td>
                                     <td style={{ color: '#4e73df', fontWeight: 600 }}><i className="fas fa-bolt"></i> Electric</td>
                                     <td>Fan not working properly</td>
+                                    <td>
+                                        <div style={{ fontWeight: 700, color: '#4e73df', fontSize: '13px' }}>Ramesh Sharma</div>
+                                        <div style={{ fontSize: '11px', color: '#858796' }}><i className="fas fa-phone-alt"></i> +91 98765 43212</div>
+                                    </td>
                                     <td><span className="status-chip status-pending">Pending</span></td>
                                     <td><button className="btn-resolve">Track</button></td>
                                 </tr>
@@ -353,6 +358,10 @@ const Complaints = () => {
                                     <td>Rahul</td>
                                     <td style={{ color: '#1cc88a', fontWeight: 600 }}><i className="fas fa-faucet"></i> Plumber</td>
                                     <td>Tap leakage in bathroom</td>
+                                    <td>
+                                        <div style={{ fontWeight: 700, color: '#1cc88a', fontSize: '13px' }}>Suresh Verma</div>
+                                        <div style={{ fontSize: '11px', color: '#858796' }}><i className="fas fa-phone-alt"></i> +91 98765 43214</div>
+                                    </td>
                                     <td><span className="status-chip status-progress">In Progress</span></td>
                                     <td><button className="btn-resolve">Track</button></td>
                                 </tr>
@@ -361,8 +370,39 @@ const Complaints = () => {
                                     <td>Rajesh</td>
                                     <td style={{ color: '#e74a3b', fontWeight: 600 }}><i className="fas fa-broom"></i> Cleaning</td>
                                     <td>Room not cleaned for 3 days</td>
+                                    <td>
+                                        <div style={{ fontWeight: 700, color: '#e74a3b', fontSize: '13px' }}>Sunita Devi</div>
+                                        <div style={{ fontSize: '11px', color: '#858796' }}><i className="fas fa-phone-alt"></i> +91 98765 43216</div>
+                                        <div style={{ fontSize: '10px', color: '#1cc88a', fontWeight: 700 }}>Supervisor (Girls Hostel A)</div>
+                                    </td>
                                     <td><span className="status-chip status-resolved">Resolved</span></td>
                                     <td><button className="btn-resolve">View</button></td>
+                                </tr>
+                                <tr>
+                                    <td className="room-badge">402</td>
+                                    <td>Amit Kumar</td>
+                                    <td style={{ color: '#1cc88a', fontWeight: 600 }}><i className="fas fa-broom"></i> Cleaning (Washroom)</td>
+                                    <td><i className="fas fa-image" style={{ color: '#4e73df' }}></i> Proof: Washroom tile leakage</td>
+                                    <td>
+                                        <div style={{ fontWeight: 700, color: '#1cc88a', fontSize: '13px' }}>Sunita Devi</div>
+                                        <div style={{ fontSize: '11px', color: '#858796' }}><i className="fas fa-phone-alt"></i> +91 98765 43216</div>
+                                        <div style={{ fontSize: '10px', color: '#1cc88a', fontWeight: 700 }}>Supervisor (Girls Hostel A)</div>
+                                    </td>
+                                    <td><span className="status-chip status-pending">Pending</span></td>
+                                    <td><button className="btn-resolve">Resolve</button></td>
+                                </tr>
+                                <tr>
+                                    <td className="room-badge">208</td>
+                                    <td>Suresh Roy</td>
+                                    <td style={{ color: '#1cc88a', fontWeight: 600 }}><i className="fas fa-broom"></i> Cleaning (Room)</td>
+                                    <td><i className="fas fa-video" style={{ color: '#e74a3b' }}></i> Proof: Dust accumulation</td>
+                                    <td>
+                                        <div style={{ fontWeight: 700, color: '#1cc88a', fontSize: '13px' }}>Sunita Devi</div>
+                                        <div style={{ fontSize: '11px', color: '#858796' }}><i className="fas fa-phone-alt"></i> +91 98765 43216</div>
+                                        <div style={{ fontSize: '10px', color: '#1cc88a', fontWeight: 700 }}>Supervisor (Girls Hostel A)</div>
+                                    </td>
+                                    <td><span className="status-chip status-progress">In Progress</span></td>
+                                    <td><button className="btn-resolve">Track</button></td>
                                 </tr>
                             </tbody>
                         </table>
