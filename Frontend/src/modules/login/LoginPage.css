@@ -1,0 +1,233 @@
+.login-container {
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: url('/bg.png') center/cover no-repeat;
+    font-family: 'Poppins', sans-serif;
+    position: relative;
+}
+
+.overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(3px);
+    z-index: 1;
+}
+
+.login-card {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border-radius: 20px;
+    padding: 40px 40px;
+    width: 100%;
+    max-width: 500px;
+    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.25);
+    text-align: center;
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    animation: slideUp 0.5s ease-out forwards;
+    position: relative;
+    z-index: 2;
+}
+
+@keyframes slideUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.app-logo {
+    width: 80px;
+    height: 80px;
+    object-fit: contain;
+    margin-bottom: 15px;
+    border-radius: 15px;
+}
+
+.app-logo-small {
+    width: 55px;
+    height: 55px;
+    object-fit: contain;
+    margin-bottom: 10px;
+    border-radius: 10px;
+}
+
+.login-header h2 {
+    font-size: 30px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+}
+
+.login-header p {
+    color: var(--text-secondary);
+    font-size: 14px;
+    margin-bottom: 20px;
+}
+
+/* Role Selection Styles */
+.role-cards {
+    display: flex;
+    justify-content: space-between;
+    gap: 15px;
+    margin-top: 25px;
+}
+
+.role-card {
+    flex: 1;
+    background: #f8f9fc;
+    border: 2px solid transparent;
+    border-radius: 15px;
+    padding: 25px 10px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+}
+
+.role-card:hover {
+    background: #fff;
+    border-color: var(--primary-soft);
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(78, 115, 223, 0.1);
+}
+
+.role-icon {
+    font-size: 38px;
+    color: var(--primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.role-card h3 {
+    font-size: 16px;
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+/* Form Styles */
+.back-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-bottom: 25px;
+    transition: color 0.2s;
+    font-family: 'Poppins', sans-serif;
+    padding: 0;
+}
+
+.back-btn:hover {
+    color: var(--primary);
+}
+
+.input-group {
+    margin-bottom: 20px;
+    text-align: left;
+}
+
+.input-group label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+}
+
+.input-group input {
+    width: 100%;
+    padding: 12px 15px;
+    border: 1.5px solid #e3e6f0;
+    border-radius: 10px;
+    font-size: 14px;
+    color: var(--text-primary);
+    transition: all 0.3s ease;
+    outline: none;
+    background: #f8f9fc;
+}
+
+.input-group input:focus {
+    border-color: var(--primary);
+    background: #fff;
+    box-shadow: 0 0 0 3px rgba(78, 115, 223, 0.15);
+}
+
+/* Error State */
+.error-message {
+    color: #e74a3b;
+    font-size: 13px;
+    font-weight: 500;
+    margin-bottom: 15px;
+    text-align: left;
+    background: #ffe5e5;
+    padding: 10px 15px;
+    border-radius: 8px;
+    animation: fadeIn 0.3s ease;
+    border-left: 4px solid #e74a3b;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.options {
+    display: flex;
+    align-items: center;
+    font-size: 13px;
+    margin-bottom: 30px;
+    min-height: 20px;
+}
+
+.options label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--text-secondary);
+    cursor: pointer;
+}
+
+.forgot-password {
+    color: #e74a3b !important;
+    font-weight: 600;
+    text-decoration: underline !important;
+    animation: fadeIn 0.3s ease;
+}
+
+.forgot-password:hover {
+    color: #c0392b !important;
+}
+
+.login-btn {
+    width: 100%;
+    padding: 14px;
+    background: var(--primary);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.login-btn:hover {
+    background: #3e5fc4;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(78, 115, 223, 0.4);
+}
+
+.login-btn:active {
+    transform: translateY(0);
+}
