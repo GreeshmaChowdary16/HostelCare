@@ -231,3 +231,65 @@
 .login-btn:active {
     transform: translateY(0);
 }
+
+/* Google Login Button Styles */
+.google-btn {
+    width: 100%;
+    padding: 12px;
+    background: #ffffff;
+    color: #5a5c69;
+    border: 1.5px solid #e3e6f0;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    transition: all 0.3s ease;
+    font-family: 'Poppins', sans-serif;
+    margin-bottom: 5px;
+}
+
+.google-btn:hover {
+    background: #f8f9fc;
+    border-color: #d1d3e2;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+}
+
+.google-btn:active {
+    transform: translateY(0);
+}
+
+.google-icon {
+    flex-shrink: 0;
+}
+
+/* OR Separator Styles */
+.login-separator {
+    display: flex;
+    align-items: center;
+    text-align: center;
+    margin: 20px 0;
+    color: #b7b9cc;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 1px;
+}
+
+.login-separator::before,
+.login-separator::after {
+    content: '';
+    flex: 1;
+    border-bottom: 1.5px solid #e3e6f0;
+}
+
+.login-separator::before {
+    margin-right: 15px;
+}
+
+.login-separator::after {
+    margin-left: 15px;
+}
