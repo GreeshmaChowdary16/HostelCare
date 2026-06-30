@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { API_BASE_URL } from '../../config';
 import './LoginPage.css';
@@ -8,8 +8,20 @@ function LoginPage() {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
+    const [rememberMe, setRememberMe] = useState(false);
     const [loginError, setLoginError] = useState(null); // can be boolean or string
     const navigate = useNavigate();
+
+    useEffect(() => {
+        const savedEmail = localStorage.getItem('savedEmail');
+        const savedRole = localStorage.getItem('savedRole');
+
+        if (savedEmail && savedRole) {
+            setUsername(savedEmail);
+            setRole(savedRole);
+            setRememberMe(true);
+        }
+    }, []);
 
     const handleLogin = async (e) => {
         e.preventDefault();
@@ -55,6 +67,16 @@ function LoginPage() {
             setLoginError('Could not connect to server. Please check if backend is running.');
         }
     };
+
+    useEffect(() => {
+        if (rememberMe) {
+            localStorage.setItem('savedEmail', username);
+            localStorage.setItem('savedRole', role);
+        } else {
+            localStorage.removeItem('savedEmail');
+            localStorage.removeItem('savedRole');
+        }
+    }, [rememberMe, username, role]);
 
     const resetForm = () => {
         setRole(null);
@@ -157,6 +179,13 @@ function LoginPage() {
                                         checked={showPassword} 
                                         onChange={(e) => setShowPassword(e.target.checked)} 
                                     /> Show password
+                                </label>
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        checked={rememberMe}
+                                        onChange={(e) => setRememberMe(e.target.checked)}
+                                    /> Remember me
                                 </label>
                                 {loginError && (
                                     <a href="#" className="forgot-password">Forgot password?</a>
