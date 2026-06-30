@@ -38,13 +38,19 @@ export const registerUser = async (req, res) => {
 // LOGIN
 export const loginUser = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, role } = req.body;
 
     const user = await User.findOne({ email });
 
     if (!user) {
       return res.status(401).json({
         message: "Invalid email or password",
+      });
+    }
+
+    if (role && user.role.toLowerCase() !== role.toLowerCase()) {
+      return res.status(403).json({
+        message: `This account is not registered as a ${role}.`,
       });
     }
 
