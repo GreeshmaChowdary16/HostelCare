@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { API_BASE_URL } from '../../config';
+import { API_BASE_URL, GOOGLE_CLIENT_ID } from '../../config';
 import './LoginPage.css';
 
 function LoginPage() {
@@ -77,6 +77,71 @@ function LoginPage() {
             localStorage.removeItem('savedRole');
         }
     }, [rememberMe, username, role]);
+
+    const handleGoogleLogin = async () => {
+        if (!GOOGLE_CLIENT_ID) {
+            setLoginError('Google client ID is not configured');
+            return;
+        }
+
+        try {
+            const client = window.google;
+            if (!client || !client.accounts || !client.accounts.id) {
+                setLoginError('Google login is not available');
+                return;
+            }
+
+            client.accounts.id.initialize({
+                client_id: GOOGLE_CLIENT_ID,
+                callback: async (response) => {
+                    if (!response.credential) {
+                        setLoginError('Google login failed');
+                        return;
+                    }
+
+                    try {
+                        const googleRes = await fetch(`${API_BASE_URL}/auth/google-login`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                                idToken: response.credential,
+                                role,
+                            }),
+                        });
+
+                        const googleData = await googleRes.json();
+                        if (!googleRes.ok) {
+                            setLoginError(googleData.message || 'Google login failed');
+                            return;
+                        }
+
+                        localStorage.setItem('token', googleData.token);
+                        localStorage.setItem('role', googleData.role);
+                        localStorage.setItem('name', googleData.name);
+                        localStorage.setItem('email', googleData.email || '');
+
+                        if (googleData.role === 'admin') {
+                            navigate('/admin/dashboard');
+                        } else if (googleData.role === 'rector') {
+                            navigate('/rector/dashboard');
+                        } else if (googleData.role === 'student') {
+                            navigate('/student/dashboard');
+                        }
+                    } catch (error) {
+                        console.error('Google login error:', error);
+                        setLoginError('Google login failed.');
+                    }
+                },
+            });
+
+            client.accounts.id.prompt();
+        } catch (error) {
+            console.error('Google login initialization error:', error);
+            setLoginError('Google login is not available');
+        }
+    };
 
     const resetForm = () => {
         setRole(null);
@@ -194,6 +259,9 @@ function LoginPage() {
                             
                             <button type="submit" className="login-btn">
                                 Sign In
+                            </button>
+                            <button type="button" className="google-btn" onClick={handleGoogleLogin}>
+                                <i className="fab fa-google"></i> Continue with Google
                             </button>
                         </form>
                     </div>

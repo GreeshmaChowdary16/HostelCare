@@ -231,3 +231,30 @@
 .login-btn:active {
     transform: translateY(0);
 }
+
+.google-btn {
+    width: 100%;
+    padding: 14px;
+    margin-top: 15px;
+    background: #fff;
+    color: #333;
+    border: 1.5px solid #d1d5db;
+    border-radius: 10px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    transition: all 0.3s ease;
+}
+
+.google-btn:hover {
+    background: #f3f4f6;
+    transform: translateY(-2px);
+}
+
+.google-btn:active {
+    transform: translateY(0);
+}

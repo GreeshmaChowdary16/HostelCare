@@ -1,6 +1,10 @@
 import User from "../models/User.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import crypto from "crypto";
+import { OAuth2Client } from "google-auth-library";
+
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 // REGISTER
 export const registerUser = async (req, res) => {
@@ -83,6 +87,68 @@ export const loginUser = async (req, res) => {
     res.status(500).json({
       message: error.message,
     });
+  }
+};
+
+export const googleLogin = async (req, res) => {
+  try {
+    const { idToken, role } = req.body;
+
+    if (!idToken) {
+      return res.status(400).json({ message: "Google ID token is required" });
+    }
+
+    const ticket = await googleClient.verifyIdToken({
+      idToken,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+
+    const payload = ticket.getPayload();
+    const email = payload?.email;
+    const name = payload?.name || "Google User";
+
+    if (!email) {
+      return res.status(400).json({ message: "Google user email is required" });
+    }
+
+    let user = await User.findOne({ email });
+
+    if (!user) {
+      const generatedPassword = crypto.randomBytes(16).toString("hex");
+      const hashedPassword = await bcrypt.hash(generatedPassword, 10);
+      user = await User.create({
+        name,
+        email,
+        password: hashedPassword,
+        role: role?.toLowerCase() || "student",
+      });
+    }
+
+    if (role && user.role.toLowerCase() !== role.toLowerCase()) {
+      return res.status(403).json({
+        message: `This Google account is not registered as a ${role}.`,
+      });
+    }
+
+    const token = jwt.sign(
+      {
+        id: user._id,
+        role: user.role,
+      },
+      process.env.JWT_SECRET,
+      {
+        expiresIn: "7d",
+      }
+    );
+
+    res.status(200).json({
+      message: "Login successful",
+      token,
+      role: user.role,
+      name: user.name,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
   }
 };
 

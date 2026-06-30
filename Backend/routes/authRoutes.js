@@ -6,6 +6,7 @@ const router = express.Router();
 
 router.post("/register", registerUser);
 router.post("/login", loginUser);
+router.post("/google-login", googleLogin);
 router.get("/me", protect, getMe);
 router.put("/me", protect, updateMe);
 router.post("/change-password", protectWithPassword, changePassword);
