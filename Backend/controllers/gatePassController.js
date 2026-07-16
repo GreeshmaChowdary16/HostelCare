@@ -54,7 +54,7 @@ export const getGatePasses = async (req, res) => {
     }
 
     const gatePasses = await GatePass.find(filter)
-      .populate("student", "name email role")
+      .populate("student", "name email role phone parentPhone rollNo branch year roomInfo bio")
       .sort({ createdAt: -1 });
 
     res.status(200).json(gatePasses);

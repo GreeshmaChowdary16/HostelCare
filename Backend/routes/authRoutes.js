@@ -1,5 +1,5 @@
 import express from "express";
-import { registerUser, loginUser, getMe, updateMe, changePassword } from "../controllers/authController.js";
+import { registerUser, loginUser, googleLogin, getMe, updateMe, changePassword } from "../controllers/authController.js";
 import protect, { protectWithPassword } from "../middleware/authMiddleware.js";
 
 const router = express.Router();

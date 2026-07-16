@@ -33,7 +33,7 @@ export const getComplaints = async (req, res) => {
     }
 
     const complaints = await Complaint.find(filter)
-      .populate("student", "name email role")
+      .populate("student", "name email role phone parentPhone rollNo branch year roomInfo bio")
       .sort({ createdAt: -1 });
 
     res.status(200).json(complaints);
