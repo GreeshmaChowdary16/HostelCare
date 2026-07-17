@@ -8,6 +8,8 @@ import complaintRoutes from "./routes/complaintRoutes.js";
 import gatePassRoutes from "./routes/gatePassRoutes.js";
 import announcementRoutes from "./routes/announcementRoutes.js";
 import messReviewRoutes from "./routes/messReviewRoutes.js";
+import notificationRoutes from "./routes/notificationRoutes.js";
+import attendanceRoutes from "./routes/attendanceRoutes.js";
 
 dotenv.config();
 
@@ -23,6 +25,8 @@ app.use("/api/complaints", complaintRoutes);
 app.use("/api/gatepass", gatePassRoutes);
 app.use("/api/announcements", announcementRoutes);
 app.use("/api/mess-reviews", messReviewRoutes);
+app.use("/api/notifications", notificationRoutes);
+app.use("/api/attendance", attendanceRoutes);
 
 app.get("/", (req, res) => {
     console.log("Root route hit");

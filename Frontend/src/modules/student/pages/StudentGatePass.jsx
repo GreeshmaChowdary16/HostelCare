@@ -41,6 +41,31 @@ const StudentGatePass = () => {
 
     useEffect(() => {
         fetchGatePasses();
+
+        const fetchProfile = async () => {
+            const token = localStorage.getItem('token');
+            if (!token) return;
+            try {
+                const response = await fetch(`${API_BASE_URL}/auth/me`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.phone) {
+                        setNewRequest(prev => ({ ...prev, contactNo: data.phone }));
+                    }
+                    if (data.parentPhone) {
+                        setNewRequest(prev => ({ ...prev, parentContactNo: data.parentPhone }));
+                        setParentMobile(data.parentPhone);
+                    }
+                }
+            } catch (error) {
+                console.error('Error fetching profile for gatepass:', error);
+            }
+        };
+        fetchProfile();
     }, []);
 
     // Calculate days when dates change

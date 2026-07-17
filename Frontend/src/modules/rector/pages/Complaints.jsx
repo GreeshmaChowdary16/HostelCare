@@ -343,7 +343,7 @@ const Complaints = () => {
                                     emergencyComplaints.map(comp => (
                                         <tr key={comp._id}>
                                             <td style={{ color: '#858796' }}>#{comp._id.slice(-4).toUpperCase()}</td>
-                                            <td className="room-badge">302</td>
+                                            <td className="room-badge">{comp.student?.roomInfo || comp.student?.roomNo || 'Unassigned'}</td>
                                             <td>{comp.problem}</td>
                                             <td>{new Date(comp.createdAt).toLocaleDateString(undefined, {day: 'numeric', month: 'short'})}</td>
                                             <td>
@@ -444,7 +444,7 @@ const Complaints = () => {
 
                                         return (
                                             <tr key={comp._id}>
-                                                <td className="room-badge">302</td>
+                                                <td className="room-badge">{comp.student?.roomInfo || comp.student?.roomNo || 'Unassigned'}</td>
                                                 <td>{comp.student?.name || 'Student'}</td>
                                                 <td style={{ color: color, fontWeight: 600 }}>
                                                     <i className={`fas ${icon}`}></i> {comp.category}

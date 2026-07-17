@@ -9,17 +9,14 @@ const StudentDashboard = () => {
     const [announcements, setAnnouncements] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
 
-    const studentInfo = {
-        name: localStorage.getItem('name') || 'Anjali Sharma',
-        mobile: '+91 70001 23456',
-        branch: 'Computer Science & Engineering',
-        enrollNo: '2022CS1045',
-        roomNo: '302',
-        bedNo: 'A',
-        hostelName: 'Girls Hostel A',
-        parentName: 'Mr. Rajesh Sharma',
-        parentMobile: '+91 94444 55555'
-    };
+    const [studentInfo, setStudentInfo] = useState({
+        name: localStorage.getItem('name') || 'Student',
+        phone: '',
+        branch: 'Student',
+        rollNo: '',
+        roomInfo: '',
+        parentPhone: ''
+    });
 
     useEffect(() => {
         const token = localStorage.getItem('token');
@@ -30,6 +27,13 @@ const StudentDashboard = () => {
                 const headers = {
                     'Authorization': `Bearer ${token}`
                 };
+
+                // Fetch profile
+                const profileRes = await fetch(`${API_BASE_URL}/auth/me`, { headers });
+                if (profileRes.ok) {
+                    const profileData = await profileRes.json();
+                    setStudentInfo(profileData);
+                }
 
                 // Fetch complaints
                 const compRes = await fetch(`${API_BASE_URL}/complaints`, { headers });
@@ -168,23 +172,17 @@ const StudentDashboard = () => {
                         <div className="profile-role">{studentInfo.branch}</div>
 
                         <div className="profile-details-grid">
-                            <span className="detail-label">Enroll No</span>
-                            <span className="detail-value">{studentInfo.enrollNo}</span>
+                            <span className="detail-label">Roll/Enroll No</span>
+                            <span className="detail-value">{studentInfo.rollNo || 'N/A'}</span>
 
-                            <span className="detail-label">Hostel</span>
-                            <span className="detail-value">{studentInfo.hostelName}</span>
-
-                            <span className="detail-label">Room / Bed</span>
-                            <span className="detail-value">{studentInfo.roomNo} / {studentInfo.bedNo}</span>
+                            <span className="detail-label">Hostel & Room</span>
+                            <span className="detail-value">{studentInfo.roomInfo || 'N/A'}</span>
 
                             <span className="detail-label">Mobile</span>
-                            <span className="detail-value">{studentInfo.mobile}</span>
-
-                            <span className="detail-label">Parent</span>
-                            <span className="detail-value">{studentInfo.parentName}</span>
+                            <span className="detail-value">{studentInfo.phone || 'N/A'}</span>
 
                             <span className="detail-label">Parent Mobile</span>
-                            <span className="detail-value">{studentInfo.parentMobile}</span>
+                            <span className="detail-value">{studentInfo.parentPhone || 'N/A'}</span>
                         </div>
                     </div>
 
@@ -198,8 +196,8 @@ const StudentDashboard = () => {
                                 <i className="fas fa-user-tie"></i>
                             </div>
                             <div>
-                                <div style={{ fontWeight: 700, color: '#333', fontSize: '15px' }}>Mrs. Sunita Verma</div>
-                                <div style={{ fontSize: '11px', color: '#858796' }}>{studentInfo.hostelName}</div>
+                                <div style={{ fontWeight: 700, color: '#333', fontSize: '15px' }}>Mrs. Priya Kumar</div>
+                                <div style={{ fontSize: '11px', color: '#858796' }}>{studentInfo.roomInfo || 'Hostel Care'}</div>
                             </div>
                         </div>
                         <div style={{ 

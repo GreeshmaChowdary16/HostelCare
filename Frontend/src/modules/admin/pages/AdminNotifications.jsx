@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Header from '../../../components/Header';
+import { API_BASE_URL } from '../../../config';
 
 function AdminNotifications() {
     const [notifications, setNotifications] = useState([]);
@@ -18,73 +19,103 @@ function AdminNotifications() {
         { id: 5, action: 'Rector Assigned', detail: 'Rector Priya Kumar assigned to Girls Hostel A', time: '2 days ago', type: 'admin' }
     ];
 
-    // Load notifications from localStorage
     useEffect(() => {
-        const stored = localStorage.getItem('system_notifications');
-        if (stored) {
-            setNotifications(JSON.parse(stored));
-        } else {
-            // Seed initial notifications if empty
-            const initial = [
-                {
-                    id: 'init-1',
-                    title: 'Water Supply Maintenance',
-                    content: 'Water supply interruption today from 2:00 PM to 5:00 PM due to tank maintenance.',
-                    category: 'Emergency',
-                    target: 'All',
-                    createdAt: new Date().toISOString()
-                },
-                {
-                    id: 'init-2',
-                    title: 'Annual Hostel Night 2026',
-                    content: 'Registrations are now open for cultural performances. Contact your floor representative.',
-                    category: 'Info',
-                    target: 'All',
-                    createdAt: new Date(Date.now() - 86400000).toISOString()
+        const fetchNotifications = async () => {
+            const token = localStorage.getItem('token');
+            if (!token) return;
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/notifications`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    setNotifications(data);
+                } else {
+                    const err = await response.json();
+                    setStatusMessage(err.message || 'Could not load notifications.');
                 }
-            ];
-            localStorage.setItem('system_notifications', JSON.stringify(initial));
-            setNotifications(initial);
-        }
+            } catch (error) {
+                console.error('Error fetching notifications:', error);
+                setStatusMessage('Could not load notifications.');
+            }
+        };
+
+        fetchNotifications();
     }, []);
 
-    const handleBroadcast = (e) => {
+    const handleBroadcast = async (e) => {
         e.preventDefault();
         if (!title.trim() || !content.trim()) {
             setStatusMessage('Title and message content are required.');
             return;
         }
 
-        const newNotification = {
-            id: 'notif-' + Date.now(),
-            title: title.trim(),
-            content: content.trim(),
-            category,
-            target,
-            createdAt: new Date().toISOString()
-        };
+        const token = localStorage.getItem('token');
+        if (!token) {
+            setStatusMessage('Please login to broadcast notifications.');
+            return;
+        }
 
-        const updated = [newNotification, ...notifications];
-        setNotifications(updated);
-        localStorage.setItem('system_notifications', JSON.stringify(updated));
+        try {
+            const response = await fetch(`${API_BASE_URL}/notifications`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    title: title.trim(),
+                    content: content.trim(),
+                    category,
+                    target,
+                })
+            });
 
-        // Reset form
-        setTitle('');
-        setContent('');
-        setCategory('Info');
-        setTarget('All');
-        setStatusMessage('Notification broadcasted successfully!');
-
-        setTimeout(() => setStatusMessage(''), 4000);
+            const data = await response.json();
+            if (response.ok) {
+                setStatusMessage('Notification broadcasted successfully!');
+                setTitle('');
+                setContent('');
+                setCategory('Info');
+                setTarget('All');
+                setNotifications(prev => [data.notification, ...prev]);
+            } else {
+                setStatusMessage(data.message || 'Failed to broadcast notification.');
+            }
+        } catch (error) {
+            console.error('Error broadcasting notification:', error);
+            setStatusMessage('Server error while broadcasting notification.');
+        }
     };
 
-    const handleDelete = (id) => {
+    const handleDelete = async (id) => {
         if (!window.confirm('Are you sure you want to stop/delete this broadcast?')) return;
-        const updated = notifications.filter(n => n.id !== id);
-        setNotifications(updated);
-        localStorage.setItem('system_notifications', JSON.stringify(updated));
-        setStatusMessage('Broadcast deleted.');
-        setTimeout(() => setStatusMessage(''), 3000);
+        const token = localStorage.getItem('token');
+        if (!token) return;
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/notifications/${id}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            const data = await response.json();
+            if (response.ok) {
+                setNotifications(prev => prev.filter(n => n._id !== id));
+                setStatusMessage('Broadcast deleted.');
+            } else {
+                setStatusMessage(data.message || 'Failed to delete broadcast.');
+            }
+        } catch (error) {
+            console.error('Error deleting notification:', error);
+            setStatusMessage('Server error while deleting broadcast.');
+        }
     };
 
     const getCategoryBadgeColor = (cat) => {

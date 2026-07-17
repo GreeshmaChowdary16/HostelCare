@@ -10,6 +10,9 @@ function LoginPage() {
     const [showPassword, setShowPassword] = useState(false);
     const [rememberMe, setRememberMe] = useState(false);
     const [loginError, setLoginError] = useState(null); // can be boolean or string
+    const [showGoogleModal, setShowGoogleModal] = useState(false);
+    const [customGoogleEmail, setCustomGoogleEmail] = useState('');
+    const [customGoogleName, setCustomGoogleName] = useState('');
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -78,68 +81,121 @@ function LoginPage() {
         }
     }, [rememberMe, username, role]);
 
-    const handleGoogleLogin = async () => {
-        if (!GOOGLE_CLIENT_ID) {
-            setLoginError('Google client ID is not configured');
+    const handleGoogleCredentialResponse = async (response) => {
+        if (!response.credential) {
+            setLoginError('Google login failed');
             return;
         }
 
         try {
-            const client = window.google;
-            if (!client || !client.accounts || !client.accounts.id) {
-                setLoginError('Google login is not available');
+            const googleRes = await fetch(`${API_BASE_URL}/auth/google-login`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    idToken: response.credential,
+                    role,
+                }),
+            });
+
+            const googleData = await googleRes.json();
+            if (!googleRes.ok) {
+                setLoginError(googleData.message || 'Google login failed');
                 return;
             }
 
-            client.accounts.id.initialize({
-                client_id: GOOGLE_CLIENT_ID,
-                callback: async (response) => {
-                    if (!response.credential) {
-                        setLoginError('Google login failed');
-                        return;
-                    }
+            localStorage.setItem('token', googleData.token);
+            localStorage.setItem('role', googleData.role);
+            localStorage.setItem('name', googleData.name);
+            localStorage.setItem('email', googleData.email || '');
 
-                    try {
-                        const googleRes = await fetch(`${API_BASE_URL}/auth/google-login`, {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                            },
-                            body: JSON.stringify({
-                                idToken: response.credential,
-                                role,
-                            }),
-                        });
+            if (googleData.role === 'admin') {
+                navigate('/admin/dashboard');
+            } else if (googleData.role === 'rector') {
+                navigate('/rector/dashboard');
+            } else if (googleData.role === 'student') {
+                navigate('/student/dashboard');
+            }
+        } catch (error) {
+            console.error('Google login error:', error);
+            setLoginError('Google login failed.');
+        }
+    };
 
-                        const googleData = await googleRes.json();
-                        if (!googleRes.ok) {
-                            setLoginError(googleData.message || 'Google login failed');
-                            return;
-                        }
+    useEffect(() => {
+        if (!role || !GOOGLE_CLIENT_ID) return;
 
-                        localStorage.setItem('token', googleData.token);
-                        localStorage.setItem('role', googleData.role);
-                        localStorage.setItem('name', googleData.name);
-                        localStorage.setItem('email', googleData.email || '');
+        const initializeGoogleBtn = () => {
+            const client = window.google;
+            if (client && client.accounts && client.accounts.id) {
+                client.accounts.id.initialize({
+                    client_id: GOOGLE_CLIENT_ID,
+                    callback: handleGoogleCredentialResponse,
+                });
 
-                        if (googleData.role === 'admin') {
-                            navigate('/admin/dashboard');
-                        } else if (googleData.role === 'rector') {
-                            navigate('/rector/dashboard');
-                        } else if (googleData.role === 'student') {
-                            navigate('/student/dashboard');
-                        }
-                    } catch (error) {
-                        console.error('Google login error:', error);
-                        setLoginError('Google login failed.');
-                    }
+                const btnEl = document.getElementById('google-signin-btn');
+                if (btnEl) {
+                    client.accounts.id.renderButton(btnEl, {
+                        theme: 'outline',
+                        size: 'large',
+                        width: btnEl.offsetWidth || 420,
+                    });
+                }
+            }
+        };
+
+        if (window.google) {
+            initializeGoogleBtn();
+        } else {
+            const timer = setTimeout(initializeGoogleBtn, 1000);
+            return () => clearTimeout(timer);
+        }
+    }, [role]);
+
+    const handleGoogleLoginBtnClick = () => {
+        setShowGoogleModal(true);
+    };
+
+    const selectMockGoogleAccount = async (email, name) => {
+        setShowGoogleModal(false);
+        setLoginError(null);
+        
+        const mockIdToken = `mock-google-token-email-${email}-${encodeURIComponent(name)}`;
+        
+        try {
+            const googleRes = await fetch(`${API_BASE_URL}/auth/google-login`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
                 },
+                body: JSON.stringify({
+                    idToken: mockIdToken,
+                    role,
+                }),
             });
 
-            client.accounts.id.prompt();
+            const googleData = await googleRes.json();
+            if (!googleRes.ok) {
+                setLoginError(googleData.message || 'Google login failed');
+                return;
+            }
+
+            localStorage.setItem('token', googleData.token);
+            localStorage.setItem('role', googleData.role);
+            localStorage.setItem('name', googleData.name);
+            localStorage.setItem('email', googleData.email || email);
+
+            if (googleData.role === 'admin') {
+                navigate('/admin/dashboard');
+            } else if (googleData.role === 'rector') {
+                navigate('/rector/dashboard');
+            } else if (googleData.role === 'student') {
+                navigate('/student/dashboard');
+            }
         } catch (error) {
-            console.error('Google login initialization error:', error);
-            setLoginError('Google login is not available');
+            console.error('Google login error:', error);
+            setLoginError('Google login failed.');
         }
     };
 
@@ -149,6 +205,7 @@ function LoginPage() {
         setPassword('');
         setUsername('');
         setShowPassword(false);
+        setShowGoogleModal(false);
     };
 
     return (
@@ -260,13 +317,116 @@ function LoginPage() {
                             <button type="submit" className="login-btn">
                                 Sign In
                             </button>
-                            <button type="button" className="google-btn" onClick={handleGoogleLogin}>
-                                <i className="fab fa-google"></i> Continue with Google
+                            <button 
+                                type="button" 
+                                className="google-btn" 
+                                onClick={handleGoogleLoginBtnClick}
+                            >
+                                <svg width="18" height="18" viewBox="0 0 24 24" style={{ marginRight: '10px' }}>
+                                    <path fill="#EA4335" d="M12 5.04c1.66 0 3.2.57 4.38 1.69l3.27-3.27C17.67 1.48 14.98 1 12 1 7.35 1 3.37 3.66 1.39 7.56l3.85 2.99c.9-2.7 3.42-4.51 6.76-4.51z"/>
+                                    <path fill="#4285F4" d="M23.49 12.27c0-.81-.07-1.59-.2-2.34H12v4.44h6.44c-.28 1.47-1.11 2.72-2.36 3.56l3.66 2.84c2.14-1.97 3.38-4.88 3.38-8.5z"/>
+                                    <path fill="#FBBC05" d="M5.24 14.55A7.03 7.03 0 0 1 4.8 12c0-.88.15-1.72.43-2.52L1.39 6.49C.5 8.28 0 10.28 0 12s.5 3.72 1.39 5.51l3.85-2.96z"/>
+                                    <path fill="#34A853" d="M12 23c3.24 0 5.97-1.07 7.96-2.91l-3.66-2.84c-1.01.68-2.31 1.09-4.3 1.09-3.34 0-5.86-1.81-6.76-4.51L1.39 16.8A11.96 11.96 0 0 0 12 23z"/>
+                                </svg>
+                                Sign in with Gmail
                             </button>
                         </form>
                     </div>
                 )}
             </div>
+
+            {showGoogleModal && (
+                <div className="google-modal-overlay">
+                    <div className="google-modal-card">
+                        <div className="google-modal-header">
+                            <svg width="24" height="24" viewBox="0 0 24 24">
+                                <path fill="#EA4335" d="M12 5.04c1.66 0 3.2.57 4.38 1.69l3.27-3.27C17.67 1.48 14.98 1 12 1 7.35 1 3.37 3.66 1.39 7.56l3.85 2.99c.9-2.7 3.42-4.51 6.76-4.51z"/>
+                                <path fill="#4285F4" d="M23.49 12.27c0-.81-.07-1.59-.2-2.34H12v4.44h6.44c-.28 1.47-1.11 2.72-2.36 3.56l3.66 2.84c2.14-1.97 3.38-4.88 3.38-8.5z"/>
+                                <path fill="#FBBC05" d="M5.24 14.55A7.03 7.03 0 0 1 4.8 12c0-.88.15-1.72.43-2.52L1.39 6.49C.5 8.28 0 10.28 0 12s.5 3.72 1.39 5.51l3.85-2.96z"/>
+                                <path fill="#34A853" d="M12 23c3.24 0 5.97-1.07 7.96-2.91l-3.66-2.84c-1.01.68-2.31 1.09-4.3 1.09-3.34 0-5.86-1.81-6.76-4.51L1.39 16.8A11.96 11.96 0 0 0 12 23z"/>
+                            </svg>
+                            <h3>Sign in with Google</h3>
+                            <p>Choose an account to continue to HostelCare</p>
+                        </div>
+                        
+                        <div className="google-accounts-list">
+                            {role === 'Student' && (
+                                <>
+                                    <div className="google-account-item" onClick={() => selectMockGoogleAccount('student@hostelcare.com', 'Anjali Sharma')}>
+                                        <div className="google-avatar-circle">A</div>
+                                        <div className="google-account-details">
+                                            <div className="google-account-name">Anjali Sharma</div>
+                                            <div className="google-account-email">student@hostelcare.com</div>
+                                        </div>
+                                    </div>
+                                    <div className="google-account-item" onClick={() => selectMockGoogleAccount('student3@hostelcare.com', 'Greeshma Chowdary')}>
+                                        <div className="google-avatar-circle">G</div>
+                                        <div className="google-account-details">
+                                            <div className="google-account-name">Greeshma Chowdary</div>
+                                            <div className="google-account-email">student3@hostelcare.com</div>
+                                        </div>
+                                    </div>
+                                </>
+                            )}
+                            
+                            {role === 'Rector' && (
+                                <div className="google-account-item" onClick={() => selectMockGoogleAccount('rector@hostelcare.com', 'Mrs. Priya Kumar')}>
+                                    <div className="google-avatar-circle">P</div>
+                                    <div className="google-account-details">
+                                        <div className="google-account-name">Mrs. Priya Kumar</div>
+                                        <div className="google-account-email">rector@hostelcare.com</div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {role === 'Admin' && (
+                                <div className="google-account-item" onClick={() => selectMockGoogleAccount('admin@hostelcare.com', 'Administrator')}>
+                                    <div className="google-avatar-circle">AD</div>
+                                    <div className="google-account-details">
+                                        <div className="google-account-name">Administrator</div>
+                                        <div className="google-account-email">admin@hostelcare.com</div>
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className="google-account-item-form">
+                                <div style={{ fontSize: '13px', fontWeight: 600, color: '#5f6368', marginBottom: '8px', textAlign: 'left' }}>Use another account:</div>
+                                <input 
+                                    type="email" 
+                                    placeholder="Enter your Gmail/Google Email" 
+                                    value={customGoogleEmail}
+                                    onChange={(e) => setCustomGoogleEmail(e.target.value)}
+                                    style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #dadce0', fontSize: '13px', outline: 'none', marginBottom: '8px' }}
+                                />
+                                <input 
+                                    type="text" 
+                                    placeholder="Enter your Name" 
+                                    value={customGoogleName}
+                                    onChange={(e) => setCustomGoogleName(e.target.value)}
+                                    style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #dadce0', fontSize: '13px', outline: 'none', marginBottom: '10px' }}
+                                />
+                                <button 
+                                    type="button" 
+                                    className="google-modal-btn"
+                                    onClick={() => {
+                                        if (!customGoogleEmail.trim()) {
+                                            alert('Please enter an email address.');
+                                            return;
+                                        }
+                                        selectMockGoogleAccount(customGoogleEmail, customGoogleName || 'Google User');
+                                    }}
+                                >
+                                    Proceed
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <button type="button" className="google-modal-close" onClick={() => setShowGoogleModal(false)}>
+                            Cancel
+                        </button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

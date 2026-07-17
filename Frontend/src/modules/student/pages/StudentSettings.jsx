@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Header from '../../../components/Header';
 import { API_BASE_URL } from '../../../config';
 
@@ -9,14 +9,14 @@ const StudentSettings = () => {
     const [confirmPassword, setConfirmPassword] = useState('');
 
     // Profile State
-    const [fullName, setFullName] = useState('Anjali Sharma');
-    const [rollNo, setRollNo] = useState('2022CS1045');
-    const [branch, setBranch] = useState('Computer Science & Engineering');
-    const [year, setYear] = useState('3rd Year');
-    const [email, setEmail] = useState('anjali.s@student.edu');
-    const [phone, setPhone] = useState('+91 70001 23456');
-    const [parentPhone, setParentPhone] = useState('+91 94444 55555');
-    const [roomInfo, setRoomInfo] = useState('Girls Hostel A - Room 302');
+    const [fullName, setFullName] = useState('');
+    const [rollNo, setRollNo] = useState('');
+    const [branch, setBranch] = useState('');
+    const [year, setYear] = useState('');
+    const [email, setEmail] = useState('');
+    const [phone, setPhone] = useState('');
+    const [parentPhone, setParentPhone] = useState('');
+    const [roomInfo, setRoomInfo] = useState('');
 
     // Notification Preferences State
     const [notifPrefs, setNotifPrefs] = useState({
@@ -48,6 +48,30 @@ const StudentSettings = () => {
         return token ? { Authorization: `Bearer ${token}` } : {};
     };
 
+    useEffect(() => {
+        const fetchProfile = async () => {
+            try {
+                const res = await fetch(`${API_BASE_URL}/auth/me`, {
+                    headers: getAuthHeader()
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    setFullName(data.name || '');
+                    setRollNo(data.rollNo || '');
+                    setBranch(data.branch || '');
+                    setYear(data.year || '');
+                    setEmail(data.email || '');
+                    setPhone(data.phone || '');
+                    setParentPhone(data.parentPhone || '');
+                    setRoomInfo(data.roomInfo || '');
+                }
+            } catch (err) {
+                console.error('Error fetching profile:', err);
+            }
+        };
+        fetchProfile();
+    }, []);
+
     const handleSaveProfile = async () => {
         try {
             const res = await fetch(`${API_BASE_URL}/auth/me`, {
@@ -61,7 +85,9 @@ const StudentSettings = () => {
 
             const data = await res.json();
             if (!res.ok) throw new Error(data.message || 'Failed to update');
-            alert('Profile updated');
+            alert('Profile updated successfully');
+            localStorage.setItem('name', fullName);
+            localStorage.setItem('email', email);
         } catch (err) {
             alert(err.message);
         }

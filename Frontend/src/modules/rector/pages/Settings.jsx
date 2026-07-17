@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Header from '../../../components/Header';
+import { API_BASE_URL } from '../../../config';
 
 const Settings = () => {
     const [activeMenu, setActiveMenu] = useState('security');
@@ -8,10 +9,11 @@ const Settings = () => {
     const [confirmPassword, setConfirmPassword] = useState('');
 
     // Profile State
-    const [fullName, setFullName] = useState('Mrs. Kumar');
-    const [email, setEmail] = useState('kumar.rector@hostel.edu');
-    const [phone, setPhone] = useState('+91 98765 43210');
-    const [office, setOffice] = useState('Girls Hostel A - Ground Floor');
+    const [fullName, setFullName] = useState('');
+    const [email, setEmail] = useState('');
+    const [phone, setPhone] = useState('');
+    const [office, setOffice] = useState('');
+    const [bio, setBio] = useState('');
 
     // Notification Preferences State
     const [notifPrefs, setNotifPrefs] = useState({
@@ -35,6 +37,74 @@ const Settings = () => {
 
     const removeNotif = (id) => {
         setNotifList(prev => prev.filter(n => n.id !== id));
+    };
+
+    const getAuthHeader = () => {
+        const token = localStorage.getItem('token');
+        return token ? { Authorization: `Bearer ${token}` } : {};
+    };
+
+    useEffect(() => {
+        const fetchProfile = async () => {
+            try {
+                const res = await fetch(`${API_BASE_URL}/auth/me`, {
+                    headers: getAuthHeader()
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    setFullName(data.name || '');
+                    setEmail(data.email || '');
+                    setPhone(data.phone || '');
+                    setOffice(data.office || '');
+                    setBio(data.bio || '');
+                }
+            } catch (err) {
+                console.error('Error fetching profile:', err);
+            }
+        };
+        fetchProfile();
+    }, []);
+
+    const handleSaveProfile = async () => {
+        try {
+            const res = await fetch(`${API_BASE_URL}/auth/me`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...getAuthHeader(),
+                },
+                body: JSON.stringify({ name: fullName, email, phone, office, bio }),
+            });
+
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.message || 'Failed to update');
+            alert('Profile updated successfully');
+            localStorage.setItem('name', fullName);
+            localStorage.setItem('email', email);
+        } catch (err) {
+            alert(err.message);
+        }
+    };
+
+    const handleUpdatePassword = async () => {
+        try {
+            const res = await fetch(`${API_BASE_URL}/auth/change-password`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...getAuthHeader(),
+                },
+                body: JSON.stringify({ currentPassword, newPassword, confirmPassword }),
+            });
+
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.message || 'Failed to change password');
+            alert('Password changed successfully. Please login again.');
+            localStorage.removeItem('token');
+            window.location.href = '/login';
+        } catch (err) {
+            alert(err.message);
+        }
     };
 
     return (
@@ -120,7 +190,7 @@ const Settings = () => {
                                     </div>
 
                                     <div style={{ display: 'flex', gap: '15px', borderTop: '1px solid #e3e6f0', paddingTop: '20px' }}>
-                                        <button type="button" className="btn-action view-btn" style={{ padding: '10px 25px', fontSize: '14px' }}>Update Password</button>
+                                        <button type="button" onClick={handleUpdatePassword} className="btn-action view-btn" style={{ padding: '10px 25px', fontSize: '14px' }}>Update Password</button>
                                         <button type="button" className="btn-sm" style={{ fontSize: '14px', background: 'white', border: '1px solid #d1d3e2' }}>Cancel</button>
                                     </div>
                                 </form>
@@ -158,11 +228,11 @@ const Settings = () => {
 
                                     <div style={{ marginBottom: '30px' }}>
                                         <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500, color: '#5a5c69' }}>Personal Bio</label>
-                                        <textarea rows="4" placeholder="Tell us about yourself..." style={{ width: '100%', padding: '12px', border: '1px solid #d1d3e2', borderRadius: '5px', fontSize: '14px', resize: 'vertical' }}></textarea>
+                                        <textarea rows="4" placeholder="Tell us about yourself..." value={bio} onChange={(e) => setBio(e.target.value)} style={{ width: '100%', padding: '12px', border: '1px solid #d1d3e2', borderRadius: '5px', fontSize: '14px', resize: 'vertical' }}></textarea>
                                     </div>
 
                                     <div style={{ display: 'flex', gap: '15px', borderTop: '1px solid #e3e6f0', paddingTop: '20px' }}>
-                                        <button type="button" className="btn-action view-btn" style={{ padding: '10px 25px', fontSize: '14px' }}>Save Changes</button>
+                                        <button type="button" onClick={handleSaveProfile} className="btn-action view-btn" style={{ padding: '10px 25px', fontSize: '14px' }}>Save Changes</button>
                                         <button type="button" className="btn-sm" style={{ fontSize: '14px', background: 'white', border: '1px solid #d1d3e2' }}>Cancel</button>
                                     </div>
                                 </form>

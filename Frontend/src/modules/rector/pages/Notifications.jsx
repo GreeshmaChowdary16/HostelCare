@@ -1,7 +1,39 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Header from '../../../components/Header';
+import { API_BASE_URL } from '../../../config';
 
 const Notifications = () => {
+    const [notifications, setNotifications] = useState([]);
+    const [statusMessage, setStatusMessage] = useState('');
+
+    useEffect(() => {
+        const fetchNotifications = async () => {
+            const token = localStorage.getItem('token');
+            if (!token) return;
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/notifications`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    setNotifications(data);
+                } else {
+                    const err = await response.json();
+                    setStatusMessage(err.message || 'Could not load notifications.');
+                }
+            } catch (error) {
+                console.error('Error fetching notifications:', error);
+                setStatusMessage('Unable to fetch notifications.');
+            }
+        };
+
+        fetchNotifications();
+    }, []);
+
     return (
         <>
             <Header title="Notifications" />
@@ -27,37 +59,43 @@ const Notifications = () => {
 
                 <div className="widget">
                     <div className="widget-header">
-                        <div className="widget-title">Recent Activities</div>
+                        <div className="widget-title">Recent Notifications</div>
                     </div>
-                    <ul style={{ listStyle: 'none', padding: 0 }}>
-                        <li style={{ padding: '15px', borderBottom: '1px solid #f1f3f8', display: 'flex', alignItems: 'center', gap: '15px' }}>
-                            <div style={{ background: '#e7f3ff', width: '40px', height: '40px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#4e73df' }}>
-                                <i className="fas fa-exclamation-circle"></i>
-                            </div>
-                            <div>
-                                <div style={{ fontWeight: 500, color: '#5a5c69' }}>New complaint registered</div>
-                                <div style={{ fontSize: '12px', color: '#858796' }}>2 mins ago</div>
-                            </div>
-                        </li>
-                        <li style={{ padding: '15px', borderBottom: '1px solid #f1f3f8', display: 'flex', alignItems: 'center', gap: '15px' }}>
-                            <div style={{ background: '#e6fffa', width: '40px', height: '40px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#1cc88a' }}>
-                                <i className="fas fa-check-circle"></i>
-                            </div>
-                            <div>
-                                <div style={{ fontWeight: 500, color: '#5a5c69' }}>Gate pass approved</div>
-                                <div style={{ fontSize: '12px', color: '#858796' }}>1 hour ago</div>
-                            </div>
-                        </li>
-                        <li style={{ padding: '15px', borderBottom: '1px solid #f1f3f8', display: 'flex', alignItems: 'center', gap: '15px' }}>
-                            <div style={{ background: '#fff8e1', width: '40px', height: '40px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#f6c23e' }}>
-                                <i className="fas fa-bullhorn"></i>
-                            </div>
-                            <div>
-                                <div style={{ fontWeight: 500, color: '#5a5c69' }}>Announcement posted</div>
-                                <div style={{ fontSize: '12px', color: '#858796' }}>Yesterday</div>
-                            </div>
-                        </li>
-                    </ul>
+                    {statusMessage && (
+                        <div style={{ background: '#fff4e5', color: '#856404', padding: '15px', borderRadius: '8px', marginBottom: '20px', border: '1px solid #ffeeba' }}>
+                            {statusMessage}
+                        </div>
+                    )}
+                    {notifications.length === 0 ? (
+                        <div style={{ padding: '30px', color: '#858796', textAlign: 'center' }}>
+                            <i className="fas fa-bell-slash" style={{ fontSize: '32px', marginBottom: '12px', color: '#d1d3e2' }}></i>
+                            <p>No notifications are available right now.</p>
+                        </div>
+                    ) : (
+                        <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+                            {notifications.map((notif) => (
+                                <li key={notif._id} style={{ padding: '18px 20px', borderBottom: '1px solid #f1f3f8', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '15px' }}>
+                                    <div style={{ display: 'flex', gap: '15px', alignItems: 'flex-start', flex: 1 }}>
+                                        <div style={{ width: '46px', height: '46px', borderRadius: '14px', background: '#f8f9fc', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#4e73df' }}>
+                                            <i className="fas fa-bell"></i>
+                                        </div>
+                                        <div style={{ minWidth: 0 }}>
+                                            <div style={{ fontSize: '15px', fontWeight: 700, color: '#333' }}>{notif.title}</div>
+                                            <div style={{ margin: '8px 0', fontSize: '13px', color: '#5a5c69', lineHeight: 1.6 }}>{notif.content}</div>
+                                            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', fontSize: '11px', color: '#858796' }}>
+                                                <span style={{ padding: '4px 10px', background: '#e8f0fe', borderRadius: '999px' }}>{notif.category}</span>
+                                                <span style={{ padding: '4px 10px', background: '#f0fdf4', borderRadius: '999px' }}>Target: {notif.target}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div style={{ textAlign: 'right', minWidth: '120px' }}>
+                                        <div style={{ fontSize: '12px', color: '#858796' }}>{notif.author?.name || 'System'}</div>
+                                        <div style={{ fontSize: '11px', color: '#c3c6d9', marginTop: '8px' }}>{new Date(notif.createdAt).toLocaleString()}</div>
+                                    </div>
+                                </li>
+                            ))}
+                        </ul>
+                    )}
                 </div>
             </div>
         </>

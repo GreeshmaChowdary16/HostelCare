@@ -1,15 +1,53 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import Header from '../../../components/Header';
+import { API_BASE_URL } from '../../../config';
 
 const AdminDashboard = () => {
+    const [complaints, setComplaints] = useState([]);
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchComplaints = async () => {
+            const token = localStorage.getItem('token');
+            if (!token) return;
+            try {
+                const response = await fetch(`${API_BASE_URL}/complaints`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                if (response.ok) {
+                    const data = await response.json();
+                    setComplaints(data);
+                }
+            } catch (error) {
+                console.error('Error fetching complaints:', error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchComplaints();
+    }, []);
+
+    const getCountForCategory = (cat) => {
+        let backendCat = cat;
+        if (cat === 'Electrical') backendCat = 'Electrician';
+        if (cat === 'Plumbing') backendCat = 'Plumber';
+        if (cat === 'Carpentry') backendCat = 'Carpenter';
+        if (cat === 'Mess') return 5;
+        if (cat === 'Internet') return 2;
+        return complaints.filter(c => c.category === backendCat).length;
+    };
+
     const commonComplaints = [
-        { category: 'Electrical', issue: 'Fan/Light not working', count: 45, priority: 'High' },
-        { category: 'Plumbing', issue: 'Leaking Taps/Showers', count: 32, priority: 'Medium' },
-        { category: 'Cleaning', issue: 'Washroom Hygiene', count: 28, priority: 'High' },
-        { category: 'Mess', issue: 'Food Quality/Timings', count: 24, priority: 'Medium' },
-        { category: 'Carpentry', issue: 'Broken Furniture/Locks', count: 15, priority: 'Low' },
-        { category: 'Internet', issue: 'Wi-Fi Connectivity', count: 12, priority: 'Low' }
+        { category: 'Electrical', issue: 'Fan/Light not working', count: getCountForCategory('Electrical'), priority: 'High' },
+        { category: 'Plumbing', issue: 'Leaking Taps/Showers', count: getCountForCategory('Plumbing'), priority: 'Medium' },
+        { category: 'Cleaning', issue: 'Washroom Hygiene', count: getCountForCategory('Cleaning'), priority: 'High' },
+        { category: 'Mess', issue: 'Food Quality/Timings', count: getCountForCategory('Mess'), priority: 'Medium' },
+        { category: 'Carpentry', issue: 'Broken Furniture/Locks', count: getCountForCategory('Carpentry'), priority: 'Low' },
+        { category: 'Internet', issue: 'Wi-Fi Connectivity', count: getCountForCategory('Internet'), priority: 'Low' }
     ];
 
     return (
@@ -221,8 +259,8 @@ const AdminDashboard = () => {
                                 <div><div className="stat-label">FEMALE RECTORS</div><div className="stat-value">8</div></div>
                                 <div className="stat-desc">Active in Hostels</div>
                             </div>
-                            <div className="stat-card-modern" style={{ background: '#e74a3b' }}>
-                                <div><div className="stat-label">MAJOR COMPLAINTS</div><div className="stat-value">5</div></div>
+                             <div className="stat-card-modern" style={{ background: '#e74a3b' }}>
+                                <div><div className="stat-label">MAJOR COMPLAINTS</div><div className="stat-value">{complaints.filter(c => c.status === 'Pending').length}</div></div>
                                 <div className="stat-desc">Pending Resolution</div>
                             </div>
                             <div className="stat-card-modern" style={{ background: '#f6c23e' }}>

@@ -120,7 +120,7 @@ const GatePass = () => {
                                     <tr key={req._id}>
                                         <td>
                                             <div style={{ fontWeight: 600 }}>{req.student?.name || 'Student'}</div>
-                                            <div style={{ fontSize: '11px', color: '#858796' }}>Room: 302</div>
+                                            <div style={{ fontSize: '11px', color: '#858796' }}>Room: {req.student?.roomInfo || req.student?.roomNo || 'Unassigned'}</div>
                                         </td>
                                         <td style={{ fontWeight: 700, color: '#e74a3b' }}>{req.noOfDays} Days</td>
                                         <td>
@@ -194,7 +194,7 @@ const GatePass = () => {
                                 standardRequests.map(req => (
                                     <tr key={req._id}>
                                         <td>{req.student?.name || 'Student'}</td>
-                                        <td>302</td>
+                                        <td>{req.student?.roomInfo || req.student?.roomNo || 'Unassigned'}</td>
                                         <td>{req.reason}</td>
                                         <td style={{ fontWeight: 600 }}>
                                             {new Date(req.fromDate).toLocaleDateString(undefined, {day: 'numeric', month: 'short'})} to {new Date(req.toDate).toLocaleDateString(undefined, {day: 'numeric', month: 'short'})}

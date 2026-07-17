@@ -6,8 +6,12 @@ import { API_BASE_URL } from '../../../config';
 const Dashboard = () => {
     const [complaints, setComplaints] = useState([]);
     const [gatePasses, setGatePasses] = useState([]);
-    const [userName, setUserName] = useState(localStorage.getItem('name') || 'Mrs. Priya Kumar');
-    const [userEmail, setUserEmail] = useState(localStorage.getItem('email') || 'rector@hostelcare.com');
+    const [rectorInfo, setRectorInfo] = useState({
+        name: localStorage.getItem('name') || 'Mrs. Priya Kumar',
+        email: localStorage.getItem('email') || 'rector@hostelcare.com',
+        phone: '+91 98765 43210',
+        office: '101'
+    });
 
     useEffect(() => {
         const token = localStorage.getItem('token');
@@ -16,6 +20,13 @@ const Dashboard = () => {
         const fetchData = async () => {
             const headers = { 'Authorization': `Bearer ${token}` };
             try {
+                // Fetch profile
+                const profileRes = await fetch(`${API_BASE_URL}/auth/me`, { headers });
+                if (profileRes.ok) {
+                    const profileData = await profileRes.json();
+                    setRectorInfo(profileData);
+                }
+
                 const compRes = await fetch(`${API_BASE_URL}/complaints`, { headers });
                 if (compRes.ok) {
                     const compData = await compRes.json();
@@ -282,20 +293,20 @@ const Dashboard = () => {
                         <div className="profile-img-container">
                             <i className="fas fa-female"></i>
                         </div>
-                        <h3 className="profile-name" style={{ marginBottom: '30px' }}>{userName}</h3>
+                        <h3 className="profile-name" style={{ marginBottom: '30px' }}>{rectorInfo.name}</h3>
 
                         <div className="profile-details-grid">
                             <span className="detail-label">Staff ID</span>
                             <span className="detail-value">88921</span>
 
                             <span className="detail-label">Mobile</span>
-                            <span className="detail-value">+91 98765 43210</span>
+                            <span className="detail-value">{rectorInfo.phone || 'N/A'}</span>
 
                             <span className="detail-label">Email</span>
-                            <span className="detail-value" style={{ fontSize: '13px' }}>{userEmail}</span>
+                            <span className="detail-value" style={{ fontSize: '13px' }}>{rectorInfo.email || 'N/A'}</span>
 
-                            <span className="detail-label">Office No</span>
-                            <span className="detail-value">101</span>
+                            <span className="detail-label">Office Location</span>
+                            <span className="detail-value">{rectorInfo.office || 'N/A'}</span>
 
                             <span className="detail-label">Shift</span>
                             <span className="detail-value green-text">Day/Night</span>
@@ -411,7 +422,7 @@ const Dashboard = () => {
 
                                         return (
                                             <tr key={comp._id}>
-                                                <td>302</td>
+                                                <td>{comp.student?.roomInfo || comp.student?.roomNo || 'Unassigned'}</td>
                                                 <td>
                                                     <i className={`fas ${icon}`} style={{ color: color, marginRight: '8px' }}></i>
                                                     {comp.problem.length > 30 ? comp.problem.slice(0, 30) + '...' : comp.problem}

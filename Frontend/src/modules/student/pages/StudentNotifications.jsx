@@ -1,51 +1,66 @@
 import React, { useState, useEffect } from 'react';
 import Header from '../../../components/Header';
+import { API_BASE_URL } from '../../../config';
 
 function StudentNotifications() {
-    const [notifications, setNotifications] = useState([]);
+    const personalAlerts = [
+        {
+            id: 'pers-1',
+            title: 'Pending Fee Reminder',
+            content: 'Your pending fee of ₹12,500 for the current semester is due by 15th Feb 2026. Please clear it online to avoid late fee penalties.',
+            category: 'Emergency',
+            type: 'fee',
+            createdAt: new Date(Date.now() - 3600000).toISOString() // 1 hour ago
+        },
+        {
+            id: 'pers-2',
+            title: 'Gate Pass Approved',
+            content: 'Your gate pass request for Home Visit (Lucknow) from 12th Feb to 15th Feb has been Approved by rector Mrs. Priya Kumar.',
+            category: 'Info',
+            type: 'gatepass',
+            createdAt: new Date(Date.now() - 7200000).toISOString() // 2 hours ago
+        },
+        {
+            id: 'pers-3',
+            title: 'Attendance Alert',
+            content: 'Your overall attendance for this month is 92%. Please make sure to mark attendance daily to keep it above the minimum 75% requirement.',
+            category: 'Warning',
+            type: 'attendance',
+            createdAt: new Date(Date.now() - 86400000).toISOString() // Yesterday
+        }
+    ];
+
+    const [notifications, setNotifications] = useState([...personalAlerts]);
     const [statusMessage, setStatusMessage] = useState('');
 
     useEffect(() => {
-        // Retrieve system broadcasts from localStorage
-        const stored = localStorage.getItem('system_notifications');
-        let systemNotifs = [];
-        if (stored) {
-            // Filter system notifications meant for "All" or "Students"
-            const parsed = JSON.parse(stored);
-            systemNotifs = parsed.filter(n => n.target === 'All' || n.target === 'Students');
-        }
+        const fetchNotifications = async () => {
+            const token = localStorage.getItem('token');
+            if (!token) return;
 
-        // Student personal simulated alerts
-        const personalAlerts = [
-            {
-                id: 'pers-1',
-                title: 'Pending Fee Reminder',
-                content: 'Your pending fee of ₹12,500 for the current semester is due by 15th Feb 2026. Please clear it online to avoid late fee penalties.',
-                category: 'Emergency',
-                type: 'fee',
-                createdAt: new Date(Date.now() - 3600000).toISOString() // 1 hour ago
-            },
-            {
-                id: 'pers-2',
-                title: 'Gate Pass Approved',
-                content: 'Your gate pass request for Home Visit (Lucknow) from 12th Feb to 15th Feb has been Approved by rector Mrs. Priya Kumar.',
-                category: 'Info',
-                type: 'gatepass',
-                createdAt: new Date(Date.now() - 7200000).toISOString() // 2 hours ago
-            },
-            {
-                id: 'pers-3',
-                title: 'Attendance Alert',
-                content: 'Your overall attendance for this month is 92%. Please make sure to mark attendance daily to keep it above the minimum 75% requirement.',
-                category: 'Warning',
-                type: 'attendance',
-                createdAt: new Date(Date.now() - 86400000).toISOString() // Yesterday
+            try {
+                const response = await fetch(`${API_BASE_URL}/notifications`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (response.ok) {
+                    const backendNotifications = await response.json();
+                    const combined = [...personalAlerts, ...backendNotifications].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+                    setNotifications(combined);
+                } else {
+                    const err = await response.json();
+                    console.error('Error loading notifications:', err.message || err);
+                    setStatusMessage('Could not load system notifications.');
+                }
+            } catch (error) {
+                console.error('Error loading notifications:', error);
+                setStatusMessage('Unable to fetch system notifications.');
             }
-        ];
+        };
 
-        // Combine both
-        const combined = [...personalAlerts, ...systemNotifs].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-        setNotifications(combined);
+        fetchNotifications();
     }, []);
 
     const handleDismiss = (id) => {

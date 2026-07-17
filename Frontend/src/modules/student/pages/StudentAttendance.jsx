@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Header from '../../../components/Header';
+import { API_BASE_URL } from '../../../config';
 
 const StudentAttendance = () => {
     // Current Academic Year Months database
@@ -225,11 +226,145 @@ const StudentAttendance = () => {
 
     const [selectedMonth, setSelectedMonth] = useState("February 2026");
     const [selectedDay, setSelectedDay] = useState(1);
+    const [attendanceData, setAttendanceData] = useState(null);
+    const [attendanceMonthState, setAttendanceMonthState] = useState(null);
+    const [isLoadingAttendance, setIsLoadingAttendance] = useState(false);
+    const [attendanceError, setAttendanceError] = useState('');
+    const [attendanceStatus, setAttendanceStatus] = useState('');
 
-    const monthData = attendanceDb[selectedMonth];
+    const getAttendanceMonthData = (attendance) => {
+        const recordsMap = (attendance.records || []).reduce((acc, record) => {
+            acc[record.day] = {
+                status: record.status,
+                method: record.method,
+                time: record.time,
+                details: record.details,
+            };
+            return acc;
+        }, {});
+
+        return {
+            daysInMonth: attendance.daysInMonth,
+            firstDay: attendance.firstDay,
+            records: recordsMap,
+        };
+    };
+
+    const monthData = attendanceMonthState && attendanceMonthState.monthYear === selectedMonth
+        ? attendanceMonthState
+        : attendanceDb[selectedMonth];
+
     const daysInMonth = monthData.daysInMonth;
     const firstDayOfMonth = monthData.firstDay;
     const records = monthData.records;
+
+    const buildMonthState = (attendance) => {
+        const recordsMap = (attendance.records || []).reduce((acc, record) => {
+            acc[record.day] = {
+                status: record.status,
+                method: record.method,
+                time: record.time,
+                details: record.details,
+            };
+            return acc;
+        }, {});
+
+        return {
+            monthYear: attendance.monthYear,
+            daysInMonth: attendance.daysInMonth,
+            firstDay: attendance.firstDay,
+            records: recordsMap,
+        };
+    };
+
+    const serializeMonthRecords = (month) =>
+        Object.keys(month.records).map((day) => ({
+            day: Number(day),
+            status: month.records[day].status,
+            method: month.records[day].method,
+            time: month.records[day].time,
+            details: month.records[day].details,
+        }));
+
+    const handleMarkAttendance = (status) => {
+        const newRecord = {
+            status,
+            method: status === 'present' ? 'Face Scan' : status === 'leave' ? 'Gate Pass' : 'Not Marked',
+            time: status === 'present' ? '09:00 AM' : 'N/A',
+            details: status === 'present'
+                ? 'Marked present by student.'
+                : status === 'leave'
+                    ? 'Leave requested by student.'
+                    : 'Attendance mark reset to not recorded.',
+        };
+
+        setAttendanceMonthState({
+            ...monthData,
+            records: {
+                ...monthData.records,
+                [selectedDay]: newRecord,
+            },
+        });
+
+        setAttendanceStatus(`Selected day ${selectedMonth} ${selectedDay} marked ${status.replace('_', ' ')}.`);
+    };
+
+    const saveAttendanceChanges = async () => {
+        const token = localStorage.getItem('token');
+        if (!token) {
+            setAttendanceError('Authentication token missing. Please log in again.');
+            return;
+        }
+
+        setIsLoadingAttendance(true);
+        setAttendanceError('');
+        setAttendanceStatus('');
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/attendance`, {
+                method: 'POST',
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    monthYear: selectedMonth,
+                    daysInMonth,
+                    firstDay: firstDayOfMonth,
+                    records: serializeMonthRecords(monthData),
+                }),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                setAttendanceError(errorData.message || 'Unable to save attendance.');
+                return;
+            }
+
+            const data = await response.json();
+            setAttendanceData(data.attendance);
+            setAttendanceMonthState(buildMonthState(data.attendance));
+            setAttendanceStatus('Attendance saved successfully.');
+        } catch (error) {
+            setAttendanceError('Unable to save attendance. Please try again later.');
+            console.error('Save attendance error:', error);
+        } finally {
+            setIsLoadingAttendance(false);
+        }
+    };
+
+    const attendancePayload = {
+        monthYear: selectedMonth,
+        daysInMonth: monthData.daysInMonth,
+        firstDay: monthData.firstDay,
+        records: Object.keys(monthData.records).map((day) => ({
+            day: Number(day),
+            status: monthData.records[day].status,
+            method: monthData.records[day].method,
+            time: monthData.records[day].time,
+            details: monthData.records[day].details,
+        })),
+    };
 
     // Calculate dynamic stats for this selected month
     const totalDays = daysInMonth;
@@ -239,8 +374,8 @@ const StudentAttendance = () => {
     let faceScanCount = 0;
     let rectorManualCount = 0;
 
-    Object.keys(records).forEach(day => {
-        const record = records[day];
+    for (let day = 1; day <= totalDays; day++) {
+        const record = records[day] || { status: 'not_marked', method: 'Not Marked' };
         if (record.status === 'present') {
             presentCount++;
             if (record.method === 'Face Scan') faceScanCount++;
@@ -250,7 +385,7 @@ const StudentAttendance = () => {
         } else {
             absentCount++;
         }
-    });
+    }
 
     const attendanceRate = totalDays > 0 ? Math.round((presentCount / totalDays) * 100) : 0;
 
@@ -284,9 +419,96 @@ const StudentAttendance = () => {
 
     const selectedRecord = records[selectedDay] || { status: 'not_marked', method: 'Not Marked', time: 'N/A', details: 'No scan or manual check-in logged' };
 
+    const fetchAttendance = async () => {
+        const token = localStorage.getItem('token');
+        if (!token) {
+            setAttendanceError('Authentication token missing. Please log in again.');
+            return;
+        }
+
+        setIsLoadingAttendance(true);
+        setAttendanceError('');
+        setAttendanceStatus('');
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/attendance?monthYear=${encodeURIComponent(selectedMonth)}`, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                },
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                if (response.status === 404 && attendanceDb[selectedMonth]) {
+                    setAttendanceStatus('No existing attendance record found for this month, syncing static data to backend...');
+                    const saveResponse = await fetch(`${API_BASE_URL}/attendance`, {
+                        method: 'POST',
+                        headers: {
+                            Authorization: `Bearer ${token}`,
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(attendancePayload),
+                    });
+
+                    if (!saveResponse.ok) {
+                        const saveError = await saveResponse.json();
+                        setAttendanceError(saveError.message || 'Unable to sync attendance to backend.');
+                        setAttendanceData(null);
+                        return;
+                    }
+
+                    const saveData = await saveResponse.json();
+                    setAttendanceData(saveData.attendance);
+                    setAttendanceStatus('Attendance synced successfully from demo data.');
+                    return;
+                }
+
+                setAttendanceError(errorData.message || 'Unable to load attendance for this month.');
+                setAttendanceData(null);
+                return;
+            }
+
+            const attendance = await response.json();
+            setAttendanceData(attendance);
+        } catch (error) {
+            setAttendanceError('Unable to load attendance. Please try again later.');
+            setAttendanceData(null);
+            console.error('Attendance fetch error:', error);
+        } finally {
+            setIsLoadingAttendance(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchAttendance();
+    }, [selectedMonth]);
+
     return (
         <>
             <Header title="My Attendance History" />
+
+            {attendanceError && (
+                <div className="attendance-alert error-alert">
+                    {attendanceError}
+                </div>
+            )}
+            <div className="attendance-header-actions">
+                <button className="refresh-button" onClick={fetchAttendance} disabled={isLoadingAttendance}>
+                    {isLoadingAttendance ? 'Refreshing...' : 'Refresh Attendance'}
+                </button>
+            </div>
+
+            {attendanceStatus && (
+                <div className="attendance-alert status-alert">
+                    {attendanceStatus}
+                </div>
+            )}
+            {isLoadingAttendance && (
+                <div className="attendance-alert loading-alert">
+                    Loading attendance data...
+                </div>
+            )}
 
             <style>{`
                 .container {
@@ -336,6 +558,32 @@ const StudentAttendance = () => {
                     gap: 10px;
                 }
 
+                .attendance-header-actions {
+                    display: flex;
+                    justify-content: flex-end;
+                    margin: 20px 0 10px;
+                }
+
+                .refresh-button {
+                    padding: 10px 16px;
+                    border-radius: 8px;
+                    border: none;
+                    background: #4e73df;
+                    color: white;
+                    font-weight: 700;
+                    cursor: pointer;
+                    transition: background 0.2s ease;
+                }
+
+                .refresh-button:hover {
+                    background: #2d5ac7;
+                }
+
+                .refresh-button:disabled {
+                    opacity: 0.7;
+                    cursor: not-allowed;
+                }
+
                 .selector-dropdown {
                     padding: 8px 12px;
                     border-radius: 6px;
@@ -383,6 +631,78 @@ const StudentAttendance = () => {
                     font-size: 13px;
                     padding-bottom: 10px;
                     text-transform: uppercase;
+                }
+
+                .attendance-alert {
+                    max-width: 1200px;
+                    margin: 20px auto;
+                    padding: 16px 20px;
+                    border-radius: 10px;
+                    font-size: 14px;
+                    font-weight: 600;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+                }
+
+                .error-alert {
+                    background: #f8d7da;
+                    color: #842029;
+                    border: 1px solid #f5c2c7;
+                }
+
+                .status-alert {
+                    background: #e9f7ef;
+                    color: #0f5132;
+                    border: 1px solid #badbcc;
+                }
+
+                .loading-alert {
+                    background: #e7f5ff;
+                    color: #084298;
+                    border: 1px solid #b6d4fe;
+                }
+
+                .mark-button,
+                .save-button {
+                    padding: 10px 16px;
+                    border-radius: 8px;
+                    border: none;
+                    font-weight: 700;
+                    cursor: pointer;
+                    transition: transform 0.2s, opacity 0.2s;
+                }
+
+                .mark-button.present {
+                    background: #1cc88a;
+                    color: white;
+                }
+
+                .mark-button.leave {
+                    background: #e74a3b;
+                    color: white;
+                }
+
+                .mark-button.missing {
+                    background: #f6c23e;
+                    color: #333;
+                }
+
+                .save-button {
+                    background: #4e73df;
+                    color: white;
+                }
+
+                .mark-button:hover,
+                .save-button:hover {
+                    transform: translateY(-1px);
+                }
+
+                .mark-button:disabled,
+                .save-button:disabled {
+                    opacity: 0.6;
+                    cursor: not-allowed;
                 }
 
                 .day-cell {
@@ -669,6 +989,21 @@ const StudentAttendance = () => {
                                 <span className="detail-value" style={{ textAlign: 'left', color: '#5a5c69', fontSize: '12px', fontWeight: 500, lineHeight: 1.5, background: '#f8f9fc', padding: '10px', borderRadius: '6px', marginTop: '3px' }}>
                                     {selectedRecord.details}
                                 </span>
+                            </div>
+
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginTop: '20px' }}>
+                                <button className="mark-button present" onClick={() => handleMarkAttendance('present')} disabled={isLoadingAttendance}>
+                                    Mark Present
+                                </button>
+                                <button className="mark-button leave" onClick={() => handleMarkAttendance('leave')} disabled={isLoadingAttendance}>
+                                    Mark Leave
+                                </button>
+                                <button className="mark-button missing" onClick={() => handleMarkAttendance('not_marked')} disabled={isLoadingAttendance}>
+                                    Mark Not Recorded
+                                </button>
+                                <button className="save-button" onClick={saveAttendanceChanges} disabled={isLoadingAttendance}>
+                                    Save Changes
+                                </button>
                             </div>
 
                             {selectedRecord.status === 'present' && selectedRecord.method === 'Face Scan' && (

@@ -1,10 +1,37 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Header from '../../../components/Header';
+import { API_BASE_URL } from '../../../config';
 
 const AdminComplaints = () => {
     const [isAllotting, setIsAllotting] = useState(false);
     const [allotmentComplete, setAllotmentComplete] = useState(false);
     const [allotments, setAllotments] = useState([]);
+    const [complaints, setComplaints] = useState([]);
+    const [isLoading, setIsLoading] = useState(true);
+
+    const fetchComplaints = async () => {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+        try {
+            const response = await fetch(`${API_BASE_URL}/complaints`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            if (response.ok) {
+                const data = await response.json();
+                setComplaints(data);
+            }
+        } catch (error) {
+            console.error('Error fetching complaints:', error);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchComplaints();
+    }, []);
 
     const commonComplaints = [
         { category: 'Electricity', icon: 'fa-bolt', count: 42, color: '#4e73df', reason: 'Aging wiring and high load during peak hours.', delayReason: 'Shortage of certified electricians for night shifts.' },
@@ -13,17 +40,38 @@ const AdminComplaints = () => {
         { category: 'Cleaning', icon: 'fa-broom', count: 35, color: '#e74a3b', reason: 'Staff shortage during semester breaks.', delayReason: 'Contractor payment processing delays.' }
     ];
 
-    const unassignedComplaints = [
-        { id: 'C-101', room: '202', issue: 'Main switch sparking', type: 'Electricity', priority: 'High' },
-        { id: 'C-102', room: '105', issue: 'Washbasin blockage', type: 'Plumber', priority: 'Medium' },
-        { id: 'C-103', room: '310', issue: 'Cupboard hinge broken', type: 'Carpenter', priority: 'Low' },
-        { id: 'C-104', room: '404', issue: 'Water seepage from wall', type: 'Plumber', priority: 'High' },
-        { id: 'C-105', room: '212', issue: 'Washroom not sanitized', type: 'Cleaning', priority: 'Medium' },
-        { id: 'C-106', room: '305', issue: 'Room floor cleaning required', type: 'Cleaning', priority: 'Low' }
-    ];
+    const getCountForCategory = (cat) => {
+        const backendCat = cat === 'Electricity' ? 'Electrician' : cat;
+        return complaints.filter(c => c.category === backendCat).length;
+    };
+
+    const getPriority = (complaint) => {
+        const problemLower = (complaint.problem || '').toLowerCase();
+        if (problemLower.includes('spark') || problemLower.includes('short') || problemLower.includes('fire') || problemLower.includes('shock')) {
+            return 'High';
+        }
+        if (problemLower.includes('leak') || problemLower.includes('block') || problemLower.includes('burst')) {
+            return 'High';
+        }
+        if (complaint.category === 'Electrician' || complaint.category === 'Plumber') {
+            return 'Medium';
+        }
+        return 'Low';
+    };
+
+    const activeUnassigned = complaints.filter(c => c.status === 'Pending' && (!c.assignedWorker || !c.assignedWorker.name));
+
+    const unassignedList = activeUnassigned.map(c => ({
+        _id: c._id,
+        id: 'C-' + c._id.substring(c._id.length - 4).toUpperCase(),
+        room: c.student?.roomInfo || c.student?.roomNo || '302',
+        issue: c.problem,
+        type: c.category,
+        priority: getPriority(c)
+    }));
 
     const workers = {
-        'Electricity': ['John Miller (Grade A)', 'David Chen (Grade B)'],
+        'Electrician': ['John Miller (Grade A)', 'David Chen (Grade B)'],
         'Plumber': ['Robert Wilson', 'Samuel Jackson'],
         'Carpenter': ['Mike Ross', 'Harvey Specter'],
         'Cleaning': ['Cleaning Crew A', 'Cleaning Crew B']
@@ -32,15 +80,55 @@ const AdminComplaints = () => {
     const handleAutoAllot = () => {
         setIsAllotting(true);
         setTimeout(() => {
-            const results = unassignedComplaints.map(complaint => ({
-                ...complaint,
-                worker: workers[complaint.type][Math.floor(Math.random() * workers[complaint.type].length)],
-                confidence: (Math.random() * (99 - 95) + 95).toFixed(1) + '%'
-            }));
+            const results = unassignedList.map(complaint => {
+                const categoryWorkers = workers[complaint.type] || ['Generic Staff'];
+                return {
+                    ...complaint,
+                    worker: categoryWorkers[Math.floor(Math.random() * categoryWorkers.length)],
+                    confidence: (Math.random() * (99 - 95) + 95).toFixed(1) + '%'
+                };
+            });
             setAllotments(results);
             setIsAllotting(false);
             setAllotmentComplete(true);
         }, 2000);
+    };
+
+    const handleCommit = async () => {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+        
+        setIsAllotting(true);
+        try {
+            const promises = allotments.map(item => {
+                return fetch(`${API_BASE_URL}/complaints/${item._id}/status`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        status: 'In Progress',
+                        assignedWorker: {
+                            name: item.worker,
+                            phone: '+91 98765 43210',
+                            role: item.type
+                        }
+                    })
+                });
+            });
+            
+            await Promise.all(promises);
+            alert('All assignments successfully synced to database!');
+            setAllotmentComplete(false);
+            setAllotments([]);
+            fetchComplaints();
+        } catch (err) {
+            console.error('Error committing assignments:', err);
+            alert('Failed to sync assignments to database.');
+        } finally {
+            setIsAllotting(false);
+        }
     };
 
     return (
@@ -306,7 +394,7 @@ const AdminComplaints = () => {
                             )}
                         </button>
                         {allotmentComplete && (
-                            <button className="btn-ai" style={{ background: '#1cc88a' }} onClick={() => setAllotmentComplete(false)}>
+                            <button className="btn-ai" style={{ background: '#1cc88a' }} onClick={handleCommit}>
                                 <i className="fas fa-check"></i> Commit Assignments
                             </button>
                         )}
@@ -341,7 +429,7 @@ const AdminComplaints = () => {
                     ) : (
                         <div style={{ padding: '40px', textAlign: 'center', background: '#f8f9fc', borderRadius: '12px', border: '2px dashed #eaecf4' }}>
                             <i className="fas fa-clipboard-list" style={{ fontSize: '40px', color: '#d1d3e2', marginBottom: '15px' }}></i>
-                            <p style={{ color: '#858796', margin: 0 }}>{unassignedComplaints.length} Unassigned complaints detected. Run AI to optimize allotment.</p>
+                            <p style={{ color: '#858796', margin: 0 }}>{unassignedList.length} Unassigned complaints detected. Run AI to optimize allotment.</p>
                         </div>
                     )}
                 </div>
@@ -352,7 +440,7 @@ const AdminComplaints = () => {
                         <div key={index} className="stat-card" style={{ borderLeftColor: item.color }}>
                             <div className="stat-info">
                                 <h4>{item.category}</h4>
-                                <div className="count">{item.count}</div>
+                                <div className="count">{getCountForCategory(item.category)}</div>
                                 <div style={{ fontSize: '12px', color: '#1cc88a' }}>
                                     <i className="fas fa-arrow-up"></i> 12% from last month
                                 </div>
