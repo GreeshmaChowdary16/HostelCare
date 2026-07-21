@@ -13,13 +13,14 @@ const addHistoryEntry = (complaint, note, status, updatedBy, role) => {
 export const createComplaint = async (req, res) => {
   try {
     const { category, subCategory, problem, proof } = req.body;
+    const filePath = req.file ? `/uploads/${req.file.filename}` : proof || null;
 
     const complaint = await Complaint.create({
       student: req.user._id,
       category,
       subCategory: subCategory || null,
       problem,
-      proof: proof || null,
+      proof: filePath,
       history: [
         {
           status: "Pending",
@@ -101,7 +102,11 @@ export const updateComplaint = async (req, res) => {
     if (category) complaint.category = category;
     if (subCategory !== undefined) complaint.subCategory = subCategory;
     if (problem) complaint.problem = problem;
-    if (proof !== undefined) complaint.proof = proof;
+    if (req.file) {
+      complaint.proof = `/uploads/${req.file.filename}`;
+    } else if (proof !== undefined) {
+      complaint.proof = proof;
+    }
     if (priority) complaint.priority = priority;
     if (status) complaint.status = status;
     if (assignedWorker) {

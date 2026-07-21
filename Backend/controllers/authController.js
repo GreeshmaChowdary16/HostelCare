@@ -288,6 +288,10 @@ export const updateMe = async (req, res) => {
       }
     });
 
+    if (req.file) {
+      req.user.profileImage = `/uploads/${req.file.filename}`;
+    }
+
     if (req.body.email && !validator.isEmail(req.body.email)) {
       return res.status(400).json({ message: "Invalid email address" });
     }

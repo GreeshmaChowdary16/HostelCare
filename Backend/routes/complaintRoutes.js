@@ -1,6 +1,7 @@
 import express from "express";
 import protect from "../middleware/authMiddleware.js";
 import authorizeRoles from "../middleware/roleMiddleware.js";
+import upload from "../middleware/uploadMiddleware.js";
 import {
   createComplaint,
   getComplaints,
@@ -14,10 +15,10 @@ import {
 
 const router = express.Router();
 
-router.post("/", protect, authorizeRoles("student"), createComplaint);
+router.post("/", protect, authorizeRoles("student"), upload.single("proof"), createComplaint);
 router.get("/", protect, authorizeRoles("student", "rector", "admin"), getComplaints);
 router.get("/:id", protect, authorizeRoles("student", "rector", "admin"), getComplaintById);
-router.put("/:id", protect, authorizeRoles("rector", "admin"), updateComplaint);
+router.put("/:id", protect, authorizeRoles("rector", "admin"), upload.single("proof"), updateComplaint);
 router.delete("/:id", protect, authorizeRoles("admin"), deleteComplaint);
 router.put(
   "/:id/status",

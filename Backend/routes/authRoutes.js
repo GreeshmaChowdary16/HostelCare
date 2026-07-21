@@ -14,6 +14,7 @@ import {
 } from "../controllers/authController.js";
 import protect, { protectWithPassword } from "../middleware/authMiddleware.js";
 import { authRateLimiter } from "../middleware/rateLimiter.js";
+import upload from "../middleware/uploadMiddleware.js";
 
 const router = express.Router();
 
@@ -26,7 +27,7 @@ router.post("/verify-email", verifyEmail);
 router.post("/forgot-password", authRateLimiter, forgotPassword);
 router.post("/reset-password", resetPassword);
 router.get("/me", protect, getMe);
-router.put("/me", protect, updateMe);
+router.put("/me", protect, upload.single("profileImage"), updateMe);
 router.post("/change-password", protectWithPassword, changePassword);
 
 export default router;

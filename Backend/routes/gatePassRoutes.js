@@ -1,6 +1,7 @@
 import express from "express";
 import protect from "../middleware/authMiddleware.js";
 import authorizeRoles from "../middleware/roleMiddleware.js";
+import upload from "../middleware/uploadMiddleware.js";
 import {
   applyGatePass,
   getGatePasses,
@@ -9,7 +10,7 @@ import {
 
 const router = express.Router();
 
-router.post("/", protect, authorizeRoles("student"), applyGatePass);
+router.post("/", protect, authorizeRoles("student"), upload.single("proof"), applyGatePass);
 router.get("/", protect, authorizeRoles("student", "rector", "admin"), getGatePasses);
 router.put(
   "/:id/status",

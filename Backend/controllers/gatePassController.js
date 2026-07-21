@@ -17,6 +17,7 @@ export const applyGatePass = async (req, res) => {
       parentMobile,
       proof,
     } = req.body;
+    const filePath = req.file ? `/uploads/${req.file.filename}` : proof || "";
 
     const gatePass = await GatePass.create({
       student: req.user._id,
@@ -31,7 +32,7 @@ export const applyGatePass = async (req, res) => {
       timeTo: timeTo || "06:00 PM",
       isExtension: isExtension || false,
       parentMobile: parentMobile || "",
-      proof: proof || "",
+      proof: filePath,
     });
 
     res.status(201).json({
