@@ -17,6 +17,7 @@ import attendanceRoutes from "./routes/attendanceRoutes.js";
 import workerRoutes from "./routes/workerRoutes.js";
 import rectorRoutes from "./routes/rectorRoutes.js";
 import studentRoutes from "./routes/studentRoutes.js";
+import reportRoutes from "./routes/reportRoutes.js";
 
 dotenv.config();
 
@@ -42,6 +43,7 @@ app.use("/api/attendance", attendanceRoutes);
 app.use("/api/workers", workerRoutes);
 app.use("/api/rectors", rectorRoutes);
 app.use("/api/students", studentRoutes);
+app.use("/api/reports", reportRoutes);
 
 app.get("/", (req, res) => {
     console.log("Root route hit");
