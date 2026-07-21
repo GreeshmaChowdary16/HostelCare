@@ -12,6 +12,7 @@ import announcementRoutes from "./routes/announcementRoutes.js";
 import messReviewRoutes from "./routes/messReviewRoutes.js";
 import notificationRoutes from "./routes/notificationRoutes.js";
 import attendanceRoutes from "./routes/attendanceRoutes.js";
+import workerRoutes from "./routes/workerRoutes.js";
 
 dotenv.config();
 
@@ -31,6 +32,7 @@ app.use("/api/announcements", announcementRoutes);
 app.use("/api/mess-reviews", messReviewRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/attendance", attendanceRoutes);
+app.use("/api/workers", workerRoutes);
 
 app.get("/", (req, res) => {
     console.log("Root route hit");

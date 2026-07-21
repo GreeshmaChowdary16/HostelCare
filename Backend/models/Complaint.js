@@ -9,11 +9,11 @@ const complaintSchema = new mongoose.Schema(
     },
     category: {
       type: String,
-      enum: ["Electrician", "Plumber", "Carpenter", "Cleaning"],
+      enum: ["Electrician", "Plumber", "Carpenter", "Cleaning", "Security", "IT Support"],
       required: true,
     },
     subCategory: {
-      type: String, // e.g. "washroom", "room" for Cleaning
+      type: String,
       default: null,
     },
     problem: {
@@ -21,7 +21,7 @@ const complaintSchema = new mongoose.Schema(
       required: true,
     },
     proof: {
-      type: String, // Store filename or base64 or URL
+      type: String,
       default: null,
     },
     status: {
@@ -29,11 +29,33 @@ const complaintSchema = new mongoose.Schema(
       enum: ["Pending", "In Progress", "Resolved", "Rejected"],
       default: "Pending",
     },
+    priority: {
+      type: String,
+      enum: ["Low", "Normal", "High", "Urgent"],
+      default: "Normal",
+    },
+    escalationReason: {
+      type: String,
+      default: "",
+    },
     assignedWorker: {
       name: { type: String, default: "" },
       phone: { type: String, default: "" },
-      role: { type: String, default: "" },
+      category: { type: String, default: "" },
+      availability: { type: String, default: "" },
     },
+    history: [
+      {
+        status: { type: String, default: "Pending" },
+        note: { type: String, default: "Complaint created" },
+        updatedBy: { type: String, default: "System" },
+        role: { type: String, default: "System" },
+        createdAt: {
+          type: Date,
+          default: Date.now,
+        },
+      },
+    ],
   },
   {
     timestamps: true,
