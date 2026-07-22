@@ -88,6 +88,31 @@ const userSchema = new mongoose.Schema(
       type: String,
       default: "",
     },
+    leaveApplications: [
+      {
+        startDate: Date,
+        endDate: Date,
+        reason: String,
+        status: {
+          type: String,
+          enum: ["Pending", "Approved", "Rejected"],
+          default: "Pending",
+        },
+        appliedAt: {
+          type: Date,
+          default: Date.now,
+        },
+        reviewedBy: {
+          type: String,
+          default: "",
+        },
+        reviewedAt: Date,
+        note: {
+          type: String,
+          default: "",
+        },
+      },
+    ],
   },
   {
     timestamps: true,

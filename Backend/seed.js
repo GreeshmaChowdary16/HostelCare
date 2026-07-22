@@ -6,6 +6,10 @@ import Announcement from "./models/Announcement.js";
 import Complaint from "./models/Complaint.js";
 import GatePass from "./models/GatePass.js";
 import MessReview from "./models/MessReview.js";
+import Worker from "./models/Worker.js";
+import Report from "./models/Report.js";
+import Notification from "./models/Notification.js";
+import Attendance from "./models/Attendance.js";
 
 dotenv.config();
 
@@ -21,6 +25,10 @@ const seedDB = async () => {
     await Complaint.deleteMany({});
     await GatePass.deleteMany({});
     await MessReview.deleteMany({});
+    await Worker.deleteMany({});
+    await Report.deleteMany({});
+    await Notification.deleteMany({});
+    await Attendance.deleteMany({});
     console.log("Cleared existing data from all collections");
 
     // Hash passwords
@@ -382,6 +390,122 @@ const seedDB = async () => {
 
     await MessReview.create(reviews);
     console.log("Seeded Mess Reviews.");
+
+    // 8. CREATE WORKERS
+    const workers = [
+      {
+        name: "John Miller",
+        category: "Electrician",
+        phone: "+91 90000 11111",
+        availability: "Available",
+        performanceScore: 88,
+        attendance: [
+          { date: new Date("2026-07-01"), status: "Present" },
+        ],
+      },
+      {
+        name: "Robert Wilson",
+        category: "Plumber",
+        phone: "+91 90000 22222",
+        availability: "Busy",
+        performanceScore: 75,
+      },
+      {
+        name: "Harvey Specter",
+        category: "Carpenter",
+        phone: "+91 90000 33333",
+        availability: "Available",
+        performanceScore: 82,
+      },
+      {
+        name: "Cleaning Crew B",
+        category: "Cleaning",
+        phone: "+91 90000 44444",
+        availability: "Available",
+        performanceScore: 79,
+      },
+    ];
+
+    await Worker.create(workers);
+    console.log("Seeded Workers.");
+
+    // 9. CREATE REPORTS
+    const reports = [
+      {
+        author: student1._id,
+        title: "Mess Food Wastage on Monday",
+        type: "Food Wastage",
+        content: "Large amounts of leftover food found in Mess B on Monday night.",
+        attachments: [],
+        reportDate: new Date("2026-07-10"),
+        status: "Open",
+        comments: [{ by: "Warden", message: "Will inspect", createdAt: new Date() }],
+      },
+      {
+        author: admin1._id,
+        title: "Infrastructure: Broken Stair Railing",
+        type: "Infrastructure",
+        content: "The stair railing near Block C is loose and poses a safety risk.",
+        attachments: [],
+        reportDate: new Date("2026-06-20"),
+        status: "Reviewed",
+      },
+    ];
+
+    await Report.create(reports);
+    console.log("Seeded Reports.");
+
+    // 10. CREATE NOTIFICATIONS
+    const notifications = [
+      {
+        title: "Fire Drill Scheduled",
+        content: "A mandatory fire drill will be conducted on 2026-07-25 at 10:00 AM. Follow the evacuation plan.",
+        category: "Emergency",
+        target: "All",
+        author: admin1._id,
+        active: true,
+      },
+      {
+        title: "Maintenance: Hot Water Supply",
+        content: "Hot water supply will be unavailable tomorrow morning from 6:00 AM to 9:00 AM.",
+        category: "Maintenance",
+        target: "Students",
+        author: rector1._id,
+        active: true,
+      },
+    ];
+
+    await Notification.create(notifications);
+    console.log("Seeded Notifications.");
+
+    // 11. CREATE ATTENDANCE RECORDS
+    const attendances = [
+      {
+        student: student1._id,
+        monthYear: "July-2026",
+        daysInMonth: 31,
+        firstDay: 4,
+        records: [
+          { day: 1, status: "present" },
+          { day: 2, status: "present" },
+          { day: 3, status: "leave" },
+        ],
+      },
+      {
+        student: student2._id,
+        monthYear: "July-2026",
+        daysInMonth: 31,
+        firstDay: 4,
+        records: [
+          { day: 1, status: "present" },
+          { day: 2, status: "not_marked" },
+          { day: 3, status: "present" },
+        ],
+      },
+    ];
+
+    await Attendance.create(attendances);
+    console.log("Seeded Attendance records.");
 
     console.log("Database seeded successfully!");
     process.exit(0);

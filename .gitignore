@@ -24,3 +24,29 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Backend / Frontend specific
+/Backend/node_modules/
+/Frontend/node_modules/
+
+# Environment files (keep examples)
+/.env
+/Backend/.env
+/Frontend/.env
+/.env.local
+/.env.*
+
+# Build outputs
+/Frontend/dist/
+dist/
+
+# Uploads and temporary files
+/Backend/uploads/
+uploads/
+
+# OS files
+.DS_Store
+
+# Lockfiles (optional: you may keep these)
+# package-lock.json
+# pnpm-lock.yaml
