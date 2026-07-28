@@ -1,32 +1,49 @@
 import React, { useState, useEffect } from 'react';
 import Header from '../../../components/Header';
 import { API_BASE_URL } from '../../../config';
+import socket from '../../../socket';
 
 const StudentAnnouncements = () => {
     const [announcements, setAnnouncements] = useState([]);
     const [filterCategory, setFilterCategory] = useState('All');
     const [expandedId, setExpandedId] = useState(null);
 
-    useEffect(() => {
-        const fetchAnnouncements = async () => {
-            const token = localStorage.getItem('token');
-            if (!token) return;
-            try {
-                const response = await fetch(`${API_BASE_URL}/announcements`, {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
-                if (response.ok) {
-                    const data = await response.json();
-                    setAnnouncements(data);
+    const fetchAnnouncements = async () => {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+        try {
+            const response = await fetch(`${API_BASE_URL}/announcements`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
                 }
-            } catch (error) {
-                console.error('Error fetching announcements:', error);
+            });
+            if (response.ok) {
+                const data = await response.json();
+                setAnnouncements(data);
             }
+        } catch (error) {
+            console.error('Error fetching announcements:', error);
+        }
+    };
+
+    useEffect(() => {
+        fetchAnnouncements();
+
+        const onCreated = (announcement) => {
+            setAnnouncements(prev => [announcement, ...prev]);
         };
 
-        fetchAnnouncements();
+        const onDeleted = ({ id }) => {
+            setAnnouncements(prev => prev.filter(a => a._id !== id));
+        };
+
+        socket.on('announcement_created', onCreated);
+        socket.on('announcement_deleted', onDeleted);
+
+        return () => {
+            socket.off('announcement_created', onCreated);
+            socket.off('announcement_deleted', onDeleted);
+        };
     }, []);
 
     const filteredAnnouncements = filterCategory === 'All' 

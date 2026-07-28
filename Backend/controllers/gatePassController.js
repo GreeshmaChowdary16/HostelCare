@@ -1,4 +1,5 @@
 import GatePass from "../models/GatePass.js";
+import { emitRealtimeEvent } from "../config/socket.js";
 
 // Apply Gate Pass (Student only)
 export const applyGatePass = async (req, res) => {
@@ -34,6 +35,8 @@ export const applyGatePass = async (req, res) => {
       parentMobile: parentMobile || "",
       proof: filePath,
     });
+
+    emitRealtimeEvent("gatepass_created", gatePass);
 
     res.status(201).json({
       message: "Gate pass application submitted successfully",
@@ -88,6 +91,7 @@ export const updateGatePassStatus = async (req, res) => {
     }
 
     await gatePass.save();
+    emitRealtimeEvent("gatepass_updated", gatePass);
 
     res.status(200).json({
       message: `Gate pass request ${status.toLowerCase()} successfully`,

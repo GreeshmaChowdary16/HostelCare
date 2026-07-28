@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Header from '../../../components/Header';
 import { API_BASE_URL } from '../../../config';
+import socket from '../../../socket';
 
 const Announcements = () => {
     const [announcements, setAnnouncements] = useState([]);
@@ -29,6 +30,22 @@ const Announcements = () => {
 
     useEffect(() => {
         fetchAnnouncements();
+
+        const onCreated = (announcement) => {
+            setAnnouncements(prev => [announcement, ...prev]);
+        };
+
+        const onDeleted = ({ id }) => {
+            setAnnouncements(prev => prev.filter(a => a._id !== id));
+        };
+
+        socket.on('announcement_created', onCreated);
+        socket.on('announcement_deleted', onDeleted);
+
+        return () => {
+            socket.off('announcement_created', onCreated);
+            socket.off('announcement_deleted', onDeleted);
+        };
     }, []);
 
     const handleSubmit = async (e) => {

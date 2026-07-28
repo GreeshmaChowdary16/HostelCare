@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Header from '../../../components/Header';
 import { API_BASE_URL } from '../../../config';
+import socket from '../../../socket';
 
 const GatePass = () => {
     const [rejectionReason, setRejectionReason] = useState({});
@@ -27,6 +28,17 @@ const GatePass = () => {
 
     useEffect(() => {
         fetchGatePasses();
+
+        const onCreated = (gp) => setGatePasses(prev => [gp, ...prev]);
+        const onUpdated = (gp) => setGatePasses(prev => prev.map(g => g._id === gp._id ? gp : g));
+
+        socket.on('gatepass_created', onCreated);
+        socket.on('gatepass_updated', onUpdated);
+
+        return () => {
+            socket.off('gatepass_created', onCreated);
+            socket.off('gatepass_updated', onUpdated);
+        };
     }, []);
 
     const handleRejectClick = (id) => {

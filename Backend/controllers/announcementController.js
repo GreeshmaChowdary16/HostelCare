@@ -1,4 +1,5 @@
 import Announcement from "../models/Announcement.js";
+import { emitRealtimeEvent } from "../config/socket.js";
 
 // Create Announcement (Rector/Admin only)
 export const createAnnouncement = async (req, res) => {
@@ -12,6 +13,8 @@ export const createAnnouncement = async (req, res) => {
       color: color || "#4e73df",
       author: req.user._id,
     });
+
+    emitRealtimeEvent("announcement_created", announcement);
 
     res.status(201).json({
       message: "Announcement posted successfully",
@@ -53,6 +56,7 @@ export const deleteAnnouncement = async (req, res) => {
     }
 
     await announcement.deleteOne();
+    emitRealtimeEvent("announcement_deleted", { id });
 
     res.status(200).json({
       message: "Announcement deleted successfully",

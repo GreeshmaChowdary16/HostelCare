@@ -25,7 +25,7 @@ Registers a new user in the system.
 {
   "name": "John Doe",
   "email": "john.student@hostelcare.com",
-  "password": "password123",
+  "password": "<REDACTED_PASSWORD>",
   "role": "student"
 }
 ```
@@ -53,7 +53,7 @@ Authenticates a user and returns a JWT token.
 ```json
 {
   "email": "student@hostelcare.com",
-  "password": "password2",
+  "password": "<REDACTED_PASSWORD>",
   "role": "student"
 }
 ```
@@ -61,7 +61,7 @@ Authenticates a user and returns a JWT token.
 ```json
 {
   "message": "Login successful",
-  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "token": "<JWT_TOKEN>",
   "role": "student",
   "name": "Anjali Sharma"
 }
@@ -75,7 +75,7 @@ Authenticates/Registers a user via Google OAuth2.
 * **Request Body**:
 ```json
 {
-  "idToken": "<google_credential_id_token>",
+  "idToken": "<GOOGLE_ID_TOKEN>",
   "role": "student"
 }
 ```
@@ -83,7 +83,7 @@ Authenticates/Registers a user via Google OAuth2.
 ```json
 {
   "message": "Login successful",
-  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "token": "<JWT_TOKEN>",
   "role": "student",
   "name": "Greeshma Chowdary"
 }

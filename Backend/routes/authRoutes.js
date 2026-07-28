@@ -3,6 +3,7 @@ import {
   registerUser,
   loginUser,
   googleLogin,
+  requestEmailVerification,
   refreshToken,
   logoutUser,
   verifyEmail,
@@ -21,6 +22,7 @@ const router = express.Router();
 router.post("/register", authRateLimiter, registerUser);
 router.post("/login", authRateLimiter, loginUser);
 router.post("/google-login", authRateLimiter, googleLogin);
+router.post("/request-verification", authRateLimiter, requestEmailVerification);
 router.post("/refresh-token", refreshToken);
 router.post("/logout", protect, logoutUser);
 router.post("/verify-email", verifyEmail);

@@ -10,6 +10,7 @@ import Worker from "./models/Worker.js";
 import Report from "./models/Report.js";
 import Notification from "./models/Notification.js";
 import Attendance from "./models/Attendance.js";
+import Fee from "./models/Fee.js";
 
 dotenv.config();
 
@@ -29,6 +30,7 @@ const seedDB = async () => {
     await Report.deleteMany({});
     await Notification.deleteMany({});
     await Attendance.deleteMany({});
+    await Fee.deleteMany({});
     console.log("Cleared existing data from all collections");
 
     // Hash passwords
@@ -43,6 +45,7 @@ const seedDB = async () => {
       email: "admin@hostelcare.com",
       password: adminPassword,
       role: "admin",
+      isEmailVerified: true,
       phone: "+91 99887 76655",
       office: "Main Administrative Block",
       bio: "Chief Hostel System Administrator",
@@ -53,6 +56,7 @@ const seedDB = async () => {
       email: "admin2@hostelcare.com",
       password: adminPassword,
       role: "admin",
+      isEmailVerified: true,
       phone: "+91 99887 76656",
       office: "Admin Office Block B",
       bio: "Assistant Hostel System Administrator",
@@ -64,6 +68,7 @@ const seedDB = async () => {
       email: "rector@hostelcare.com",
       password: rectorPassword,
       role: "rector",
+      isEmailVerified: true,
       phone: "+91 98765 43210",
       office: "Girls Hostel A - Room 101",
       bio: "Rector of Girls Hostel A with 5 years experience.",
@@ -74,6 +79,7 @@ const seedDB = async () => {
       email: "rector2@hostelcare.com",
       password: rectorPassword,
       role: "rector",
+      isEmailVerified: true,
       phone: "+91 98765 43211",
       office: "Boys Hostel B - Room 102",
       bio: "Rector of Boys Hostel B. Contact for lockouts/leave.",
@@ -84,6 +90,7 @@ const seedDB = async () => {
       email: "rector3@hostelcare.com",
       password: rectorPassword,
       role: "rector",
+      isEmailVerified: true,
       phone: "+91 98765 43212",
       office: "Girls Hostel C - Room 103",
       bio: "Rector of Girls Hostel C. Focuses on welfare.",
@@ -95,6 +102,7 @@ const seedDB = async () => {
       email: "student@hostelcare.com",
       password: studentPassword,
       role: "student",
+      isEmailVerified: true,
       phone: "+91 70001 23456",
       parentPhone: "+91 94444 55555",
       rollNo: "2022CS1045",
@@ -109,6 +117,7 @@ const seedDB = async () => {
       email: "student2@hostelcare.com",
       password: studentPassword,
       role: "student",
+      isEmailVerified: true,
       phone: "+91 70001 23457",
       parentPhone: "+91 94444 55556",
       rollNo: "2023EC2091",
@@ -123,6 +132,7 @@ const seedDB = async () => {
       email: "student3@hostelcare.com",
       password: studentPassword,
       role: "student",
+      isEmailVerified: true,
       phone: "+91 70001 23458",
       parentPhone: "+91 94444 55557",
       rollNo: "2021EE3022",
@@ -137,6 +147,7 @@ const seedDB = async () => {
       email: "student4@hostelcare.com",
       password: studentPassword,
       role: "student",
+      isEmailVerified: true,
       phone: "+91 70001 23459",
       parentPhone: "+91 94444 55558",
       rollNo: "2022ME1011",
@@ -151,6 +162,7 @@ const seedDB = async () => {
       email: "student5@hostelcare.com",
       password: studentPassword,
       role: "student",
+      isEmailVerified: true,
       phone: "+91 70001 23460",
       parentPhone: "+91 94444 55559",
       rollNo: "2024CS1102",
@@ -506,6 +518,54 @@ const seedDB = async () => {
 
     await Attendance.create(attendances);
     console.log("Seeded Attendance records.");
+
+    // 12. CREATE FEE RECORDS
+    const fees = [
+      {
+        student: student1._id,
+        feeType: "Hostel Fee",
+        academicYear: "2025-2026",
+        semester: "Semester 1",
+        amount: 45000,
+        paidAmount: 45000,
+        dueDate: new Date("2026-08-15"),
+        status: "Paid",
+        paymentDate: new Date("2026-07-10"),
+        paymentMethod: "UPI",
+        transactionId: "TXN987654321",
+        receiptNo: "REC-1001",
+        remarks: "Annual hostel room charge",
+      },
+      {
+        student: student1._id,
+        feeType: "Mess Fee",
+        academicYear: "2025-2026",
+        semester: "Semester 1",
+        amount: 15000,
+        paidAmount: 0,
+        dueDate: new Date("2026-08-30"),
+        status: "Pending",
+        remarks: "Mess catering fee",
+      },
+      {
+        student: student2._id,
+        feeType: "Hostel Fee",
+        academicYear: "2025-2026",
+        semester: "Semester 1",
+        amount: 45000,
+        paidAmount: 20000,
+        dueDate: new Date("2026-07-01"),
+        status: "Overdue",
+        paymentDate: new Date("2026-06-15"),
+        paymentMethod: "Net Banking",
+        transactionId: "TXN123456789",
+        receiptNo: "REC-1002",
+        remarks: "Partial payment received",
+      },
+    ];
+
+    await Fee.create(fees);
+    console.log("Seeded Fee records.");
 
     console.log("Database seeded successfully!");
     process.exit(0);

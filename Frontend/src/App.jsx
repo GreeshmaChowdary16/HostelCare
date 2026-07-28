@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 
 // Login Module
 import LoginPage from './modules/login/LoginPage';
+import ForgotPasswordPage from './modules/login/ForgotPasswordPage';
 
 // Rector Module
 import Dashboard from './modules/rector/pages/Dashboard';
@@ -44,6 +45,8 @@ function App() {
             <Routes>
                 <Route path="/" element={<Navigate to="/login" replace />} />
                 <Route path="/login" element={<LoginPage />} />
+                <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+                <Route path="/reset-password" element={<ForgotPasswordPage />} />
 
                 {/* Rector Routes */}
                 <Route path="/rector/dashboard" element={<Dashboard />} />

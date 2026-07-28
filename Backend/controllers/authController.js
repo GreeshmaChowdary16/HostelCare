@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
 import { OAuth2Client } from "google-auth-library";
+import nodemailer from "nodemailer";
 import validator from "validator";
 
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
@@ -29,12 +30,62 @@ const validatePasswordStrength = (password) => {
   );
 };
 
+const createTransporter = () => {
+  const host = process.env.SMTP_HOST;
+  const port = process.env.SMTP_PORT;
+  const user = process.env.SMTP_USER;
+  const pass = process.env.SMTP_PASS;
+
+  if (!host || !port || !user || !pass) return null;
+
+  return nodemailer.createTransport({
+    host,
+    port: Number(port),
+    secure: String(process.env.SMTP_SECURE).toLowerCase() === 'true',
+    auth: { user, pass },
+  });
+};
+
 const sendVerificationEmail = async (user, token) => {
-  console.log("Email verification token for", user.email, token);
+  const transporter = createTransporter();
+  const from = process.env.EMAIL_FROM || 'no-reply@hostelcare.local';
+  const subject = 'HostelCare — Email Verification';
+  const verifyUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/verify-email`;
+  const text = `Hello ${user.name || ''},\n\nUse the following verification token to verify your email for HostelCare:\n\n${token}\n\nOr visit: ${verifyUrl}\n\nThis token expires in 24 hours.`;
+
+  if (!transporter) {
+    console.log('Email verification token for', user.email, token);
+    return;
+  }
+
+  await transporter.sendMail({
+    from,
+    to: user.email,
+    subject,
+    text,
+    html: `<p>Hello ${user.name || ''},</p><p>Use the following verification token to verify your email for HostelCare:</p><pre>${token}</pre><p>Or click <a href="${verifyUrl}">${verifyUrl}</a></p><p>This token expires in 24 hours.</p>`,
+  });
 };
 
 const sendResetPasswordEmail = async (user, token) => {
-  console.log("Password reset token for", user.email, token);
+  const transporter = createTransporter();
+  const from = process.env.EMAIL_FROM || 'no-reply@hostelcare.local';
+  const subject = 'HostelCare — Password Reset';
+  const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/reset-password`;
+  const text = `Hello ${user.name || ''},\n\nUse the following token to reset your HostelCare password:\n\n${token}\n\nOr visit: ${resetUrl}\n\nThis token expires in 1 hour.`;
+
+  if (!transporter) {
+    console.log('Password reset token for', user.email, token);
+    return;
+  }
+
+  await transporter.sendMail({
+    from,
+    to: user.email,
+    subject,
+    text,
+    html: `<p>Hello ${user.name || ''},</p><p>Use the following token to reset your HostelCare password:</p><pre>${token}</pre><p>Or click <a href="${resetUrl}">${resetUrl}</a></p><p>This token expires in 1 hour.</p>`,
+  });
 };
 
 const accountLocked = (user) => {
@@ -209,18 +260,13 @@ export const googleLogin = async (req, res) => {
 
       const generatedPassword = crypto.randomBytes(16).toString("hex");
       const hashedPassword = await bcrypt.hash(generatedPassword, 10);
-      const verificationToken = generateVerificationToken();
       user = await User.create({
         name,
         email: searchEmail,
         password: hashedPassword,
         role: normalizedRole,
-        verificationToken,
-        verificationTokenExpires: Date.now() + 24 * 60 * 60 * 1000,
+        isEmailVerified: true,
       });
-
-      await sendVerificationEmail(user, verificationToken);
-      return res.status(201).json({ message: "Google account created. Please verify your email." });
     }
 
     if (normalizedRole !== user.role.toLowerCase()) {
@@ -228,7 +274,8 @@ export const googleLogin = async (req, res) => {
     }
 
     if (!user.isEmailVerified) {
-      return res.status(403).json({ message: "Please verify your email before logging in." });
+      user.isEmailVerified = true;
+      await user.save();
     }
 
     if (accountLocked(user)) {
@@ -461,6 +508,52 @@ export const changePassword = async (req, res) => {
     await req.user.save();
 
     res.status(200).json({ message: "Password changed successfully" });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const requestEmailVerification = async (req, res) => {
+  try {
+    const { email, name, role } = req.body;
+    if (!email || !validator.isEmail(email)) {
+      return res.status(400).json({ message: "A valid email is required" });
+    }
+
+    const searchEmail = email.toLowerCase();
+    let user = await User.findOne({ email: searchEmail });
+    const normalizedRole = (role || "student").toLowerCase();
+
+    if (user && user.isEmailVerified) {
+      return res.status(200).json({ message: "Email already verified" });
+    }
+
+    if (normalizedRole === "admin" || normalizedRole === "rector") {
+      return res.status(403).json({ message: "Cannot request verification for Admin/Rector via this flow." });
+    }
+
+    const verificationToken = generateVerificationToken();
+
+    if (!user) {
+      const generatedPassword = crypto.randomBytes(16).toString("hex");
+      const hashedPassword = await bcrypt.hash(generatedPassword, 10);
+      user = await User.create({
+        name: name || "Google User",
+        email: searchEmail,
+        password: hashedPassword,
+        role: normalizedRole,
+        verificationToken,
+        verificationTokenExpires: Date.now() + 24 * 60 * 60 * 1000,
+      });
+    } else {
+      user.verificationToken = verificationToken;
+      user.verificationTokenExpires = Date.now() + 24 * 60 * 60 * 1000;
+      await user.save();
+    }
+
+    await sendVerificationEmail(user, verificationToken);
+
+    res.status(200).json({ message: "Verification token generated and sent (check server logs in development)." });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

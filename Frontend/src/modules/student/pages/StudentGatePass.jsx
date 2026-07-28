@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Header from '../../../components/Header';
 import { API_BASE_URL } from '../../../config';
+import socket from '../../../socket';
 
 const StudentGatePass = () => {
     const [requests, setRequests] = useState([]);
@@ -42,6 +43,12 @@ const StudentGatePass = () => {
     useEffect(() => {
         fetchGatePasses();
 
+        const onCreated = (gp) => setRequests(prev => [gp, ...prev]);
+        const onUpdated = (gp) => setRequests(prev => prev.map(r => r._id === gp._id ? gp : r));
+
+        socket.on('gatepass_created', onCreated);
+        socket.on('gatepass_updated', onUpdated);
+
         const fetchProfile = async () => {
             const token = localStorage.getItem('token');
             if (!token) return;
@@ -66,6 +73,11 @@ const StudentGatePass = () => {
             }
         };
         fetchProfile();
+
+        return () => {
+            socket.off('gatepass_created', onCreated);
+            socket.off('gatepass_updated', onUpdated);
+        };
     }, []);
 
     // Calculate days when dates change

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Header from '../../../components/Header';
 import { API_BASE_URL } from '../../../config';
+import socket from '../../../socket';
 
 const Complaints = () => {
     const [complaints, setComplaints] = useState([]);
@@ -25,6 +26,28 @@ const Complaints = () => {
 
     useEffect(() => {
         fetchComplaints();
+
+        const onCreated = (complaint) => {
+            setComplaints(prev => [complaint, ...prev]);
+        };
+
+        const onUpdated = (complaint) => {
+            setComplaints(prev => prev.map(c => c._id === complaint._id ? complaint : c));
+        };
+
+        const onDeleted = ({ id }) => {
+            setComplaints(prev => prev.filter(c => c._id !== id));
+        };
+
+        socket.on('complaint_created', onCreated);
+        socket.on('complaint_updated', onUpdated);
+        socket.on('complaint_deleted', onDeleted);
+
+        return () => {
+            socket.off('complaint_created', onCreated);
+            socket.off('complaint_updated', onUpdated);
+            socket.off('complaint_deleted', onDeleted);
+        };
     }, []);
 
     const handleStatusUpdate = async (id, newStatus) => {

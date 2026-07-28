@@ -1,5 +1,6 @@
 import Complaint from "../models/Complaint.js";
 import Worker from "../models/Worker.js";
+import { emitRealtimeEvent } from "../config/socket.js";
 
 const addHistoryEntry = (complaint, note, status, updatedBy, role) => {
   complaint.history.push({
@@ -30,6 +31,8 @@ export const createComplaint = async (req, res) => {
         },
       ],
     });
+
+    emitRealtimeEvent("complaint_created", complaint);
 
     res.status(201).json({
       message: "Complaint submitted successfully",
@@ -121,6 +124,8 @@ export const updateComplaint = async (req, res) => {
     addHistoryEntry(complaint, "Complaint updated", complaint.status, req.user.name, req.user.role);
     await complaint.save();
 
+    emitRealtimeEvent("complaint_updated", complaint);
+
     res.status(200).json({ message: "Complaint updated successfully", complaint });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -135,6 +140,8 @@ export const deleteComplaint = async (req, res) => {
     }
 
     await complaint.deleteOne();
+    emitRealtimeEvent("complaint_deleted", { id: req.params.id });
+
     res.status(200).json({ message: "Complaint deleted successfully" });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -166,6 +173,7 @@ export const updateComplaintStatus = async (req, res) => {
     }
 
     await complaint.save();
+    emitRealtimeEvent("complaint_updated", complaint);
 
     res.status(200).json({ message: "Complaint status updated successfully", complaint });
   } catch (error) {
@@ -187,6 +195,8 @@ export const escalateComplaint = async (req, res) => {
 
     addHistoryEntry(complaint, complaint.escalationReason, complaint.status, req.user.name, req.user.role);
     await complaint.save();
+
+    emitRealtimeEvent("complaint_updated", complaint);
 
     res.status(200).json({ message: "Complaint escalated successfully", complaint });
   } catch (error) {
