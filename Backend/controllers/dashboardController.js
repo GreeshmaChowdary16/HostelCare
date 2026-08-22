@@ -3,9 +3,7 @@ import Complaint from "../models/Complaint.js";
 import GatePass from "../models/GatePass.js";
 import Attendance from "../models/Attendance.js";
 
-/**
- * Get unified dashboard analytics (Students, Complaints, GatePasses, Attendance)
- */
+
 export const getDashboardAnalytics = async (req, res, next) => {
   try {
     const today = new Date();
@@ -14,11 +12,9 @@ export const getDashboardAnalytics = async (req, res, next) => {
     const monthYearStr = `${currentYear}-${currentMonth}`;
     const todayDay = today.getDate();
 
-    // 1. Students Stats
     const totalStudents = await User.countDocuments({ role: "student" });
     const totalRectors = await User.countDocuments({ role: "rector" });
 
-    // 2. Complaints Stats
     const totalComplaints = await Complaint.countDocuments();
     const pendingComplaints = await Complaint.countDocuments({ status: "Pending" });
     const inProgressComplaints = await Complaint.countDocuments({ status: "In Progress" });
@@ -33,13 +29,11 @@ export const getDashboardAnalytics = async (req, res, next) => {
       if (item._id) complaintsByCategory[item._id] = item.count;
     });
 
-    // 3. Gate Pass Stats
     const totalGatePasses = await GatePass.countDocuments();
     const pendingGatePasses = await GatePass.countDocuments({ status: "Pending" });
     const approvedGatePasses = await GatePass.countDocuments({ status: "Approved" });
     const rejectedGatePasses = await GatePass.countDocuments({ status: "Rejected" });
 
-    // Active leaves today: Approved gate passes covering today
     const startOfToday = new Date(today.setHours(0, 0, 0, 0));
     const endOfToday = new Date(today.setHours(23, 59, 59, 999));
     const activeLeavesToday = await GatePass.countDocuments({
@@ -48,7 +42,6 @@ export const getDashboardAnalytics = async (req, res, next) => {
       toDate: { $gte: startOfToday }
     });
 
-    // 4. Attendance Stats for current month
     const monthAttendances = await Attendance.find({ monthYear: monthYearStr });
     let presentToday = 0;
     let leaveToday = 0;
@@ -109,9 +102,6 @@ export const getDashboardAnalytics = async (req, res, next) => {
   }
 };
 
-/**
- * Get Student Dashboard Data
- */
 export const getStudentDashboard = async (req, res, next) => {
   try {
     const studentId = req.user._id;
@@ -197,9 +187,6 @@ export const getStudentDashboard = async (req, res, next) => {
   }
 };
 
-/**
- * Get Rector Dashboard Data
- */
 export const getRectorDashboard = async (req, res, next) => {
   try {
     const totalStudents = await User.countDocuments({ role: "student" });

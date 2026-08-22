@@ -17,6 +17,8 @@ const buildAuthResponse = (user, token, refreshToken) => ({
   refreshToken,
   role: user.role,
   name: user.name,
+  email: user.email,
+  profileImage: user.profileImage || "",
 });
 
 const validatePasswordStrength = (password) => {
@@ -337,6 +339,10 @@ export const updateMe = async (req, res) => {
 
     if (req.file) {
       req.user.profileImage = `/uploads/${req.file.filename}`;
+    } else if (req.body.removeProfileImage === "true" || req.body.removeProfileImage === true || req.body.profileImage === "") {
+      req.user.profileImage = "";
+    } else if (req.body.profileImage && typeof req.body.profileImage === "string") {
+      req.user.profileImage = req.body.profileImage;
     }
 
     if (req.body.email && !validator.isEmail(req.body.email)) {

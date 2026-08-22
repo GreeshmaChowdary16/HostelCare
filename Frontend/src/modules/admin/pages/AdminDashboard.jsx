@@ -1,34 +1,70 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import Header from '../../../components/Header';
-import { API_BASE_URL } from '../../../config';
+import { API_BASE_URL, getImageUrl } from '../../../config';
 
 const AdminDashboard = () => {
     const [complaints, setComplaints] = useState([]);
+    const [stats, setStats] = useState({
+        totalStudents: 0,
+        totalRectors: 0,
+        totalComplaints: 0,
+        pendingComplaints: 0,
+        pendingGatePasses: 0,
+        girlsHostels: 4,
+        boysHostels: 6
+    });
+    const [adminProfile, setAdminProfile] = useState({
+        name: localStorage.getItem('name') || 'Administrator',
+        email: localStorage.getItem('email') || 'admin@hostelcare.com',
+        phone: '+91 99887 76655',
+        office: 'Main Administrative Block'
+    });
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
-        const fetchComplaints = async () => {
+        const fetchDashboardData = async () => {
             const token = localStorage.getItem('token');
             if (!token) return;
+            const headers = { 'Authorization': `Bearer ${token}` };
+
             try {
-                const response = await fetch(`${API_BASE_URL}/complaints`, {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
-                if (response.ok) {
-                    const data = await response.json();
+                const [complaintsRes, statsRes, meRes] = await Promise.all([
+                    fetch(`${API_BASE_URL}/complaints`, { headers }),
+                    fetch(`${API_BASE_URL}/dashboard/admin`, { headers }),
+                    fetch(`${API_BASE_URL}/auth/me`, { headers })
+                ]);
+
+                if (complaintsRes.ok) {
+                    const data = await complaintsRes.json();
                     setComplaints(data);
                 }
+
+                if (statsRes.ok) {
+                    const data = await statsRes.json();
+                    if (data.stats) {
+                        setStats(data.stats);
+                    }
+                }
+
+                if (meRes.ok) {
+                    const meData = await meRes.json();
+                    setAdminProfile({
+                        name: meData.name || 'Administrator',
+                        email: meData.email || 'admin@hostelcare.com',
+                        phone: meData.phone || '+91 99887 76655',
+                        office: meData.office || 'Main Administrative Block',
+                        profileImage: meData.profileImage || ''
+                    });
+                }
             } catch (error) {
-                console.error('Error fetching complaints:', error);
+                console.error('Error fetching dashboard data:', error);
             } finally {
                 setIsLoading(false);
             }
         };
 
-        fetchComplaints();
+        fetchDashboardData();
     }, []);
 
     const getCountForCategory = (cat) => {
@@ -220,21 +256,26 @@ const AdminDashboard = () => {
             <div className="dashboard-container">
                 <div className="left-sidebar">
                     <div className="profile-card">
-                        <div className="profile-img-container">
-                            <i className="fas fa-user-shield"></i>
+                        <div className="profile-img-container" style={{ overflow: 'hidden' }}>
+                            {adminProfile.profileImage ? (
+                                <img src={getImageUrl(adminProfile.profileImage)} alt="Admin Profile" style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
+                            ) : (
+                                <i className="fas fa-user-shield"></i>
+                            )}
                         </div>
-                        <h3 className="profile-name">Mr. System Admin</h3>
+                        <Link to="/admin/settings" style={{ fontSize: '12px', color: '#1cc88a', textDecoration: 'none', fontWeight: 600, marginTop: '-10px', marginBottom: '15px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                            <i className="fas fa-camera"></i> Change Photo
+                        </Link>
+                        <h3 className="profile-name">{adminProfile.name}</h3>
                         <div className="profile-role">Chief Administrator</div>
 
                         <div className="profile-details-grid">
-                            <span className="detail-label">Admin ID</span>
-                            <span className="detail-value">ADM-001</span>
+                            <span className="detail-label">Admin Email</span>
+                            <span className="detail-value" style={{ fontSize: '13px' }}>{adminProfile.email}</span>
                             <span className="detail-label">Mobile</span>
-                            <span className="detail-value">+91 99887 76655</span>
-                            <span className="detail-label">Email</span>
-                            <span className="detail-value" style={{ fontSize: '13px' }}>admin@hostel.edu</span>
+                            <span className="detail-value">{adminProfile.phone}</span>
                             <span className="detail-label">Office</span>
-                            <span className="detail-value">Main Block</span>
+                            <span className="detail-value">{adminProfile.office}</span>
                         </div>
                     </div>
                 </div>

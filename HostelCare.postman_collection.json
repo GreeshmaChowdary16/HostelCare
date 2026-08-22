@@ -510,6 +510,74 @@
           "response": []
         }
       ]
+    },
+    {
+      "name": "Mess Menu",
+      "item": [
+        {
+          "name": "Get Mess Menu",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/mess-menu",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "mess-menu"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Mess Menu",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"weeklyMenu\": {\n    \"Monday\": { \"breakfast\": \"Puri Sabzi\", \"lunch\": \"Rajma Chawal\", \"dinner\": \"Dal Tadka, Roti\" }\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/mess-menu",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "mess-menu"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
     }
   ],
   "variable": [

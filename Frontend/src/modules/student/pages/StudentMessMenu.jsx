@@ -10,7 +10,7 @@ const StudentMessMenu = () => {
     const [statusMessage, setStatusMessage] = useState('');
     const [loading, setLoading] = useState(false);
 
-    const weeklyMenu = {
+    const [weeklyMenu, setWeeklyMenu] = useState({
         Monday: { breakfast: 'Idli, Sambhar', lunch: 'Rice, Dal Tadka', dinner: 'Roti, Paneer' },
         Tuesday: { breakfast: 'Poha, Jalebi', lunch: 'Chole Bhature', dinner: 'Mix Veg, Paratha' },
         Wednesday: { breakfast: 'Upma, Chutney', lunch: 'Rajma Chawal', dinner: 'Aloo Gobi, Roti' },
@@ -18,28 +18,35 @@ const StudentMessMenu = () => {
         Friday: { breakfast: 'Aloo Paratha', lunch: 'Kadai Paneer, Naan', dinner: 'Khichdi, Kadhi' },
         Saturday: { breakfast: 'Bread Butter', lunch: 'Pasta, Salad', dinner: 'Pav Bhaji' },
         Sunday: { breakfast: 'Poori Bhaji', lunch: 'Special Thali', dinner: 'Fried Rice, Manchurian' }
-    };
+    });
 
-    const fetchReviews = async () => {
+    const fetchReviewsAndMenu = async () => {
         const token = localStorage.getItem('token');
         if (!token) return;
 
         try {
-            const response = await fetch(`${API_BASE_URL}/mess-reviews`, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            const [revRes, menuRes] = await Promise.all([
+                fetch(`${API_BASE_URL}/mess-reviews`, { headers: { Authorization: `Bearer ${token}` } }),
+                fetch(`${API_BASE_URL}/mess-menu`, { headers: { Authorization: `Bearer ${token}` } })
+            ]);
 
-            if (response.ok) {
-                const data = await response.json();
+            if (revRes.ok) {
+                const data = await revRes.json();
                 setReviews(data);
             }
+            if (menuRes.ok) {
+                const menuData = await menuRes.json();
+                if (menuData && Object.keys(menuData).length > 0) {
+                    setWeeklyMenu(menuData);
+                }
+            }
         } catch (error) {
-            console.error('Error fetching reviews:', error);
+            console.error('Error fetching reviews or menu:', error);
         }
     };
 
     useEffect(() => {
-        fetchReviews();
+        fetchReviewsAndMenu();
     }, []);
 
     const handleStarClick = (meal, value) => {

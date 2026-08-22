@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Header from '../../../components/Header';
 import { Link } from 'react-router-dom';
-import { API_BASE_URL } from '../../../config';
+import { API_BASE_URL, getImageUrl } from '../../../config';
 
 const StudentDashboard = () => {
     const [complaints, setComplaints] = useState([]);
@@ -165,9 +165,16 @@ const StudentDashboard = () => {
                 {/* Left Sidebar - Student Profile */}
                 <div className="left-sidebar">
                     <div className="profile-card">
-                        <div className="profile-img-container">
-                            <img src={profilePhoto} alt="Student" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        <div className="profile-img-container" style={{ position: 'relative' }}>
+                            {studentInfo.profileImage ? (
+                                <img src={getImageUrl(studentInfo.profileImage)} alt="Student Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                            ) : (
+                                <img src={profilePhoto} alt="Student Placeholder" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                            )}
                         </div>
+                        <Link to="/student/settings" style={{ fontSize: '12px', color: '#4e73df', textDecoration: 'none', fontWeight: 600, marginTop: '-10px', marginBottom: '15px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                            <i className="fas fa-camera"></i> Change Photo
+                        </Link>
                         <h3 className="profile-name">{studentInfo.name}</h3>
                         <div className="profile-role">{studentInfo.branch}</div>
 

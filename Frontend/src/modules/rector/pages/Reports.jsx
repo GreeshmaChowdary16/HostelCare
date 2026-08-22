@@ -1,17 +1,55 @@
 import React, { useState } from 'react';
 import Header from '../../../components/Header';
+import { API_BASE_URL } from '../../../config';
 
 const Reports = () => {
     const [wastageData, setWastageData] = useState({ item: '', amount: '', reason: 'Students dislike this item' });
     const [hostelStatus, setHostelStatus] = useState('');
+    const [msg, setMsg] = useState('');
 
     const extensionReports = [
         { id: 1, name: 'Anjali Sharma', days: '2', reason: 'Train Delay', status: 'Verified', proof: 'Ticket.pdf' },
         { id: 2, name: 'Riya Gupta', days: '1', reason: 'Medical', status: 'Verified', proof: 'Note.jpg' }
     ];
 
-    const handleSubmitReport = (type) => {
-        alert(`${type} Report submitted to Admin successfully!`);
+    const handleSubmitReport = async (type) => {
+        const token = localStorage.getItem('token');
+        if (!token) {
+            alert('Please login first');
+            return;
+        }
+
+        let content = `${type} Report submitted by Rector.`;
+        if (type === 'Food Wastage' && wastageData.item) {
+            content = `Food Item: ${wastageData.item}, Wasted Amount: ${wastageData.amount} kg. Reason: ${wastageData.reason}`;
+        } else if (type === 'Infrastructure' && hostelStatus) {
+            content = `Status: ${hostelStatus}`;
+        }
+
+        try {
+            const res = await fetch(`${API_BASE_URL}/reports`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    title: `${type} Report - ${new Date().toLocaleDateString()}`,
+                    type,
+                    content
+                })
+            });
+
+            const data = await res.json();
+            if (res.ok) {
+                alert(`${type} Report submitted to Admin successfully!`);
+            } else {
+                alert(data.message || 'Failed to submit report.');
+            }
+        } catch (err) {
+            console.error('Error submitting report:', err);
+            alert('Error submitting report to server.');
+        }
     };
 
     return (

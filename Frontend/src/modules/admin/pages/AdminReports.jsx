@@ -1,19 +1,42 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Header from '../../../components/Header';
+import { API_BASE_URL } from '../../../config';
 
 const AdminReports = () => {
-    // Sample data for reports submitted by Rectors
-    const initialReports = [
-        { id: 'REP-001', title: 'Major Water Pipe Burst - Block 2', rector: 'Mrs. Kumar', hostel: 'Hostel A', priority: 'Emergency', date: '2026-05-11 08:30 AM', status: 'Action Required', detail: 'Main supply pipe in Block 2 has burst, flooding the basement storage.' },
-        { id: 'REP-002', title: 'Student Health Alert: Multiple Vomiting Cases', rector: 'Mr. Singh', hostel: 'Hostel B', priority: 'Emergency', date: '2026-05-11 07:45 AM', status: 'Medical Team Sent', detail: '7 students reported nausea and vomiting after dinner. Potential food poisoning.' },
-        { id: 'REP-003', title: 'Elevator Maintenance Failure', rector: 'Ms. Sharma', hostel: 'Hostel C', priority: 'Urgent', date: '2026-05-10 11:20 PM', status: 'Technician Called', detail: 'Main elevator stuck on 4th floor. No students inside, but needs immediate repair.' },
-        { id: 'REP-004', title: 'Security Camera Outage - Main Gate', rector: 'Mrs. Kumar', hostel: 'Hostel A', priority: 'Urgent', date: '2026-05-10 09:00 PM', status: 'Assigned', detail: 'Gate cameras 1 and 4 are not recording. Security blind spot created.' },
-        { id: 'REP-005', title: 'Monthly Occupancy & Revenue Report', rector: 'Mrs. Kumar', hostel: 'Hostel A', priority: 'Normal', date: '2026-05-09 04:00 PM', status: 'Reviewing', detail: 'Standard monthly report for room allocations and fee collections.' },
-        { id: 'REP-006', title: 'Worker Attendance Log - Week 19', rector: 'Mr. Singh', hostel: 'Hostel B', priority: 'Normal', date: '2026-05-09 10:00 AM', status: 'Completed', detail: 'Weekly attendance sheets for cleaning and maintenance staff.' },
-        { id: 'REP-007', title: 'Inventory Request: Cleaning Supplies', rector: 'Ms. Sharma', hostel: 'Hostel C', priority: 'Low', date: '2026-05-08 02:30 PM', status: 'Pending', detail: 'Request for stock replenishment of detergents and sanitizers.' }
-    ];
+    const [reports, setReports] = useState([]);
+    const [isLoading, setIsLoading] = useState(true);
 
-    const [reports] = useState(initialReports);
+    useEffect(() => {
+        const fetchReports = async () => {
+            const token = localStorage.getItem('token');
+            if (!token) return;
+            try {
+                const res = await fetch(`${API_BASE_URL}/reports`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    const formatted = data.map((r, index) => ({
+                        id: r._id || `REP-${index + 1}`,
+                        title: r.title,
+                        rector: r.author?.name || 'Rector',
+                        hostel: r.author?.office || 'Hostel',
+                        priority: r.type === 'Food Wastage' ? 'Urgent' : 'Normal',
+                        date: new Date(r.createdAt).toLocaleString(),
+                        status: r.status || 'Reviewing',
+                        detail: r.content
+                    }));
+                    setReports(formatted);
+                }
+            } catch (err) {
+                console.error('Error fetching reports:', err);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchReports();
+    }, []);
 
     // Function to get priority styles
     const getPriorityStyles = (priority) => {

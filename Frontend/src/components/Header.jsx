@@ -1,10 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { API_BASE_URL, getImageUrl } from '../config';
 
 const Header = ({ title }) => {
     const [notificationOpen, setNotificationOpen] = useState(false);
     const [mailOpen, setMailOpen] = useState(false);
     const [profileOpen, setProfileOpen] = useState(false);
+    const [profilePic, setProfilePic] = useState(localStorage.getItem('profileImage') || '');
+    const [userName, setUserName] = useState(localStorage.getItem('name') || '');
     const location = useLocation();
 
     const isActive = (path) => location.pathname === path;
@@ -16,6 +19,42 @@ const Header = ({ title }) => {
         if (location.pathname.startsWith('/student')) return `/student${path}`;
         return path;
     };
+
+    useEffect(() => {
+        const handleProfileUpdate = () => {
+            setProfilePic(localStorage.getItem('profileImage') || '');
+            setUserName(localStorage.getItem('name') || '');
+        };
+
+        window.addEventListener('profileUpdate', handleProfileUpdate);
+        window.addEventListener('storage', handleProfileUpdate);
+
+        const token = localStorage.getItem('token');
+        if (token) {
+            fetch(`${API_BASE_URL}/auth/me`, {
+                headers: { Authorization: `Bearer ${token}` }
+            })
+                .then((res) => res.ok ? res.json() : null)
+                .then((data) => {
+                    if (data) {
+                        if (data.profileImage !== undefined) {
+                            setProfilePic(data.profileImage || '');
+                            localStorage.setItem('profileImage', data.profileImage || '');
+                        }
+                        if (data.name) {
+                            setUserName(data.name);
+                            localStorage.setItem('name', data.name);
+                        }
+                    }
+                })
+                .catch((err) => console.error('Error loading header user info:', err));
+        }
+
+        return () => {
+            window.removeEventListener('profileUpdate', handleProfileUpdate);
+            window.removeEventListener('storage', handleProfileUpdate);
+        };
+    }, []);
 
     return (
         <>
@@ -93,19 +132,27 @@ const Header = ({ title }) => {
                         className={`profile-dropdown ${profileOpen ? 'active' : ''}`}
                         onClick={() => setProfileOpen(!profileOpen)}
                     >
-                        <div className="user-avatar">
-                            {location.pathname.startsWith('/student') ? <i className="fas fa-user-graduate"></i> : 
-                             location.pathname.startsWith('/rector') ? <i className="fas fa-female"></i> : 
-                             <i className="fas fa-user-shield"></i>}
+                        <div className="user-avatar" style={{ overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            {profilePic ? (
+                                <img src={getImageUrl(profilePic)} alt="Profile Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />
+                            ) : (
+                                location.pathname.startsWith('/student') ? <i className="fas fa-user-graduate"></i> : 
+                                location.pathname.startsWith('/rector') ? <i className="fas fa-female"></i> : 
+                                <i className="fas fa-user-shield"></i>
+                            )}
                         </div>
                         <span>
-                            {localStorage.getItem('name') || 
+                            {userName || 
                              (location.pathname.startsWith('/student') ? 'Student User' : 
                               location.pathname.startsWith('/rector') ? 'Mrs. Priya Kumar' : 
                               'Administrator')} 
                             <i className="fas fa-chevron-down" style={{ marginLeft: '5px', fontSize: '12px' }}></i>
                         </span>
                         <div className="dropdown-menu">
+                            <Link to={getModulePath('/settings')} className="dropdown-item">
+                                <i className="fas fa-user-cog"></i> Change Photo & Profile
+                            </Link>
+                            <div style={{ margin: '4px 0', borderTop: '1px solid #eaecf4' }}></div>
                             <Link to="/login" className="dropdown-item" onClick={() => localStorage.clear()}>
                                 <i className="fas fa-sign-out-alt"></i> Sign Out
                             </Link>

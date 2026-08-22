@@ -2,16 +2,21 @@ import Notification from "../models/Notification.js";
 
 export const createNotification = async (req, res) => {
   try {
-    const { title, content, category, target } = req.body;
+    const { title, content, message, category, target, type } = req.body;
+    const finalContent = content || message;
 
-    if (!title || !content) {
+    if (!title || !finalContent) {
       return res.status(400).json({ message: "Title and content are required." });
     }
 
+    const rawCat = category || type || "Info";
+    const validCategories = ["Info", "Warning", "Emergency", "Maintenance", "Academic", "Account", "Other"];
+    const matchedCat = validCategories.find(c => c.toLowerCase() === rawCat.toLowerCase()) || "Info";
+
     const notification = await Notification.create({
       title,
-      content,
-      category: category || "Info",
+      content: finalContent,
+      category: matchedCat,
       target: target || "All",
       author: req.user._id,
     });

@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Header from '../../../components/Header';
+import { API_BASE_URL } from '../../../config';
 
 const RectorMessMenu = () => {
     const [selectedDay, setSelectedDay] = useState('Monday');
 
-    const weeklyMenu = {
+    const [weeklyMenu, setWeeklyMenu] = useState({
         'Monday': { breakfast: 'Idli, Sambhar', lunch: 'Rice, Dal Tadka', dinner: 'Roti, Paneer' },
         'Tuesday': { breakfast: 'Poha, Jalebi', lunch: 'Chole Bhature', dinner: 'Mix Veg, Paratha' },
         'Wednesday': { breakfast: 'Upma, Chutney', lunch: 'Rajma Chawal', dinner: 'Aloo Gobi, Roti' },
@@ -12,7 +13,28 @@ const RectorMessMenu = () => {
         'Friday': { breakfast: 'Aloo Paratha', lunch: 'Kadai Paneer, Naan', dinner: 'Khichdi, Kadhi' },
         'Saturday': { breakfast: 'Bread Butter', lunch: 'Pasta, Salad', dinner: 'Pav Bhaji' },
         'Sunday': { breakfast: 'Poori Bhaji', lunch: 'Special Thali', dinner: 'Fried Rice, Manchurian' }
-    };
+    });
+
+    useEffect(() => {
+        const fetchMenu = async () => {
+            const token = localStorage.getItem('token');
+            if (!token) return;
+            try {
+                const res = await fetch(`${API_BASE_URL}/mess-menu`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data && Object.keys(data).length > 0) {
+                        setWeeklyMenu(data);
+                    }
+                }
+            } catch (err) {
+                console.error('Error fetching mess menu:', err);
+            }
+        };
+        fetchMenu();
+    }, []);
 
     return (
         <>

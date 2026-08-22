@@ -1,8 +1,39 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Header from '../../../components/Header';
+import { API_BASE_URL } from '../../../config';
 
 const StudentManagement = () => {
     const [searchQuery, setSearchQuery] = useState('');
+    const [students, setStudents] = useState([]);
+    const [stats, setStats] = useState({ totalStudents: 0, presentInHostel: 0, onLeave: 0 });
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchStudents = async () => {
+            const token = localStorage.getItem('token');
+            if (!token) return;
+            const headers = { 'Authorization': `Bearer ${token}` };
+            try {
+                const [studRes, statsRes] = await Promise.all([
+                    fetch(`${API_BASE_URL}/students`, { headers }),
+                    fetch(`${API_BASE_URL}/students/stats`, { headers })
+                ]);
+                if (studRes.ok) {
+                    const studData = await studRes.json();
+                    setStudents(studData);
+                }
+                if (statsRes.ok) {
+                    const statsData = await statsRes.json();
+                    setStats(statsData);
+                }
+            } catch (err) {
+                console.error('Error fetching students:', err);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        fetchStudents();
+    }, []);
 
     return (
         <>
@@ -210,24 +241,24 @@ const StudentManagement = () => {
                 {/* Metrics Row */}
                 <div className="metrics-grid">
                     <div className="metric-card bg-blue">
-                        <div className="metric-label">Total Girls</div>
-                        <div className="metric-value">235</div>
+                        <div className="metric-label">Total Students</div>
+                        <div className="metric-value">{stats.totalStudents || students.length || 0}</div>
                         <div className="metric-desc">Registered</div>
                     </div>
                     <div className="metric-card bg-green">
                         <div className="metric-label">Present</div>
-                        <div className="metric-value">211</div>
+                        <div className="metric-value">{stats.presentInHostel || Math.max(0, (stats.totalStudents || students.length) - (stats.onLeave || 0))}</div>
                         <div className="metric-desc">In Hostel</div>
                     </div>
                     <div className="metric-card bg-yellow">
-                        <div className="metric-label">One Day Leave</div>
-                        <div className="metric-value">10</div>
-                        <div className="metric-desc">Returning Tomorrow</div>
+                        <div className="metric-label">On Leave</div>
+                        <div className="metric-value">{stats.onLeave || 0}</div>
+                        <div className="metric-desc">Gate Pass Approved</div>
                     </div>
                     <div className="metric-card bg-red">
-                        <div className="metric-label">Hometown Leave</div>
-                        <div className="metric-value">14</div>
-                        <div className="metric-desc">Long Leave</div>
+                        <div className="metric-label">Complaints Active</div>
+                        <div className="metric-value">5</div>
+                        <div className="metric-desc">Under Resolution</div>
                     </div>
                 </div>
 

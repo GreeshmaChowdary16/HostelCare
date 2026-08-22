@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import Header from '../../../components/Header';
-import { API_BASE_URL } from '../../../config';
+import { API_BASE_URL, getImageUrl } from '../../../config';
 
 const Settings = () => {
-    const [activeMenu, setActiveMenu] = useState('security');
+    const [activeMenu, setActiveMenu] = useState('profile');
     const [currentPassword, setCurrentPassword] = useState('');
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
@@ -14,6 +14,12 @@ const Settings = () => {
     const [phone, setPhone] = useState('');
     const [office, setOffice] = useState('');
     const [bio, setBio] = useState('');
+
+    // Profile Photo State
+    const [profileImage, setProfileImage] = useState(localStorage.getItem('profileImage') || '');
+    const [selectedFile, setSelectedFile] = useState(null);
+    const [previewUrl, setPreviewUrl] = useState('');
+    const [removePhotoFlag, setRemovePhotoFlag] = useState(false);
 
     // Notification Preferences State
     const [notifPrefs, setNotifPrefs] = useState({
@@ -57,6 +63,8 @@ const Settings = () => {
                     setPhone(data.phone || '');
                     setOffice(data.office || '');
                     setBio(data.bio || '');
+                    setProfileImage(data.profileImage || '');
+                    localStorage.setItem('profileImage', data.profileImage || '');
                 }
             } catch (err) {
                 console.error('Error fetching profile:', err);
@@ -65,22 +73,64 @@ const Settings = () => {
         fetchProfile();
     }, []);
 
+    const handleFileChange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            if (file.size > 5 * 1024 * 1024) {
+                alert('File size must be under 5MB');
+                return;
+            }
+            setSelectedFile(file);
+            setRemovePhotoFlag(false);
+            const objectUrl = URL.createObjectURL(file);
+            setPreviewUrl(objectUrl);
+        }
+    };
+
+    const handleRemovePhoto = () => {
+        setSelectedFile(null);
+        setPreviewUrl('');
+        setProfileImage('');
+        setRemovePhotoFlag(true);
+    };
+
     const handleSaveProfile = async () => {
         try {
+            const formData = new FormData();
+            formData.append('name', fullName);
+            formData.append('email', email);
+            formData.append('phone', phone);
+            formData.append('office', office);
+            formData.append('bio', bio);
+
+            if (selectedFile) {
+                formData.append('profileImage', selectedFile);
+            } else if (removePhotoFlag) {
+                formData.append('removeProfileImage', 'true');
+            }
+
             const res = await fetch(`${API_BASE_URL}/auth/me`, {
                 method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...getAuthHeader(),
-                },
-                body: JSON.stringify({ name: fullName, email, phone, office, bio }),
+                headers: getAuthHeader(),
+                body: formData,
             });
 
             const data = await res.json();
             if (!res.ok) throw new Error(data.message || 'Failed to update');
-            alert('Profile updated successfully');
+
+            alert('Profile & Photo updated successfully');
+            const updatedUser = data.user || data;
+            const updatedPhoto = updatedUser.profileImage || '';
+
+            setProfileImage(updatedPhoto);
+            setSelectedFile(null);
+            setPreviewUrl('');
+            setRemovePhotoFlag(false);
+
             localStorage.setItem('name', fullName);
             localStorage.setItem('email', email);
+            localStorage.setItem('profileImage', updatedPhoto);
+            window.dispatchEvent(new Event('profileUpdate'));
         } catch (err) {
             alert(err.message);
         }
@@ -203,7 +253,34 @@ const Settings = () => {
                                     <div className="widget-title">Profile Settings</div>
                                 </div>
 
-                                <form>
+                                <form onSubmit={(e) => { e.preventDefault(); handleSaveProfile(); }}>
+                                    {/* Profile Photo Manager */}
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '20px', marginBottom: '25px', padding: '15px', background: '#f8f9fc', borderRadius: '10px', border: '1px dashed #d1d3e2' }}>
+                                        <div style={{ width: '85px', height: '85px', borderRadius: '50%', overflow: 'hidden', background: '#e0e0e0', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 10px rgba(0,0,0,0.1)', border: '3px solid #fff', flexShrink: 0 }}>
+                                            {previewUrl ? (
+                                                <img src={previewUrl} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                            ) : profileImage ? (
+                                                <img src={getImageUrl(profileImage)} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                            ) : (
+                                                <i className="fas fa-female" style={{ fontSize: '34px', color: '#858796' }}></i>
+                                            )}
+                                        </div>
+                                        <div style={{ flex: 1 }}>
+                                            <h4 style={{ margin: '0 0 4px 0', fontSize: '15px', color: '#333' }}>Rector Profile Photo</h4>
+                                            <p style={{ margin: '0 0 10px 0', fontSize: '12px', color: '#858796' }}>Upload a photo to display on your HostelCare profile (JPG, PNG up to 5MB).</p>
+                                            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
+                                                <label style={{ padding: '8px 16px', fontSize: '13px', background: '#4e73df', color: 'white', borderRadius: '5px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px', fontWeight: 500 }}>
+                                                    <i className="fas fa-camera"></i> {selectedFile ? 'Change Selected File' : 'Upload Photo'}
+                                                    <input type="file" accept="image/*" style={{ display: 'none' }} onChange={handleFileChange} />
+                                                </label>
+                                                {(selectedFile || profileImage) && (
+                                                    <button type="button" onClick={handleRemovePhoto} style={{ padding: '8px 16px', fontSize: '13px', background: '#fff', border: '1px solid #e74a3b', color: '#e74a3b', borderRadius: '5px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px', fontWeight: 500 }}>
+                                                        <i className="fas fa-trash-alt"></i> Remove Photo
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
                                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
                                         <div>
                                             <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500, color: '#5a5c69' }}>Full Name</label>

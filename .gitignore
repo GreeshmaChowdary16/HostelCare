@@ -43,6 +43,9 @@ dist/
 # Uploads and temporary files
 /Backend/uploads/
 uploads/
+scratch/
+/Backend/scratch/
+*.log
 
 # OS files
 .DS_Store

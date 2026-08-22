@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Header from '../../../components/Header';
+import { API_BASE_URL } from '../../../config';
 
 const AdminMessMenu = () => {
     const [selectedDay, setSelectedDay] = useState('Monday');
@@ -17,14 +18,51 @@ const AdminMessMenu = () => {
 
     const [editForm, setEditForm] = useState({ breakfast: '', lunch: '', dinner: '' });
 
+    useEffect(() => {
+        const fetchMenu = async () => {
+            const token = localStorage.getItem('token');
+            if (!token) return;
+            try {
+                const res = await fetch(`${API_BASE_URL}/mess-menu`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data && Object.keys(data).length > 0) {
+                        setWeeklyMenu(data);
+                    }
+                }
+            } catch (err) {
+                console.error('Error fetching mess menu:', err);
+            }
+        };
+        fetchMenu();
+    }, []);
+
     const handleEditClick = () => {
-        setEditForm(weeklyMenu[selectedDay]);
+        setEditForm(weeklyMenu[selectedDay] || { breakfast: '', lunch: '', dinner: '' });
         setIsEditing(true);
     };
 
-    const handleSave = () => {
-        setWeeklyMenu({ ...weeklyMenu, [selectedDay]: editForm });
+    const handleSave = async () => {
+        const updatedMenu = { ...weeklyMenu, [selectedDay]: editForm };
+        setWeeklyMenu(updatedMenu);
         setIsEditing(false);
+
+        const token = localStorage.getItem('token');
+        if (!token) return;
+        try {
+            await fetch(`${API_BASE_URL}/mess-menu`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ weeklyMenu: updatedMenu })
+            });
+        } catch (err) {
+            console.error('Error updating mess menu:', err);
+        }
     };
 
     return (

@@ -51,6 +51,7 @@ function LoginPage() {
                 localStorage.setItem('role', data.role);
                 localStorage.setItem('name', data.name);
                 localStorage.setItem('email', username);
+                localStorage.setItem('profileImage', data.profileImage || '');
 
                 // Redirect based on role
                 if (data.role === 'admin') {
@@ -107,6 +108,7 @@ function LoginPage() {
             localStorage.setItem('role', googleData.role);
             localStorage.setItem('name', googleData.name);
             localStorage.setItem('email', googleData.email || '');
+            localStorage.setItem('profileImage', googleData.profileImage || '');
 
             if (googleData.role === 'admin') {
                 navigate('/admin/dashboard');

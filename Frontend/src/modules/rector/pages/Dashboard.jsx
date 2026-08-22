@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import Header from '../../../components/Header';
-import { API_BASE_URL } from '../../../config';
+import { API_BASE_URL, getImageUrl } from '../../../config';
 
 const Dashboard = () => {
     const [complaints, setComplaints] = useState([]);
@@ -290,10 +290,17 @@ const Dashboard = () => {
                 {/* Left Sidebar - Rector Profile */}
                 <div className="left-sidebar">
                     <div className="profile-card">
-                        <div className="profile-img-container">
-                            <i className="fas fa-female"></i>
+                        <div className="profile-img-container" style={{ overflow: 'hidden' }}>
+                            {rectorInfo.profileImage ? (
+                                <img src={getImageUrl(rectorInfo.profileImage)} alt="Rector Profile" style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
+                            ) : (
+                                <i className="fas fa-female"></i>
+                            )}
                         </div>
-                        <h3 className="profile-name" style={{ marginBottom: '30px' }}>{rectorInfo.name}</h3>
+                        <Link to="/rector/settings" style={{ fontSize: '12px', color: '#4e73df', textDecoration: 'none', fontWeight: 600, marginTop: '-10px', marginBottom: '15px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                            <i className="fas fa-camera"></i> Change Photo
+                        </Link>
+                        <h3 className="profile-name" style={{ marginBottom: '20px' }}>{rectorInfo.name}</h3>
 
                         <div className="profile-details-grid">
                             <span className="detail-label">Staff ID</span>

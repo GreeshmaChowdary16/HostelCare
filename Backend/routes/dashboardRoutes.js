@@ -10,11 +10,9 @@ import {
 
 const router = express.Router();
 
-// General / Admin / Rector unified stats route
 router.get("/stats", protect, getDashboardAnalytics);
 router.get("/analytics", protect, getDashboardAnalytics);
 
-// Role specific dashboard routes
 router.get("/student", protect, authorizeRoles("student"), getStudentDashboard);
 router.get("/rector", protect, authorizeRoles("rector"), getRectorDashboard);
 router.get("/admin", protect, authorizeRoles("admin"), getAdminDashboard);

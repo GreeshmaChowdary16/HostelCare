@@ -23,6 +23,7 @@ import rectorRoutes from "./routes/rectorRoutes.js";
 import studentRoutes from "./routes/studentRoutes.js";
 import reportRoutes from "./routes/reportRoutes.js";
 import feeRoutes from "./routes/feeRoutes.js";
+import messMenuRoutes from "./routes/messMenuRoutes.js";
 
 dotenv.config();
 
@@ -49,6 +50,7 @@ app.use("/api/complaints", complaintRoutes);
 app.use("/api/gatepass", gatePassRoutes);
 app.use("/api/announcements", announcementRoutes);
 app.use("/api/mess-reviews", messReviewRoutes);
+app.use("/api/mess-menu", messMenuRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/attendance", attendanceRoutes);
 app.use("/api/workers", workerRoutes);

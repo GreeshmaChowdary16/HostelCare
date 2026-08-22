@@ -1,15 +1,67 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Header from '../../../components/Header';
+import { API_BASE_URL } from '../../../config';
 
 function AdminRectors() {
     const [activeTab, setActiveTab] = useState('male');
     const [selectedRector, setSelectedRector] = useState(null);
     const [searchQuery, setSearchQuery] = useState('');
+    const [rectorsList, setRectorsList] = useState([]);
+    const [newRector, setNewRector] = useState({ name: '', email: '', password: 'password1', phone: '', office: 'Hostel Office' });
+    const [showAddModal, setShowAddModal] = useState(false);
+    const [msg, setMsg] = useState('');
 
     const [leaveApplications, setLeaveApplications] = useState([
         { id: 1, rectorName: 'Suresh Verma', type: 'male', date: '2026-05-12 to 2026-05-15', reason: 'Family medical emergency', status: 'Pending' },
         { id: 2, rectorName: 'Kavita Patel', type: 'female', date: '2026-05-10', reason: 'Personal work', status: 'Pending' },
     ]);
+
+    const fetchRectors = async () => {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+        try {
+            const res = await fetch(`${API_BASE_URL}/rectors`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (res.ok) {
+                const data = await res.json();
+                setRectorsList(data);
+            }
+        } catch (err) {
+            console.error('Error fetching rectors:', err);
+        }
+    };
+
+    useEffect(() => {
+        fetchRectors();
+    }, []);
+
+    const handleCreateRector = async (e) => {
+        e.preventDefault();
+        const token = localStorage.getItem('token');
+        if (!token) return;
+        try {
+            const res = await fetch(`${API_BASE_URL}/rectors`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(newRector)
+            });
+            const data = await res.json();
+            if (res.ok) {
+                setMsg('Rector created successfully!');
+                setShowAddModal(false);
+                setNewRector({ name: '', email: '', password: 'password1', phone: '', office: 'Hostel Office' });
+                fetchRectors();
+            } else {
+                setMsg(data.message || 'Failed to create rector');
+            }
+        } catch (err) {
+            setMsg('Error creating rector');
+        }
+    };
 
     const handleLeaveAction = (id, action) => {
         setLeaveApplications(leaveApplications.map(app => 
@@ -17,29 +69,16 @@ function AdminRectors() {
         ));
     };
 
-    const rectorsData = {
-        male: [
-            { id: 'REC-M01', name: 'Ramesh Kumar', hostel: 'Boys Hostel A', phone: '+91 9876543210', email: 'ramesh@hostel.edu', status: 'Present' },
-            { id: 'REC-M02', name: 'Suresh Verma', hostel: 'Boys Hostel B', phone: '+91 9876543211', email: 'suresh@hostel.edu', status: 'Absent' },
-            { id: 'REC-M03', name: 'Vikram Singh', hostel: 'Boys Hostel C', phone: '+91 9876543212', email: 'vikram@hostel.edu', status: 'Present' },
-        ],
-        female: [
-            { id: 'REC-F01', name: 'Priya Sharma', hostel: 'Girls Hostel A', phone: '+91 9876543213', email: 'priya@hostel.edu', status: 'Present' },
-            { id: 'REC-F02', name: 'Anita Desai', hostel: 'Girls Hostel B', phone: '+91 9876543214', email: 'anita@hostel.edu', status: 'Present' },
-            { id: 'REC-F03', name: 'Kavita Patel', hostel: 'Girls Hostel C', phone: '+91 9876543215', email: 'kavita@hostel.edu', status: 'Absent' },
-        ]
-    };
+    const filteredRectors = rectorsList.filter(rector => {
+        const q = searchQuery.toLowerCase();
+        return (rector.name || '').toLowerCase().includes(q) || (rector.email || '').toLowerCase().includes(q);
+    });
 
     const handleTabChange = (tab) => {
         setActiveTab(tab);
         setSelectedRector(null);
         setSearchQuery('');
     };
-
-    const currentRectors = rectorsData[activeTab].filter(rector => 
-        rector.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-        rector.id.toLowerCase().includes(searchQuery.toLowerCase())
-    );
 
     return (
         <>
@@ -280,37 +319,61 @@ function AdminRectors() {
 
                 <div className="main-layout">
                     <div className="list-section">
-                        <h3 style={{ margin: '0 0 20px 0', color: '#5a5c69' }}>
-                            {activeTab === 'male' ? 'Male Rectors List' : 'Female Rectors List'}
-                        </h3>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                            <h3 style={{ margin: 0, color: '#5a5c69' }}>
+                                Rectors List ({filteredRectors.length})
+                            </h3>
+                            <button 
+                                onClick={() => setShowAddModal(!showAddModal)}
+                                style={{ background: '#4e73df', color: 'white', border: 'none', padding: '8px 16px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}
+                            >
+                                + Add Rector
+                            </button>
+                        </div>
+
+                        {msg && <div style={{ padding: '10px', marginBottom: '15px', background: '#e3fdf4', color: '#1cc88a', borderRadius: '6px' }}>{msg}</div>}
+
+                        {showAddModal && (
+                            <form onSubmit={handleCreateRector} style={{ background: '#f8f9fc', padding: '15px', borderRadius: '8px', marginBottom: '20px' }}>
+                                <h4 style={{ margin: '0 0 10px 0' }}>Add New Rector</h4>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '10px' }}>
+                                    <input type="text" placeholder="Full Name" value={newRector.name} onChange={e => setNewRector({...newRector, name: e.target.value})} required style={{ padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }} />
+                                    <input type="email" placeholder="Email Address" value={newRector.email} onChange={e => setNewRector({...newRector, email: e.target.value})} required style={{ padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }} />
+                                    <input type="text" placeholder="Phone Number" value={newRector.phone} onChange={e => setNewRector({...newRector, phone: e.target.value})} style={{ padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }} />
+                                    <input type="text" placeholder="Office Location" value={newRector.office} onChange={e => setNewRector({...newRector, office: e.target.value})} style={{ padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }} />
+                                </div>
+                                <button type="submit" style={{ background: '#1cc88a', color: 'white', border: 'none', padding: '8px 16px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>Save Rector</button>
+                            </form>
+                        )}
+
                         <div className="search-container">
                             <input 
                                 type="text" 
                                 className="search-input" 
-                                placeholder="Search by name or ID..."
+                                placeholder="Search by name or email..."
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                             />
                             <i className="fas fa-search search-icon"></i>
                         </div>
 
-                        {currentRectors.length > 0 ? (
-                            currentRectors.map(rector => (
+                        {filteredRectors.length > 0 ? (
+                            filteredRectors.map(rector => (
                                 <div 
-                                    key={rector.id} 
-                                    className={`rector-item ${selectedRector?.id === rector.id ? 'selected' : ''}`}
+                                    key={rector._id || rector.id} 
+                                    className={`rector-item ${selectedRector?._id === rector._id ? 'selected' : ''}`}
                                     onClick={() => setSelectedRector(rector)}
                                 >
                                     <div className="rector-avatar">
-                                        <i className={activeTab === 'male' ? 'fas fa-male' : 'fas fa-female'}></i>
+                                        <i className="fas fa-user-shield"></i>
                                     </div>
                                     <div>
                                         <div className="rector-name">{rector.name}</div>
-                                        <div className="rector-status">{rector.hostel}</div>
+                                        <div className="rector-status">{rector.office || rector.email}</div>
                                     </div>
                                     <div style={{ marginLeft: 'auto' }}>
-                                        <span className={`status-badge ${rector.status === 'Present' ? 'status-present' : 'status-absent'}`}>
-                                            {rector.status}
+                                        <span className="status-badge status-present">
+                                            Active
                                         </span>
                                     </div>
                                 </div>

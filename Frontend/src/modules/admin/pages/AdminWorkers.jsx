@@ -1,32 +1,52 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Header from '../../../components/Header';
+import { API_BASE_URL } from '../../../config';
 
 function AdminWorkers() {
-    // State for complaints
-    const [complaints, setComplaints] = useState([
-        { id: 1, hostel: 'Girls Hostel A', room: '101', issue: 'Fan not working', type: 'Electrical', status: 'Pending', worker: '' },
-        { id: 2, hostel: 'Boys Hostel B', room: '205', issue: 'Leaking tap', type: 'Plumbing', status: 'Pending', worker: '' },
-        { id: 3, hostel: 'Girls Hostel C', room: '310', issue: 'Broken window', type: 'Carpentry', status: 'Pending', worker: '' }
-    ]);
-
-    // State for Worker Directory
+    const [complaints, setComplaints] = useState([]);
+    const [workersList, setWorkersList] = useState([]);
     const [activeRole, setActiveRole] = useState('Electricians');
     const [selectedSupervisor, setSelectedSupervisor] = useState(null);
+    const [isLoading, setIsLoading] = useState(true);
 
-    const workersData = {
-        'Carpenters': [
-            { id: 'C1', name: 'Mahesh Kumar', phone: '9876543210', status: 'On Duty' },
-            { id: 'C2', name: 'Rahul Singh', phone: '9876543211', status: 'On Leave' }
-        ],
-        'Electricians': [
-            { id: 'E1', name: 'Ramesh Sharma', phone: '9876543212', status: 'On Duty' },
-            { id: 'E2', name: 'Sanjay Gupta', phone: '9876543213', status: 'On Duty' }
-        ],
-        'Plumbers': [
-            { id: 'P1', name: 'Suresh Verma', phone: '9876543214', status: 'On Duty' },
-            { id: 'P2', name: 'Amit Patel', phone: '9876543215', status: 'Off Duty' }
-        ]
+    const fetchData = async () => {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+        const headers = { 'Authorization': `Bearer ${token}` };
+
+        try {
+            const [workersRes, compRes] = await Promise.all([
+                fetch(`${API_BASE_URL}/workers`, { headers }),
+                fetch(`${API_BASE_URL}/complaints`, { headers })
+            ]);
+
+            if (workersRes.ok) {
+                const wData = await workersRes.json();
+                setWorkersList(wData);
+            }
+
+            if (compRes.ok) {
+                const cData = await compRes.json();
+                setComplaints(cData.map(c => ({
+                    id: c._id,
+                    hostel: c.student?.roomInfo ? `Room ${c.student.roomInfo}` : 'Hostel Block',
+                    room: c.roomNo || '101',
+                    issue: c.problem || c.title,
+                    type: c.category || 'General',
+                    status: c.status || 'Pending',
+                    worker: c.assignedWorker?.name || ''
+                })));
+            }
+        } catch (err) {
+            console.error('Error fetching workers/complaints:', err);
+        } finally {
+            setIsLoading(false);
+        }
     };
+
+    useEffect(() => {
+        fetchData();
+    }, []);
 
     const supervisorsData = [
         { 
@@ -43,10 +63,30 @@ function AdminWorkers() {
         }
     ];
 
-    const handleAllotWorker = (complaintId, workerName) => {
+    const handleAllotWorker = async (complaintId, workerName) => {
         setComplaints(complaints.map(c => 
             c.id === complaintId ? { ...c, worker: workerName, status: workerName ? 'Assigned' : 'Pending' } : c
         ));
+
+        const token = localStorage.getItem('token');
+        if (!token) return;
+        const selectedWorkerObj = workersList.find(w => w.name === workerName);
+
+        try {
+            await fetch(`${API_BASE_URL}/workers/assign`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    workerId: selectedWorkerObj?._id,
+                    complaintId
+                })
+            });
+        } catch (err) {
+            console.error('Error assigning worker:', err);
+        }
     };
 
     return (
@@ -240,12 +280,8 @@ function AdminWorkers() {
                                             onChange={(e) => handleAllotWorker(complaint.id, e.target.value)}
                                         >
                                             <option value="">-- Select Worker --</option>
-                                            {/* Logic to show relevant workers for allotment */}
-                                            {workersData[complaint.type + 's']?.map(w => (
-                                                <option key={w.id} value={w.name}>{w.name}</option>
-                                            ))}
-                                            {complaint.type === 'Cleaning' && supervisorsData.map(w => (
-                                                <option key={w.id} value={w.name}>{w.name}</option>
+                                            {workersList.map(w => (
+                                                <option key={w._id || w.id} value={w.name}>{w.name} ({w.role || w.skill || 'Worker'})</option>
                                             ))}
                                         </select>
                                     </td>
