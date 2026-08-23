@@ -1,5 +1,6 @@
 import Attendance from "../models/Attendance.js";
 import User from "../models/User.js";
+import { emitRealtimeEvent } from "../config/socket.js";
 
 export const getAttendance = async (req, res) => {
   try {
@@ -79,6 +80,8 @@ export const upsertAttendance = async (req, res) => {
       }
     );
 
+    emitRealtimeEvent("attendance_updated", attendance);
+
     res.status(200).json({ message: "Attendance updated successfully", attendance });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -99,6 +102,8 @@ export const updateAttendance = async (req, res) => {
       return res.status(404).json({ message: "Attendance record not found" });
     }
 
+    emitRealtimeEvent("attendance_updated", attendance);
+
     res.status(200).json({ message: "Attendance record updated", attendance });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -114,6 +119,8 @@ export const deleteAttendance = async (req, res) => {
     if (!attendance) {
       return res.status(404).json({ message: "Attendance record not found" });
     }
+
+    emitRealtimeEvent("attendance_deleted", { id: attendance._id });
 
     res.status(200).json({ message: "Attendance record deleted" });
   } catch (error) {

@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import Header from '../../../components/Header';
 import { API_BASE_URL } from '../../../config';
+import socket from '../../../socket';
 
 const StudentManagement = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const [students, setStudents] = useState([]);
-    const [stats, setStats] = useState({ totalStudents: 0, presentInHostel: 0, onLeave: 0 });
+    const [stats, setStats] = useState({ total: 0, presentInHostel: 0, onLeave: 0, activeComplaints: 0, guardianCount: 0 });
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
@@ -33,7 +34,33 @@ const StudentManagement = () => {
             }
         };
         fetchStudents();
+        const refresh = () => fetchStudents();
+        socket.on('attendance_updated', refresh);
+        socket.on('gatepass_created', refresh);
+        socket.on('gatepass_updated', refresh);
+        socket.on('complaint_created', refresh);
+        socket.on('complaint_updated', refresh);
+        socket.on('complaint_deleted', refresh);
+        return () => {
+            socket.off('attendance_updated', refresh);
+            socket.off('gatepass_created', refresh);
+            socket.off('gatepass_updated', refresh);
+            socket.off('complaint_created', refresh);
+            socket.off('complaint_updated', refresh);
+            socket.off('complaint_deleted', refresh);
+        };
     }, []);
+
+    const floorRows = Object.entries(students.reduce((groups, student) => {
+        const room = student.roomInfo || '';
+        const match = room.match(/Room\s*(\d+)/i) || room.match(/(\d{3})$/);
+        const floor = match ? Math.floor(Number(match[1]) / 100) : null;
+        const key = floor === null ? 'Unknown' : floor === 0 ? 'Ground' : `${floor}${floor === 1 ? 'st' : floor === 2 ? 'nd' : floor === 3 ? 'rd' : 'th'} Floor`;
+        if (!groups[key]) groups[key] = { total: 0, present: 0 };
+        groups[key].total += 1;
+        groups[key].present += 1;
+        return groups;
+    }, {}));
 
     return (
         <>
@@ -242,22 +269,22 @@ const StudentManagement = () => {
                 <div className="metrics-grid">
                     <div className="metric-card bg-blue">
                         <div className="metric-label">Total Students</div>
-                        <div className="metric-value">{stats.totalStudents || students.length || 0}</div>
+                        <div className="metric-value">{stats.total || students.length || 0}</div>
                         <div className="metric-desc">Registered</div>
                     </div>
                     <div className="metric-card bg-green">
                         <div className="metric-label">Present</div>
-                        <div className="metric-value">{stats.presentInHostel || Math.max(0, (stats.totalStudents || students.length) - (stats.onLeave || 0))}</div>
+                        <div className="metric-value">{stats.presentInHostel ?? Math.max(0, students.length - (stats.onLeave || 0))}</div>
                         <div className="metric-desc">In Hostel</div>
                     </div>
                     <div className="metric-card bg-yellow">
                         <div className="metric-label">On Leave</div>
-                        <div className="metric-value">{stats.onLeave || 0}</div>
+                        <div className="metric-value">{stats.onLeave ?? 0}</div>
                         <div className="metric-desc">Gate Pass Approved</div>
                     </div>
                     <div className="metric-card bg-red">
                         <div className="metric-label">Complaints Active</div>
-                        <div className="metric-value">5</div>
+                        <div className="metric-value">{stats.activeComplaints ?? 0}</div>
                         <div className="metric-desc">Under Resolution</div>
                     </div>
                 </div>
@@ -277,32 +304,12 @@ const StudentManagement = () => {
                                         <th>Action</th>
                                     </tr>
                                 </thead>
-                                <tbody>
-                                    <tr>
-                                        <td style={{ fontWeight: 500 }}>Ground</td>
-                                        <td>60</td>
-                                        <td>54</td>
-                                        <td><button className="btn-view">View</button></td>
+                                <tbody>{floorRows.length ? floorRows.map(([floor, row]) => (
+                                    <tr key={floor}>
+                                        <td style={{ fontWeight: 500 }}>{floor}</td><td>{row.total}</td><td>{row.present}</td>
+                                        <td><button className="btn-view" onClick={() => setSearchQuery(floor)}>View</button></td>
                                     </tr>
-                                    <tr>
-                                        <td style={{ fontWeight: 500 }}>1st Floor</td>
-                                        <td>58</td>
-                                        <td>50</td>
-                                        <td><button className="btn-view">View</button></td>
-                                    </tr>
-                                    <tr>
-                                        <td style={{ fontWeight: 500 }}>2nd Floor</td>
-                                        <td>62</td>
-                                        <td>59</td>
-                                        <td><button className="btn-view">View</button></td>
-                                    </tr>
-                                    <tr>
-                                        <td style={{ fontWeight: 500 }}>3rd Floor</td>
-                                        <td>55</td>
-                                        <td>48</td>
-                                        <td><button className="btn-view">View</button></td>
-                                    </tr>
-                                </tbody>
+                                )) : <tr><td colSpan="4" style={{ textAlign: 'center' }}>No floor data available.</td></tr>}</tbody>
                             </table>
                         </div>
 
@@ -310,21 +317,13 @@ const StudentManagement = () => {
                         <div className="card">
                             <div className="card-title"><i className="fas fa-map-marked-alt"></i> State-Wise Distribution</div>
                             <div className="state-distribution">
-                                <div className="state-card">
-                                    <div className="state-name">Maharashtra</div>
-                                    <div className="state-count">145</div>
-                                    <div className="state-sub">Local / Nearby</div>
-                                </div>
-                                <div className="state-card gujarat">
-                                    <div className="state-name">Gujarat</div>
-                                    <div className="state-count">45</div>
-                                    <div className="state-sub">Neighboring State</div>
-                                </div>
-                                <div className="state-card others">
-                                    <div className="state-name">Other States</div>
-                                    <div className="state-count">45</div>
-                                    <div className="state-sub">MP, KA, etc.</div>
-                                </div>
+                                {Object.entries(stats.stateWise || {}).map(([state, count]) => (
+                                    <div className="state-card" key={state}>
+                                        <div className="state-name">{state}</div>
+                                        <div className="state-count">{count}</div>
+                                        <div className="state-sub">Registered students</div>
+                                    </div>
+                                ))}
                             </div>
                         </div>
                     </div>
@@ -337,17 +336,17 @@ const StudentManagement = () => {
 
                             <div style={{ marginBottom: '20px' }}>
                                 <div style={{ fontSize: '13px', color: '#858796', marginBottom: '5px' }}>Non-Local Girls (Out of State)</div>
-                                <div style={{ fontSize: '28px', fontWeight: 700, color: '#5a5c69' }}>90</div>
+                                <div style={{ fontSize: '28px', fontWeight: 700, color: '#5a5c69' }}>{students.filter(student => !student.parentPhone).length}</div>
                             </div>
 
                             <div className="sidebar-stat-box box-green">
-                                <span className="box-value">72</span>
+                                <span className="box-value">{stats.guardianCount || students.filter(student => student.parentPhone).length}</span>
                                 <div className="box-label">With Guardian</div>
                                 <div className="box-sub">Have relatives in city</div>
                             </div>
 
                             <div className="sidebar-stat-box box-red">
-                                <span className="box-value">18</span>
+                                <span className="box-value">{students.filter(student => !student.parentPhone).length}</span>
                                 <div className="box-label">No Guardian</div>
                                 <div className="box-sub">No local relatives</div>
                             </div>
@@ -367,7 +366,7 @@ const StudentManagement = () => {
                                 onChange={(e) => setSearchQuery(e.target.value)}
                             />
 
-                            <button className="btn-search">Search</button>
+                            <button className="btn-search" onClick={() => setSearchQuery(searchQuery.trim())}>Search</button>
                         </div>
                     </div>
                 </div>

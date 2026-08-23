@@ -163,6 +163,71 @@
     box-shadow: 0 0 0 3px rgba(78, 115, 223, 0.15);
 }
 
+.signup-card {
+    max-width: 760px;
+    max-height: 95vh;
+    overflow-y: auto;
+}
+
+.signup-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0 18px;
+    text-align: left;
+}
+
+.signup-wide {
+    grid-column: 1 / -1;
+}
+
+.input-group textarea {
+    width: 100%;
+    padding: 12px 15px;
+    border: 1.5px solid #e3e6f0;
+    border-radius: 10px;
+    font: inherit;
+    font-size: 14px;
+    color: var(--text-primary);
+    outline: none;
+    resize: vertical;
+    background: #f8f9fc;
+}
+
+.input-group textarea:focus {
+    border-color: var(--primary);
+    background: #fff;
+    box-shadow: 0 0 0 3px rgba(78, 115, 223, 0.15);
+}
+
+.signup-link,
+.signup-note {
+    color: var(--text-secondary);
+    font-size: 13px;
+    margin: 18px 0 0;
+}
+
+.signup-link a {
+    color: var(--primary);
+    font-weight: 600;
+}
+
+.success-message {
+    color: #0f6848;
+    background: #e3fdf4;
+    border-left: 4px solid #1cc88a;
+    border-radius: 8px;
+    font-size: 13px;
+    margin-bottom: 15px;
+    padding: 10px 15px;
+    text-align: left;
+}
+
+@media (max-width: 600px) {
+    .login-card { padding: 28px 22px; }
+    .signup-grid { grid-template-columns: 1fr; }
+    .signup-wide { grid-column: auto; }
+}
+
 /* Error State */
 .error-message {
     color: #e74a3b;

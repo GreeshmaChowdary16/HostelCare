@@ -37,7 +37,7 @@ const server = http.createServer(app);
 // Initialize Socket.io
 initSocket(server);
 
-app.use(helmet());
+app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" } }));
 app.use(compression());
 app.use(cors());
 app.use(express.json());

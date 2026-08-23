@@ -2,15 +2,21 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import Header from '../../../components/Header';
 import { API_BASE_URL, getImageUrl } from '../../../config';
+import socket from '../../../socket';
 
 const Dashboard = () => {
     const [complaints, setComplaints] = useState([]);
     const [gatePasses, setGatePasses] = useState([]);
+    const [notifications, setNotifications] = useState([]);
+    const [liveStudents, setLiveStudents] = useState({ total: 0, present: 0, onLeave: 0, students: [] });
+    const [showAllGirls, setShowAllGirls] = useState(false);
     const [rectorInfo, setRectorInfo] = useState({
         name: localStorage.getItem('name') || 'Mrs. Priya Kumar',
         email: localStorage.getItem('email') || 'rector@hostelcare.com',
         phone: '+91 98765 43210',
-        office: '101'
+        office: '101',
+        staffId: '',
+        shift: ''
     });
 
     useEffect(() => {
@@ -38,16 +44,34 @@ const Dashboard = () => {
                     const gpData = await gpRes.json();
                     setGatePasses(gpData);
                 }
+
+                const liveRes = await fetch(`${API_BASE_URL}/students/live-status`, { headers });
+                if (liveRes.ok) setLiveStudents(await liveRes.json());
+
+                const notificationRes = await fetch(`${API_BASE_URL}/notifications`, { headers });
+                if (notificationRes.ok) setNotifications(await notificationRes.json());
             } catch (error) {
                 console.error('Error fetching rector dashboard data:', error);
             }
         };
 
         fetchData();
+        const refreshLiveStatus = () => fetchData();
+        socket.on('attendance_updated', refreshLiveStatus);
+        socket.on('attendance_deleted', refreshLiveStatus);
+        socket.on('gatepass_created', refreshLiveStatus);
+        socket.on('gatepass_updated', refreshLiveStatus);
+
+        return () => {
+            socket.off('attendance_updated', refreshLiveStatus);
+            socket.off('attendance_deleted', refreshLiveStatus);
+            socket.off('gatepass_created', refreshLiveStatus);
+            socket.off('gatepass_updated', refreshLiveStatus);
+        };
     }, []);
 
     const activeComplaintsCount = complaints.filter(c => c.status === 'Pending' || c.status === 'In Progress').length;
-    const approvedGatePassCount = gatePasses.filter(g => g.status === 'Approved').length;
+    const latestNotification = notifications[0];
     return (
         <>
             <Header title="Rector Dashboard" />
@@ -156,6 +180,75 @@ const Dashboard = () => {
                     display: flex;
                     flex-direction: column;
                     justify-content: space-between;
+                }
+
+                .stat-card-button {
+                    width: 100%;
+                    border: 0;
+                    text-align: left;
+                    cursor: pointer;
+                    font: inherit;
+                }
+
+                .student-modal-backdrop {
+                    position: fixed;
+                    inset: 0;
+                    z-index: 1000;
+                    padding: 30px;
+                    background: rgba(26, 35, 54, 0.55);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                }
+
+                .student-modal {
+                    width: min(1100px, 100%);
+                    max-height: 90vh;
+                    overflow: auto;
+                    background: #fff;
+                    border-radius: 10px;
+                    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+                    padding: 25px;
+                }
+
+                .student-modal-header {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: flex-start;
+                    gap: 20px;
+                    margin-bottom: 20px;
+                }
+
+                .student-modal-title {
+                    margin: 0 0 5px;
+                    color: #343a40;
+                    font-size: 22px;
+                }
+
+                .student-modal-subtitle {
+                    margin: 0;
+                    color: #858796;
+                    font-size: 13px;
+                }
+
+                .modal-close-button {
+                    border: 0;
+                    background: #f8f9fc;
+                    color: #5a5c69;
+                    width: 34px;
+                    height: 34px;
+                    border-radius: 50%;
+                    cursor: pointer;
+                    font-size: 18px;
+                }
+
+                .student-details-table {
+                    min-width: 850px;
+                }
+
+                @media (max-width: 600px) {
+                    .student-modal-backdrop { padding: 12px; }
+                    .student-modal { padding: 18px; }
                 }
                 
                 .stat-label {
@@ -304,7 +397,7 @@ const Dashboard = () => {
 
                         <div className="profile-details-grid">
                             <span className="detail-label">Staff ID</span>
-                            <span className="detail-value">88921</span>
+                            <span className="detail-value">{rectorInfo.staffId || 'Not provided'}</span>
 
                             <span className="detail-label">Mobile</span>
                             <span className="detail-value">{rectorInfo.phone || 'N/A'}</span>
@@ -316,7 +409,7 @@ const Dashboard = () => {
                             <span className="detail-value">{rectorInfo.office || 'N/A'}</span>
 
                             <span className="detail-label">Shift</span>
-                            <span className="detail-value green-text">Day/Night</span>
+                            <span className="detail-value green-text">{rectorInfo.shift || 'Not provided'}</span>
                         </div>
                     </div>
                 </div>
@@ -327,24 +420,30 @@ const Dashboard = () => {
                     <div>
                         <h2 className="overview-title">Overview</h2>
                         <div className="stats-grid-2x2">
-                            <div className="stat-card-modern" style={{ background: '#4e73df' }}>
+                            <button
+                                type="button"
+                                className="stat-card-modern stat-card-button"
+                                style={{ background: '#4e73df' }}
+                                onClick={() => setShowAllGirls(true)}
+                                aria-label="View details for all girls in the hostel"
+                            >
                                 <div>
                                     <div className="stat-label">TOTAL GIRLS</div>
-                                    <div className="stat-value">235</div>
+                                    <div className="stat-value">{liveStudents.total}</div>
                                 </div>
-                                <div className="stat-desc">Registered</div>
-                            </div>
+                                <div className="stat-desc">Click to view all details</div>
+                            </button>
                             <div className="stat-card-modern" style={{ background: '#1cc88a' }}>
                                 <div>
                                     <div className="stat-label">PRESENT</div>
-                                    <div className="stat-value">211</div>
+                                    <div className="stat-value">{liveStudents.present}</div>
                                 </div>
                                 <div className="stat-desc">In Hostel Today</div>
                             </div>
                             <div className="stat-card-modern" style={{ background: '#f6c23e' }}>
                                 <div>
                                     <div className="stat-label">ON LEAVE</div>
-                                    <div className="stat-value">{approvedGatePassCount}</div>
+                                    <div className="stat-value">{liveStudents.onLeave}</div>
                                 </div>
                                 <div className="stat-desc">With Parents / Home</div>
                             </div>
@@ -365,6 +464,34 @@ const Dashboard = () => {
                         </div>
                     </div>
 
+                    <div className="table-card">
+                        <div className="table-header-row">
+                            <div className="table-title">Girls Hostel Live Status</div>
+                            <div style={{ color: '#858796', fontSize: '12px' }}>
+                                Updated {liveStudents.updatedAt ? new Date(liveStudents.updatedAt).toLocaleTimeString() : '—'}
+                            </div>
+                        </div>
+                        <table className="custom-table">
+                            <thead>
+                                <tr><th>Student</th><th>Roll No</th><th>Room</th><th>Status</th></tr>
+                            </thead>
+                            <tbody>
+                                {liveStudents.students.length === 0 ? (
+                                    <tr><td colSpan="4" style={{ textAlign: 'center', padding: '15px', color: '#858796' }}>No students found.</td></tr>
+                                ) : liveStudents.students.map((student) => (
+                                    <tr key={student._id}>
+                                        <td>{student.name}</td>
+                                        <td>{student.rollNo || '—'}</td>
+                                        <td>{student.roomInfo || 'Unassigned'}</td>
+                                        <td><span className={`status-chip ${student.status === 'present' ? 'chip-resolved' : 'chip-pending'}`}>
+                                            {student.status === 'present' ? 'Present' : 'On Leave'}
+                                        </span></td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+
                     <div className="alert-row">
                         {/* Latest Notification */}
                         <div className="alert-card">
@@ -372,9 +499,9 @@ const Dashboard = () => {
                                 <i className="fas fa-bell"></i> Latest Notification
                             </div>
                             <div className="alert-body">
-                                <div className="alert-banner banner-blue">
-                                    <div style={{ fontWeight: 700, marginBottom: '5px' }}>Curfew Timing Update</div>
-                                    <div style={{ fontSize: '13px', opacity: 0.9 }}>Main gate closes at 8:00 PM strictly for safety.</div>
+                                    <div className="alert-banner banner-blue">
+                                    <div style={{ fontWeight: 700, marginBottom: '5px' }}>{latestNotification?.title || 'No new notifications'}</div>
+                                    <div style={{ fontSize: '13px', opacity: 0.9 }}>{latestNotification?.content || 'There are no active notifications.'}</div>
                                 </div>
                             </div>
                         </div>
@@ -385,9 +512,9 @@ const Dashboard = () => {
                                 <i className="fas fa-exclamation-triangle"></i> Emergency
                             </div>
                             <div className="alert-body">
-                                <div className="alert-banner banner-red">
-                                    <div style={{ fontWeight: 700, marginBottom: '5px' }}>Medical Emergency - Room 102</div>
-                                    <div style={{ fontSize: '13px', opacity: 0.9 }}>Student reported high fever. Ambulance called.</div>
+                                    <div className="alert-banner banner-red">
+                                    <div style={{ fontWeight: 700, marginBottom: '5px' }}>No active emergency</div>
+                                    <div style={{ fontSize: '13px', opacity: 0.9 }}>Emergency alerts will appear here when reported.</div>
                                 </div>
                             </div>
                         </div>
@@ -452,6 +579,62 @@ const Dashboard = () => {
                     </div>
                 </div>
             </div>
+
+            {showAllGirls && (
+                <div className="student-modal-backdrop" role="presentation" onClick={() => setShowAllGirls(false)}>
+                    <section
+                        className="student-modal"
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="all-girls-title"
+                        onClick={(event) => event.stopPropagation()}
+                    >
+                        <div className="student-modal-header">
+                            <div>
+                                <h2 id="all-girls-title" className="student-modal-title">All Girls Hostel Details</h2>
+                                <p className="student-modal-subtitle">
+                                    {liveStudents.total} students • {liveStudents.present} present • {liveStudents.onLeave} on leave
+                                </p>
+                            </div>
+                            <button
+                                type="button"
+                                className="modal-close-button"
+                                onClick={() => setShowAllGirls(false)}
+                                aria-label="Close student details"
+                            >
+                                <i className="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <div style={{ overflowX: 'auto' }}>
+                            <table className="custom-table student-details-table">
+                                <thead>
+                                    <tr>
+                                        <th>Name</th><th>Roll No</th><th>Room</th><th>Phone</th>
+                                        <th>Email</th><th>Branch / Year</th><th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {liveStudents.students.map((student) => (
+                                        <tr key={student._id}>
+                                            <td>{student.name}</td>
+                                            <td>{student.rollNo || '—'}</td>
+                                            <td>{student.roomInfo || 'Unassigned'}</td>
+                                            <td>{student.phone || '—'}</td>
+                                            <td>{student.email || '—'}</td>
+                                            <td>{[student.branch, student.year].filter(Boolean).join(' / ') || '—'}</td>
+                                            <td>
+                                                <span className={`status-chip ${student.status === 'present' ? 'chip-resolved' : 'chip-pending'}`}>
+                                                    {student.status === 'present' ? 'Present' : 'On Leave'}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </section>
+                </div>
+            )}
         </>
     );
 };

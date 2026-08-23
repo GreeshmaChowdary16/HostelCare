@@ -7,14 +7,11 @@ function AdminRectors() {
     const [selectedRector, setSelectedRector] = useState(null);
     const [searchQuery, setSearchQuery] = useState('');
     const [rectorsList, setRectorsList] = useState([]);
-    const [newRector, setNewRector] = useState({ name: '', email: '', password: 'password1', phone: '', office: 'Hostel Office' });
+    const [newRector, setNewRector] = useState({ name: '', email: '', password: 'password1', phone: '', office: 'Hostel Office', staffId: '', shift: 'Day' });
     const [showAddModal, setShowAddModal] = useState(false);
     const [msg, setMsg] = useState('');
 
-    const [leaveApplications, setLeaveApplications] = useState([
-        { id: 1, rectorName: 'Suresh Verma', type: 'male', date: '2026-05-12 to 2026-05-15', reason: 'Family medical emergency', status: 'Pending' },
-        { id: 2, rectorName: 'Kavita Patel', type: 'female', date: '2026-05-10', reason: 'Personal work', status: 'Pending' },
-    ]);
+    const [leaveApplications, setLeaveApplications] = useState([]);
 
     const fetchRectors = async () => {
         const token = localStorage.getItem('token');
@@ -26,6 +23,15 @@ function AdminRectors() {
             if (res.ok) {
                 const data = await res.json();
                 setRectorsList(data);
+                setLeaveApplications(data.flatMap((rector) => (rector.leaveApplications || []).map((leave) => ({
+                    id: leave._id,
+                    rectorId: rector._id,
+                    rectorName: rector.name,
+                    date: `${new Date(leave.startDate).toLocaleDateString()} to ${new Date(leave.endDate).toLocaleDateString()}`,
+                    reason: leave.reason,
+                    status: leave.status,
+                    note: leave.note,
+                }))));
             }
         } catch (err) {
             console.error('Error fetching rectors:', err);
@@ -53,7 +59,7 @@ function AdminRectors() {
             if (res.ok) {
                 setMsg('Rector created successfully!');
                 setShowAddModal(false);
-                setNewRector({ name: '', email: '', password: 'password1', phone: '', office: 'Hostel Office' });
+                setNewRector({ name: '', email: '', password: 'password1', phone: '', office: 'Hostel Office', staffId: '', shift: 'Day' });
                 fetchRectors();
             } else {
                 setMsg(data.message || 'Failed to create rector');
@@ -63,10 +69,25 @@ function AdminRectors() {
         }
     };
 
-    const handleLeaveAction = (id, action) => {
-        setLeaveApplications(leaveApplications.map(app => 
-            app.id === id ? { ...app, status: action } : app
-        ));
+    const handleLeaveAction = async (application, action) => {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+        try {
+            const response = await fetch(`${API_BASE_URL}/rectors/${application.rectorId}/leaves/${application.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({ status: action }),
+            });
+            if (response.ok) {
+                setLeaveApplications((previous) => previous.map((app) => app.id === application.id ? { ...app, status: action } : app));
+            } else {
+                const data = await response.json();
+                setMsg(data.message || 'Could not update leave application.');
+            }
+        } catch (error) {
+            console.error('Error updating rector leave:', error);
+            setMsg('Could not update leave application.');
+        }
     };
 
     const filteredRectors = rectorsList.filter(rector => {
@@ -341,6 +362,8 @@ function AdminRectors() {
                                     <input type="email" placeholder="Email Address" value={newRector.email} onChange={e => setNewRector({...newRector, email: e.target.value})} required style={{ padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }} />
                                     <input type="text" placeholder="Phone Number" value={newRector.phone} onChange={e => setNewRector({...newRector, phone: e.target.value})} style={{ padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }} />
                                     <input type="text" placeholder="Office Location" value={newRector.office} onChange={e => setNewRector({...newRector, office: e.target.value})} style={{ padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }} />
+                                    <input type="text" placeholder="Staff ID" value={newRector.staffId} onChange={e => setNewRector({...newRector, staffId: e.target.value})} style={{ padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }} />
+                                    <select value={newRector.shift} onChange={e => setNewRector({...newRector, shift: e.target.value})} style={{ padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}><option>Day</option><option>Night</option><option>Day/Night</option></select>
                                 </div>
                                 <button type="submit" style={{ background: '#1cc88a', color: 'white', border: 'none', padding: '8px 16px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>Save Rector</button>
                             </form>
@@ -442,8 +465,8 @@ function AdminRectors() {
                             <div className="leave-actions">
                                 {app.status === 'Pending' ? (
                                     <>
-                                        <button className="btn-accept" onClick={() => handleLeaveAction(app.id, 'Approved')}>Accept</button>
-                                        <button className="btn-reject" onClick={() => handleLeaveAction(app.id, 'Rejected')}>Reject</button>
+                                        <button className="btn-accept" onClick={() => handleLeaveAction(app, 'Approved')}>Accept</button>
+                                        <button className="btn-reject" onClick={() => handleLeaveAction(app, 'Rejected')}>Reject</button>
                                     </>
                                 ) : (
                                     <span className="leave-status-badge" style={{ 
