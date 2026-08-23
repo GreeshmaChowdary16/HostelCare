@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Header from '../../../components/Header';
-import { API_BASE_URL } from '../../../config';
+import { API_BASE_URL, getImageUrl } from '../../../config';
 import socket from '../../../socket';
 
 const GatePass = () => {
@@ -79,7 +79,13 @@ const GatePass = () => {
 
     const pendingStandardCount = standardRequests.filter(gp => gp.status === 'Pending').length;
     const pendingExtensionCount = extensionRequests.filter(gp => gp.status === 'Pending').length;
-    const approvedTodayCount = gatePasses.filter(gp => gp.status === 'Approved').length;
+    const today = new Date();
+    const approvedTodayCount = gatePasses.filter(gp => {
+        const updatedAt = gp.updatedAt || gp.createdAt;
+        if (!updatedAt || gp.status !== 'Approved') return false;
+        const approvedDate = new Date(updatedAt);
+        return approvedDate.toDateString() === today.toDateString();
+    }).length;
 
     return (
         <>
@@ -138,12 +144,16 @@ const GatePass = () => {
                                         <td>
                                             <div style={{ fontSize: '13px' }}>{req.reason}</div>
                                             {req.proof && (
-                                                <a href="#" style={{ fontSize: '12px', color: '#4e73df', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '5px', marginTop: '5px' }}>
+                                                <a href={getImageUrl(req.proof)} target="_blank" rel="noreferrer" style={{ fontSize: '12px', color: '#4e73df', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '5px', marginTop: '5px' }}>
                                                     <i className="fas fa-file-alt"></i> View Proof: {req.proof}
                                                 </a>
                                             )}
                                         </td>
-                                        <td>{req.parentMobile || req.parentContactNo || '+91 94444 55555'}</td>
+                                        <td>{(req.parentMobile || req.parentContactNo) ? (
+                                            <a href={`tel:${req.parentMobile || req.parentContactNo}`} style={{ color: '#4e73df', fontWeight: 600 }}>
+                                                <i className="fas fa-phone" style={{ marginRight: '5px' }}></i>{req.parentMobile || req.parentContactNo}
+                                            </a>
+                                        ) : 'Not provided'}</td>
                                         <td>
                                             {req.status === 'Pending' ? (
                                                 <div style={{ display: 'flex', gap: '5px', flexDirection: 'column' }}>

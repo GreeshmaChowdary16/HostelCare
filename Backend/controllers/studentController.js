@@ -1,4 +1,6 @@
 import User from "../models/User.js";
+import GatePass from "../models/GatePass.js";
+import Complaint from "../models/Complaint.js";
 
 const parseFloorFromRoom = (roomInfo) => {
   if (!roomInfo) return null;
@@ -55,11 +57,28 @@ export const getStudents = async (req, res) => {
 export const getStudentStats = async (req, res) => {
   try {
     const students = await User.find({ role: "student" }).select(
-      "branch year roomInfo parentPhone"
+      "branch year state roomInfo parentPhone"
     );
+
+    const now = new Date();
+    const startOfToday = new Date(now);
+    startOfToday.setHours(0, 0, 0, 0);
+    const endOfToday = new Date(now);
+    endOfToday.setHours(23, 59, 59, 999);
+    const [onLeave, activeComplaints] = await Promise.all([
+      GatePass.countDocuments({
+        status: "Approved",
+        fromDate: { $lte: endOfToday },
+        toDate: { $gte: startOfToday },
+      }),
+      Complaint.countDocuments({ status: { $in: ["Pending", "In Progress"] } }),
+    ]);
 
     const stats = {
       total: students.length,
+      onLeave,
+      presentInHostel: Math.max(0, students.length - onLeave),
+      activeComplaints,
       byBranch: {},
       byYear: {},
       byFloor: {},
@@ -75,6 +94,9 @@ export const getStudentStats = async (req, res) => {
       // year
       const y = s.year || "Unknown";
       stats.byYear[y] = (stats.byYear[y] || 0) + 1;
+
+      const state = s.state || "Unknown";
+      stats.stateWise[state] = (stats.stateWise[state] || 0) + 1;
 
       // floor
       const f = parseFloorFromRoom(s.roomInfo) || "Unknown";
@@ -104,6 +126,52 @@ export const getStudentsByFloor = async (req, res) => {
     const results = students.filter((s) => parseFloorFromRoom(s.roomInfo) === floor);
 
     res.status(200).json(results);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const getLiveStudentStatus = async (req, res) => {
+  try {
+    const now = new Date();
+    const startOfToday = new Date(now);
+    startOfToday.setHours(0, 0, 0, 0);
+    const endOfToday = new Date(now);
+    endOfToday.setHours(23, 59, 59, 999);
+
+    const [students, approvedGatePasses] = await Promise.all([
+      User.find({ role: "student" }).select(
+        "name email phone rollNo branch year state roomInfo profileImage"
+      ).sort({ name: 1 }),
+      GatePass.find({
+        status: "Approved",
+        fromDate: { $lte: endOfToday },
+        toDate: { $gte: startOfToday },
+      }).select("student fromDate toDate reason"),
+    ]);
+
+    const leaveByStudent = new Map(
+      approvedGatePasses.map((pass) => [String(pass.student), pass])
+    );
+
+    const results = students.map((student) => {
+      const leave = leaveByStudent.get(String(student._id));
+      return {
+        ...student.toObject(),
+        status: leave ? "on_leave" : "present",
+        leave: leave
+          ? { fromDate: leave.fromDate, toDate: leave.toDate, reason: leave.reason }
+          : null,
+      };
+    });
+
+    res.status(200).json({
+      updatedAt: new Date().toISOString(),
+      total: results.length,
+      present: results.filter((student) => student.status === "present").length,
+      onLeave: results.filter((student) => student.status === "on_leave").length,
+      students: results,
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

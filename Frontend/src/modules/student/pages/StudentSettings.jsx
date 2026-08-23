@@ -108,6 +108,10 @@ const StudentSettings = () => {
             formData.append('email', email);
             formData.append('phone', phone);
             formData.append('parentPhone', parentPhone);
+            formData.append('rollNo', rollNo);
+            formData.append('branch', branch);
+            formData.append('year', year);
+            formData.append('roomInfo', roomInfo);
 
             if (selectedFile) {
                 formData.append('profileImage', selectedFile);
@@ -259,18 +263,18 @@ const StudentSettings = () => {
                                         </div>
                                         <div>
                                             <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500, color: '#5a5c69' }}>Roll Number</label>
-                                            <input type="text" value={rollNo} readOnly style={{ width: '100%', padding: '12px', border: '1px solid #d1d3e2', borderRadius: '5px', fontSize: '14px', background: '#f8f9fc' }} />
+                                            <input type="text" value={rollNo} onChange={(e) => setRollNo(e.target.value)} placeholder="e.g. 2023CS101" style={{ width: '100%', padding: '12px', border: '1px solid #d1d3e2', borderRadius: '5px', fontSize: '14px' }} />
                                         </div>
                                     </div>
 
                                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
                                         <div>
                                             <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500, color: '#5a5c69' }}>Branch</label>
-                                            <input type="text" value={branch} readOnly style={{ width: '100%', padding: '12px', border: '1px solid #d1d3e2', borderRadius: '5px', fontSize: '14px', background: '#f8f9fc' }} />
+                                            <input type="text" value={branch} onChange={(e) => setBranch(e.target.value)} placeholder="e.g. Computer Science" style={{ width: '100%', padding: '12px', border: '1px solid #d1d3e2', borderRadius: '5px', fontSize: '14px' }} />
                                         </div>
                                         <div>
                                             <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500, color: '#5a5c69' }}>Current Year</label>
-                                            <input type="text" value={year} readOnly style={{ width: '100%', padding: '12px', border: '1px solid #d1d3e2', borderRadius: '5px', fontSize: '14px', background: '#f8f9fc' }} />
+                                            <input type="text" value={year} onChange={(e) => setYear(e.target.value)} placeholder="e.g. 3rd Year" style={{ width: '100%', padding: '12px', border: '1px solid #d1d3e2', borderRadius: '5px', fontSize: '14px' }} />
                                         </div>
                                     </div>
 
@@ -292,7 +296,7 @@ const StudentSettings = () => {
                                         </div>
                                         <div>
                                             <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500, color: '#5a5c69' }}>Hostel Block/Room</label>
-                                            <input type="text" value={roomInfo} readOnly style={{ width: '100%', padding: '12px', border: '1px solid #d1d3e2', borderRadius: '5px', fontSize: '14px', background: '#f8f9fc' }} />
+                                            <input type="text" value={roomInfo} onChange={(e) => setRoomInfo(e.target.value)} placeholder="e.g. Block A - Room 302" style={{ width: '100%', padding: '12px', border: '1px solid #d1d3e2', borderRadius: '5px', fontSize: '14px' }} />
                                         </div>
                                     </div>
 

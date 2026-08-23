@@ -72,24 +72,24 @@ const Header = ({ title }) => {
                         <i className="fas fa-bell"></i>
                         <div className="dropdown-menu extended">
                             <div className="dropdown-header">Notifications Center</div>
-                            <a href="#" className="dropdown-list-item">
+                            <Link to={getModulePath('/notifications')} className="dropdown-list-item">
                                 <div className="icon-circle" style={{ background: '#e74a3b' }}>
                                     <i className="fas fa-calendar-times"></i>
                                 </div>
                                 <div className="content">
-                                    <span style={{ fontWeight: 600, fontSize: '13px', color: '#333' }}>Fee Payment Deadline</span>
-                                    <div className="small-text">Today is the last day for fee payment without fine.</div>
+                                    <span style={{ fontWeight: 600, fontSize: '13px', color: '#333' }}>System & Fee Alerts</span>
+                                    <div className="small-text">View pending dues, deadline & fee alerts.</div>
                                 </div>
-                            </a>
-                            <a href="#" className="dropdown-list-item">
+                            </Link>
+                            <Link to={getModulePath('/announcements')} className="dropdown-list-item">
                                 <div className="icon-circle" style={{ background: '#4e73df' }}>
                                     <i className="fas fa-bullhorn"></i>
                                 </div>
                                 <div className="content">
                                     <span style={{ fontWeight: 600, fontSize: '13px', color: '#333' }}>New Announcement</span>
-                                    <div className="small-text">Annual Hostel Night registrations are now open!</div>
+                                    <div className="small-text">Hostel night, maintenance & urgent notices.</div>
                                 </div>
-                            </a>
+                            </Link>
                             <Link to={getModulePath('/notifications')} style={{ display: 'block', textAlign: 'center', padding: '10px', fontSize: '12px', color: '#858796', textDecoration: 'none' }}>
                                 Show All Alerts
                             </Link>
@@ -104,27 +104,27 @@ const Header = ({ title }) => {
                         <i className="fas fa-envelope"></i>
                         <div className="dropdown-menu extended">
                             <div className="dropdown-header">Message Center</div>
-                            <a href="#" className="dropdown-list-item">
+                            <Link to={getModulePath('/gatepass')} className="dropdown-list-item">
                                 <div className="icon-circle" style={{ background: '#f6c23e' }}>
-                                    <i className="fas fa-file-invoice-dollar"></i>
+                                    <i className="fas fa-id-card"></i>
                                 </div>
                                 <div className="content">
-                                    <span style={{ fontWeight: 600, fontSize: '13px', color: '#333' }}>Fee Status Alert</span>
-                                    <div className="small-text">Your pending fee of ₹12,500 is due by 15th Feb.</div>
+                                    <span style={{ fontWeight: 600, fontSize: '13px', color: '#333' }}>Gate Pass Messages</span>
+                                    <div className="small-text">Check gate pass approval status & updates.</div>
                                 </div>
-                            </a>
-                            <a href="#" className="dropdown-list-item">
-                                <div className="icon-circle" style={{ background: '#e74a3b' }}>
+                            </Link>
+                            <Link to={getModulePath('/attendance')} className="dropdown-list-item">
+                                <div className="icon-circle" style={{ background: '#1cc88a' }}>
                                     <i className="fas fa-calendar-check"></i>
                                 </div>
                                 <div className="content">
-                                    <span style={{ fontWeight: 600, fontSize: '13px', color: '#333' }}>Attendance Alert</span>
-                                    <div className="small-text">Your attendance is not recorded today. Please mark your presence.</div>
+                                    <span style={{ fontWeight: 600, fontSize: '13px', color: '#333' }}>Attendance Record</span>
+                                    <div className="small-text">Check & mark daily hostel attendance.</div>
                                 </div>
-                            </a>
-                            <a href="#" style={{ display: 'block', textAlign: 'center', padding: '10px', fontSize: '12px', color: '#858796', textDecoration: 'none' }}>
+                            </Link>
+                            <Link to={getModulePath('/notifications')} style={{ display: 'block', textAlign: 'center', padding: '10px', fontSize: '12px', color: '#858796', textDecoration: 'none' }}>
                                 Read More Messages
-                            </a>
+                            </Link>
                         </div>
                     </div>
 

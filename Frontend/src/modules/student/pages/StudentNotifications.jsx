@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import Header from '../../../components/Header';
+import { useNavigate } from 'react-router-dom';
 import { API_BASE_URL } from '../../../config';
 
 function StudentNotifications() {
+    const navigate = useNavigate();
     const personalAlerts = [
         {
             id: 'pers-1',
@@ -10,7 +12,7 @@ function StudentNotifications() {
             content: 'Your pending fee of ₹12,500 for the current semester is due by 15th Feb 2026. Please clear it online to avoid late fee penalties.',
             category: 'Emergency',
             type: 'fee',
-            createdAt: new Date(Date.now() - 3600000).toISOString() // 1 hour ago
+            createdAt: new Date(Date.now() - 3600000).toISOString()
         },
         {
             id: 'pers-2',
@@ -18,7 +20,7 @@ function StudentNotifications() {
             content: 'Your gate pass request for Home Visit (Lucknow) from 12th Feb to 15th Feb has been Approved by rector Mrs. Priya Kumar.',
             category: 'Info',
             type: 'gatepass',
-            createdAt: new Date(Date.now() - 7200000).toISOString() // 2 hours ago
+            createdAt: new Date(Date.now() - 7200000).toISOString()
         },
         {
             id: 'pers-3',
@@ -26,7 +28,7 @@ function StudentNotifications() {
             content: 'Your overall attendance for this month is 92%. Please make sure to mark attendance daily to keep it above the minimum 75% requirement.',
             category: 'Warning',
             type: 'attendance',
-            createdAt: new Date(Date.now() - 86400000).toISOString() // Yesterday
+            createdAt: new Date(Date.now() - 86400000).toISOString()
         }
     ];
 
@@ -63,11 +65,24 @@ function StudentNotifications() {
         fetchNotifications();
     }, []);
 
-    const handleDismiss = (id) => {
+    const handleDismiss = (e, id) => {
+        e.stopPropagation();
         const updated = notifications.filter(n => n.id !== id);
         setNotifications(updated);
         setStatusMessage('Notification dismissed.');
         setTimeout(() => setStatusMessage(''), 2500);
+    };
+
+    const handleNotifClick = (notif) => {
+        if (notif.type === 'fee') {
+            navigate('/student/settings');
+        } else if (notif.type === 'gatepass') {
+            navigate('/student/gatepass');
+        } else if (notif.type === 'attendance') {
+            navigate('/student/attendance');
+        } else {
+            navigate('/student/announcements');
+        }
     };
 
     const handleDismissAll = () => {
@@ -168,12 +183,13 @@ function StudentNotifications() {
                     display: flex;
                     gap: 20px;
                     position: relative;
+                    cursor: pointer;
                     transition: transform 0.2s, box-shadow 0.2s;
                 }
 
                 .notif-card:hover {
                     transform: translateY(-2px);
-                    box-shadow: 0 8px 12px rgba(0,0,0,0.04);
+                    box-shadow: 0 8px 12px rgba(0,0,0,0.06);
                 }
 
                 .notif-icon-wrapper {
@@ -235,6 +251,7 @@ function StudentNotifications() {
                     cursor: pointer;
                     font-size: 14px;
                     transition: color 0.2s;
+                    z-index: 2;
                 }
 
                 .btn-dismiss:hover {
@@ -284,8 +301,8 @@ function StudentNotifications() {
                 ) : (
                     <div className="notif-list">
                         {notifications.map((notif) => (
-                            <div key={notif.id} className="notif-card">
-                                <button className="btn-dismiss" onClick={() => handleDismiss(notif.id)} title="Dismiss alert">
+                            <div key={notif.id} className="notif-card" onClick={() => handleNotifClick(notif)}>
+                                <button className="btn-dismiss" onClick={(e) => handleDismiss(e, notif.id)} title="Dismiss alert">
                                     <i className="fas fa-times"></i>
                                 </button>
                                 <div 

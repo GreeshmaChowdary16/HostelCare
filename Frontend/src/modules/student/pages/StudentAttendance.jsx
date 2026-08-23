@@ -1,231 +1,71 @@
 import React, { useState, useEffect } from 'react';
 import Header from '../../../components/Header';
 import { API_BASE_URL } from '../../../config';
+import socket from '../../../socket';
+
+const ALL_MONTHS = [
+    "January 2026", "February 2026", "March 2026", "April 2026",
+    "May 2026", "June 2026", "July 2026", "August 2026",
+    "September 2026", "October 2026", "November 2026", "December 2026"
+];
+
+const getCurrentRealMonth = () => {
+    const now = new Date();
+    const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+    const monthStr = `${months[now.getMonth()]} ${now.getFullYear()}`;
+    return ALL_MONTHS.includes(monthStr) ? monthStr : "August 2026";
+};
+
+const generateMonthData = (monthYearStr) => {
+    const parts = monthYearStr.split(" ");
+    const monthName = parts[0];
+    const year = parseInt(parts[1], 10) || 2026;
+    const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+    const monthIdx = monthNames.indexOf(monthName);
+    
+    if (monthIdx === -1) {
+        return { daysInMonth: 31, firstDay: 0, records: {} };
+    }
+
+    const daysInMonth = new Date(year, monthIdx + 1, 0).getDate();
+    const firstDay = new Date(year, monthIdx, 1).getDay();
+
+    const records = {};
+    const now = new Date();
+    const isCurrentMonth = now.getFullYear() === year && now.getMonth() === monthIdx;
+    const todayDay = now.getDate();
+
+    for (let d = 1; d <= daysInMonth; d++) {
+        const isPastOrToday = !isCurrentMonth ? (monthIdx < now.getMonth() || year < now.getFullYear()) : (d <= todayDay);
+
+        if (isPastOrToday) {
+            const dateObj = new Date(year, monthIdx, d);
+            const dayOfWeek = dateObj.getDay();
+
+            if (dayOfWeek === 0) {
+                records[d] = { status: 'leave', method: 'Gate Pass', time: 'N/A', details: 'Sunday Weekend Pass' };
+            } else if (d === 11 || d === 22) {
+                records[d] = { status: 'not_marked', method: 'Not Marked', time: 'N/A', details: 'No scan or check-in logged' };
+            } else {
+                records[d] = { status: 'present', method: 'Face Scan', time: `08:${10 + (d % 12)} AM`, details: 'Verified via Gate Scanner #1' };
+            }
+        } else {
+            records[d] = { status: 'not_marked', method: 'Not Marked', time: 'N/A', details: 'Upcoming date' };
+        }
+    }
+
+    return { daysInMonth, firstDay, records };
+};
 
 const StudentAttendance = () => {
-    // Current Academic Year Months database
-    const attendanceDb = {
-        "January 2026": {
-            daysInMonth: 31,
-            firstDay: 4, // Thursday
-            records: {
-                1: { status: 'present', method: 'Face Scan', time: '08:12 AM', details: 'Verified via Gate Scanner #1' },
-                2: { status: 'present', method: 'Face Scan', time: '08:15 AM', details: 'Verified via Gate Scanner #1' },
-                3: { status: 'present', method: 'Rector Manual', time: '09:05 PM', details: 'Marked manually by Rector Mrs. Priya Kumar during night check' },
-                4: { status: 'present', method: 'Face Scan', time: '08:10 AM', details: 'Verified via Main Lobby Kiosk' },
-                5: { status: 'leave', method: 'Gate Pass', time: 'N/A', details: 'Approved Leave - Family Outing (Lucknow)' },
-                6: { status: 'leave', method: 'Gate Pass', time: 'N/A', details: 'Approved Leave - Family Outing (Lucknow)' },
-                7: { status: 'present', method: 'Face Scan', time: '08:22 AM', details: 'Verified via Gate Scanner #1' },
-                8: { status: 'present', method: 'Rector Manual', time: '09:12 PM', details: 'Marked manually by Rector Mrs. Priya Kumar' },
-                9: { status: 'present', method: 'Face Scan', time: '08:05 AM', details: 'Verified via Main Lobby Kiosk' },
-                10: { status: 'present', method: 'Face Scan', time: '08:14 AM', details: 'Verified via Gate Scanner #1' },
-                11: { status: 'not_marked', method: 'Not Marked', time: 'N/A', details: 'Missed roll call / No scan record found' },
-                12: { status: 'present', method: 'Face Scan', time: '08:11 AM', details: 'Verified via Gate Scanner #1' },
-                13: { status: 'present', method: 'Face Scan', time: '08:18 AM', details: 'Verified via Gate Scanner #1' },
-                14: { status: 'present', method: 'Face Scan', time: '08:20 AM', details: 'Verified via Gate Scanner #2' },
-                15: { status: 'present', method: 'Rector Manual', time: '09:00 PM', details: 'Marked manually by Rector Mrs. Priya Kumar during night check' },
-                16: { status: 'present', method: 'Face Scan', time: '08:08 AM', details: 'Verified via Main Lobby Kiosk' },
-                17: { status: 'present', method: 'Face Scan', time: '08:13 AM', details: 'Verified via Gate Scanner #1' },
-                18: { status: 'present', method: 'Face Scan', time: '08:15 AM', details: 'Verified via Gate Scanner #1' },
-                19: { status: 'present', method: 'Rector Manual', time: '09:10 PM', details: 'Marked manually by Rector Mrs. Priya Kumar' },
-                20: { status: 'present', method: 'Face Scan', time: '08:24 AM', details: 'Verified via Gate Scanner #2' },
-                21: { status: 'present', method: 'Face Scan', time: '08:12 AM', details: 'Verified via Gate Scanner #1' },
-                22: { status: 'not_marked', method: 'Not Marked', time: 'N/A', details: 'Missed roll call / No scan record found' },
-                23: { status: 'present', method: 'Face Scan', time: '08:15 AM', details: 'Verified via Gate Scanner #1' },
-                24: { status: 'present', method: 'Face Scan', time: '08:19 AM', details: 'Verified via Main Lobby Kiosk' },
-                25: { status: 'present', method: 'Face Scan', time: '08:11 AM', details: 'Verified via Gate Scanner #1' },
-                26: { status: 'present', method: 'Face Scan', time: '08:13 AM', details: 'Verified via Gate Scanner #1' },
-                27: { status: 'present', method: 'Rector Manual', time: '09:05 PM', details: 'Marked manually by Rector Mrs. Priya Kumar' },
-                28: { status: 'present', method: 'Face Scan', time: '08:21 AM', details: 'Verified via Gate Scanner #2' },
-                29: { status: 'present', method: 'Face Scan', time: '08:10 AM', details: 'Verified via Main Lobby Kiosk' },
-                30: { status: 'present', method: 'Face Scan', time: '08:14 AM', details: 'Verified via Gate Scanner #1' },
-                31: { status: 'present', method: 'Face Scan', time: '08:16 AM', details: 'Verified via Gate Scanner #1' }
-            }
-        },
-        "February 2026": {
-            daysInMonth: 28,
-            firstDay: 0, // Sunday
-            records: {
-                1: { status: 'present', method: 'Face Scan', time: '08:14 AM', details: 'Verified via Gate Scanner #1' },
-                2: { status: 'present', method: 'Face Scan', time: '08:15 AM', details: 'Verified via Gate Scanner #1' },
-                3: { status: 'present', method: 'Face Scan', time: '08:09 AM', details: 'Verified via Main Lobby Kiosk' },
-                4: { status: 'present', method: 'Face Scan', time: '08:11 AM', details: 'Verified via Gate Scanner #1' },
-                5: { status: 'leave', method: 'Gate Pass', time: 'N/A', details: 'Approved Leave - Family Function' },
-                6: { status: 'present', method: 'Face Scan', time: '08:20 AM', details: 'Verified via Gate Scanner #2' },
-                7: { status: 'present', method: 'Face Scan', time: '08:18 AM', details: 'Verified via Gate Scanner #1' },
-                8: { status: 'not_marked', method: 'Not Marked', time: 'N/A', details: 'No scan or manual check-in logged' },
-                9: { status: 'present', method: 'Face Scan', time: '08:12 AM', details: 'Verified via Gate Scanner #1' },
-                10: { status: 'present', method: 'Face Scan', time: '08:14 AM', details: 'Verified via Gate Scanner #1' },
-                11: { status: 'present', method: 'Rector Manual', time: '09:05 PM', details: 'Marked manually by Rector Mrs. Priya Kumar during night check' },
-                12: { status: 'present', method: 'Face Scan', time: '08:10 AM', details: 'Verified via Main Lobby Kiosk' },
-                13: { status: 'present', method: 'Face Scan', time: '08:13 AM', details: 'Verified via Gate Scanner #1' },
-                14: { status: 'leave', method: 'Gate Pass', time: 'N/A', details: 'Approved Leave - Health Checkup' },
-                15: { status: 'leave', method: 'Gate Pass', time: 'N/A', details: 'Approved Leave - Local Outing' },
-                16: { status: 'present', method: 'Face Scan', time: '08:16 AM', details: 'Verified via Gate Scanner #1' },
-                17: { status: 'not_marked', method: 'Not Marked', time: 'N/A', details: 'No scan or manual check-in logged' },
-                18: { status: 'present', method: 'Face Scan', time: '08:11 AM', details: 'Verified via Gate Scanner #1' },
-                19: { status: 'present', method: 'Face Scan', time: '08:15 AM', details: 'Verified via Gate Scanner #1' },
-                20: { status: 'present', method: 'Rector Manual', time: '09:12 PM', details: 'Marked manually by Rector Mrs. Priya Kumar' },
-                21: { status: 'present', method: 'Face Scan', time: '08:24 AM', details: 'Verified via Gate Scanner #2' },
-                22: { status: 'present', method: 'Face Scan', time: '08:10 AM', details: 'Verified via Main Lobby Kiosk' },
-                23: { status: 'present', method: 'Face Scan', time: '08:12 AM', details: 'Verified via Gate Scanner #1' },
-                24: { status: 'present', method: 'Face Scan', time: '08:15 AM', details: 'Verified via Gate Scanner #1' },
-                25: { status: 'present', method: 'Rector Manual', time: '09:08 PM', details: 'Marked manually by Rector Mrs. Priya Kumar' },
-                26: { status: 'present', method: 'Face Scan', time: '08:18 AM', details: 'Verified via Gate Scanner #1' },
-                27: { status: 'present', method: 'Face Scan', time: '08:22 AM', details: 'Verified via Gate Scanner #2' },
-                28: { status: 'present', method: 'Face Scan', time: '08:14 AM', details: 'Verified via Gate Scanner #1' }
-            }
-        },
-        "March 2026": {
-            daysInMonth: 31,
-            firstDay: 0, // Sunday
-            records: {
-                1: { status: 'present', method: 'Face Scan', time: '08:10 AM', details: 'Verified via Gate Scanner #1' },
-                2: { status: 'present', method: 'Face Scan', time: '08:12 AM', details: 'Verified via Gate Scanner #1' },
-                3: { status: 'present', method: 'Face Scan', time: '08:08 AM', details: 'Verified via Main Lobby Kiosk' },
-                4: { status: 'present', method: 'Rector Manual', time: '09:02 PM', details: 'Marked manually by Rector Mrs. Priya Kumar during night check' },
-                5: { status: 'present', method: 'Face Scan', time: '08:13 AM', details: 'Verified via Gate Scanner #1' },
-                6: { status: 'present', method: 'Face Scan', time: '08:15 AM', details: 'Verified via Gate Scanner #1' },
-                7: { status: 'present', method: 'Face Scan', time: '08:20 AM', details: 'Verified via Gate Scanner #2' },
-                8: { status: 'present', method: 'Face Scan', time: '08:16 AM', details: 'Verified via Gate Scanner #1' },
-                9: { status: 'present', method: 'Face Scan', time: '08:14 AM', details: 'Verified via Gate Scanner #1' },
-                10: { status: 'present', method: 'Rector Manual', time: '09:15 PM', details: 'Marked manually by Rector Mrs. Priya Kumar during night check' },
-                11: { status: 'present', method: 'Face Scan', time: '08:07 AM', details: 'Verified via Main Lobby Kiosk' },
-                12: { status: 'present', method: 'Face Scan', time: '08:11 AM', details: 'Verified via Gate Scanner #1' },
-                13: { status: 'present', method: 'Face Scan', time: '08:15 AM', details: 'Verified via Gate Scanner #1' },
-                14: { status: 'present', method: 'Face Scan', time: '08:22 AM', details: 'Verified via Gate Scanner #2' },
-                15: { status: 'present', method: 'Face Scan', time: '08:12 AM', details: 'Verified via Gate Scanner #1' },
-                16: { status: 'present', method: 'Face Scan', time: '08:13 AM', details: 'Verified via Gate Scanner #1' },
-                17: { status: 'present', method: 'Rector Manual', time: '09:10 PM', details: 'Marked manually by Rector Mrs. Priya Kumar' },
-                18: { status: 'present', method: 'Face Scan', time: '08:19 AM', details: 'Verified via Gate Scanner #2' },
-                19: { status: 'present', method: 'Face Scan', time: '08:08 AM', details: 'Verified via Main Lobby Kiosk' },
-                20: { status: 'present', method: 'Face Scan', time: '08:12 AM', details: 'Verified via Gate Scanner #1' },
-                21: { status: 'present', method: 'Face Scan', time: '08:14 AM', details: 'Verified via Gate Scanner #1' },
-                22: { status: 'not_marked', method: 'Not Marked', time: 'N/A', details: 'Missed roll call / No scan record found' },
-                23: { status: 'present', method: 'Face Scan', time: '08:11 AM', details: 'Verified via Gate Scanner #1' },
-                24: { status: 'present', method: 'Face Scan', time: '08:15 AM', details: 'Verified via Gate Scanner #1' },
-                25: { status: 'present', method: 'Face Scan', time: '08:24 AM', details: 'Verified via Gate Scanner #2' },
-                26: { status: 'present', method: 'Rector Manual', time: '09:05 PM', details: 'Marked manually by Rector Mrs. Priya Kumar during night check' },
-                27: { status: 'leave', method: 'Gate Pass', time: 'N/A', details: 'Approved Leave - Holi Festival Home Visit' },
-                28: { status: 'leave', method: 'Gate Pass', time: 'N/A', details: 'Approved Leave - Holi Festival Home Visit' },
-                29: { status: 'leave', method: 'Gate Pass', time: 'N/A', details: 'Approved Leave - Holi Festival Home Visit' },
-                30: { status: 'present', method: 'Face Scan', time: '08:18 AM', details: 'Verified via Gate Scanner #1' },
-                31: { status: 'present', method: 'Face Scan', time: '08:14 AM', details: 'Verified via Gate Scanner #1' }
-            }
-        },
-        "April 2026": {
-            daysInMonth: 30,
-            firstDay: 3, // Wednesday
-            records: {
-                1: { status: 'present', method: 'Face Scan', time: '08:15 AM', details: 'Verified via Gate Scanner #1' },
-                2: { status: 'present', method: 'Face Scan', time: '08:12 AM', details: 'Verified via Gate Scanner #1' },
-                3: { status: 'present', method: 'Face Scan', time: '08:08 AM', details: 'Verified via Main Lobby Kiosk' },
-                4: { status: 'present', method: 'Rector Manual', time: '09:10 PM', details: 'Marked manually by Rector Mrs. Priya Kumar during night check' },
-                5: { status: 'present', method: 'Face Scan', time: '08:22 AM', details: 'Verified via Gate Scanner #2' },
-                6: { status: 'present', method: 'Face Scan', time: '08:14 AM', details: 'Verified via Gate Scanner #1' },
-                7: { status: 'present', method: 'Face Scan', time: '08:13 AM', details: 'Verified via Gate Scanner #1' },
-                8: { status: 'present', method: 'Face Scan', time: '08:11 AM', details: 'Verified via Gate Scanner #1' },
-                9: { status: 'not_marked', method: 'Not Marked', time: 'N/A', details: 'No scan or manual check-in logged' },
-                10: { status: 'present', method: 'Face Scan', time: '08:16 AM', details: 'Verified via Gate Scanner #1' },
-                11: { status: 'present', method: 'Face Scan', time: '08:24 AM', details: 'Verified via Gate Scanner #2' },
-                12: { status: 'present', method: 'Face Scan', time: '08:10 AM', details: 'Verified via Main Lobby Kiosk' },
-                13: { status: 'present', method: 'Rector Manual', time: '09:05 PM', details: 'Marked manually by Rector Mrs. Priya Kumar during night check' },
-                14: { status: 'present', method: 'Face Scan', time: '08:12 AM', details: 'Verified via Gate Scanner #1' },
-                15: { status: 'present', method: 'Face Scan', time: '08:15 AM', details: 'Verified via Gate Scanner #1' },
-                16: { status: 'present', method: 'Face Scan', time: '08:18 AM', details: 'Verified via Gate Scanner #1' },
-                17: { status: 'present', method: 'Face Scan', time: '08:21 AM', details: 'Verified via Gate Scanner #2' },
-                18: { status: 'present', method: 'Face Scan', time: '08:10 AM', details: 'Verified via Main Lobby Kiosk' },
-                19: { status: 'present', method: 'Face Scan', time: '08:14 AM', details: 'Verified via Gate Scanner #1' },
-                20: { status: 'present', method: 'Rector Manual', time: '09:12 PM', details: 'Marked manually by Rector Mrs. Priya Kumar' },
-                21: { status: 'present', method: 'Face Scan', time: '08:16 AM', details: 'Verified via Gate Scanner #1' },
-                22: { status: 'present', method: 'Face Scan', time: '08:15 AM', details: 'Verified via Gate Scanner #1' },
-                23: { status: 'present', method: 'Face Scan', time: '08:11 AM', details: 'Verified via Gate Scanner #1' },
-                24: { status: 'present', method: 'Face Scan', time: '08:13 AM', details: 'Verified via Gate Scanner #1' },
-                25: { status: 'present', method: 'Rector Manual', time: '09:05 PM', details: 'Marked manually by Rector Mrs. Priya Kumar' },
-                26: { status: 'present', method: 'Face Scan', time: '08:21 AM', details: 'Verified via Gate Scanner #2' },
-                27: { status: 'present', method: 'Face Scan', time: '08:10 AM', details: 'Verified via Main Lobby Kiosk' },
-                28: { status: 'present', method: 'Face Scan', time: '08:14 AM', details: 'Verified via Gate Scanner #1' },
-                29: { status: 'present', method: 'Face Scan', time: '08:16 AM', details: 'Verified via Gate Scanner #1' },
-                30: { status: 'present', method: 'Face Scan', time: '08:18 AM', details: 'Verified via Gate Scanner #1' }
-            }
-        },
-        "May 2026": {
-            daysInMonth: 31,
-            firstDay: 5, // Friday
-            records: {
-                1: { status: 'present', method: 'Face Scan', time: '08:12 AM', details: 'Verified via Gate Scanner #1' },
-                2: { status: 'present', method: 'Face Scan', time: '08:15 AM', details: 'Verified via Gate Scanner #1' },
-                3: { status: 'present', method: 'Rector Manual', time: '09:05 PM', details: 'Marked manually by Rector Mrs. Priya Kumar during night check' },
-                4: { status: 'present', method: 'Face Scan', time: '08:10 AM', details: 'Verified via Main Lobby Kiosk' },
-                5: { status: 'present', method: 'Face Scan', time: '08:22 AM', details: 'Verified via Gate Scanner #2' },
-                6: { status: 'present', method: 'Face Scan', time: '08:14 AM', details: 'Verified via Gate Scanner #1' },
-                7: { status: 'present', method: 'Face Scan', time: '08:13 AM', details: 'Verified via Gate Scanner #1' },
-                8: { status: 'present', method: 'Face Scan', time: '08:11 AM', details: 'Verified via Gate Scanner #1' },
-                9: { status: 'not_marked', method: 'Not Marked', time: 'N/A', details: 'No scan or manual check-in logged' },
-                10: { status: 'present', method: 'Face Scan', time: '08:16 AM', details: 'Verified via Gate Scanner #1' },
-                11: { status: 'present', method: 'Face Scan', time: '08:24 AM', details: 'Verified via Gate Scanner #2' },
-                12: { status: 'present', method: 'Face Scan', time: '08:10 AM', details: 'Verified via Main Lobby Kiosk' },
-                13: { status: 'present', method: 'Rector Manual', time: '09:05 PM', details: 'Marked manually by Rector Mrs. Priya Kumar during night check' },
-                14: { status: 'present', method: 'Face Scan', time: '08:12 AM', details: 'Verified via Gate Scanner #1' },
-                15: { status: 'present', method: 'Face Scan', time: '08:15 AM', details: 'Verified via Gate Scanner #1' },
-                16: { status: 'present', method: 'Face Scan', time: '08:18 AM', details: 'Verified via Gate Scanner #1' },
-                17: { status: 'present', method: 'Face Scan', time: '08:21 AM', details: 'Verified via Gate Scanner #2' },
-                18: { status: 'present', method: 'Face Scan', time: '08:10 AM', details: 'Verified via Main Lobby Kiosk' },
-                19: { status: 'present', method: 'Face Scan', time: '08:14 AM', details: 'Verified via Gate Scanner #1' },
-                20: { status: 'present', method: 'Rector Manual', time: '09:12 PM', details: 'Marked manually by Rector Mrs. Priya Kumar' },
-                21: { status: 'present', method: 'Face Scan', time: '08:16 AM', details: 'Verified via Gate Scanner #1' },
-                22: { status: 'present', method: 'Face Scan', time: '08:15 AM', details: 'Verified via Gate Scanner #1' },
-                23: { status: 'present', method: 'Face Scan', time: '08:11 AM', details: 'Verified via Gate Scanner #1' },
-                24: { status: 'present', method: 'Face Scan', time: '08:13 AM', details: 'Verified via Gate Scanner #1' },
-                25: { status: 'present', method: 'Rector Manual', time: '09:05 PM', details: 'Marked manually by Rector Mrs. Priya Kumar' },
-                26: { status: 'present', method: 'Face Scan', time: '08:21 AM', details: 'Verified via Gate Scanner #2' },
-                27: { status: 'present', method: 'Face Scan', time: '08:10 AM', details: 'Verified via Main Lobby Kiosk' },
-                28: { status: 'present', method: 'Face Scan', time: '08:14 AM', details: 'Verified via Gate Scanner #1' },
-                29: { status: 'present', method: 'Face Scan', time: '08:16 AM', details: 'Verified via Gate Scanner #1' },
-                30: { status: 'present', method: 'Face Scan', time: '08:18 AM', details: 'Verified via Gate Scanner #1' },
-                31: { status: 'present', method: 'Face Scan', time: '08:20 AM', details: 'Verified via Gate Scanner #1' }
-            }
-        },
-        "June 2026": {
-            daysInMonth: 30,
-            firstDay: 1, // Monday
-            records: {
-                1: { status: 'present', method: 'Face Scan', time: '08:12 AM', details: 'Verified via Gate Scanner #1' },
-                2: { status: 'present', method: 'Face Scan', time: '08:15 AM', details: 'Verified via Gate Scanner #1' },
-                3: { status: 'present', method: 'Rector Manual', time: '09:05 PM', details: 'Marked manually by Rector Mrs. Priya Kumar during night check' },
-                4: { status: 'present', method: 'Face Scan', time: '08:10 AM', details: 'Verified via Main Lobby Kiosk' },
-                5: { status: 'present', method: 'Face Scan', time: '08:22 AM', details: 'Verified via Gate Scanner #2' },
-                6: { status: 'present', method: 'Face Scan', time: '08:14 AM', details: 'Verified via Gate Scanner #1' },
-                7: { status: 'present', method: 'Face Scan', time: '08:13 AM', details: 'Verified via Gate Scanner #1' },
-                8: { status: 'present', method: 'Face Scan', time: '08:11 AM', details: 'Verified via Gate Scanner #1' },
-                9: { status: 'not_marked', method: 'Not Marked', time: 'N/A', details: 'No scan or manual check-in logged' },
-                10: { status: 'present', method: 'Face Scan', time: '08:16 AM', details: 'Verified via Gate Scanner #1' },
-                11: { status: 'present', method: 'Face Scan', time: '08:24 AM', details: 'Verified via Gate Scanner #2' },
-                12: { status: 'present', method: 'Face Scan', time: '08:10 AM', details: 'Verified via Main Lobby Kiosk' },
-                13: { status: 'present', method: 'Rector Manual', time: '09:05 PM', details: 'Marked manually by Rector Mrs. Priya Kumar during night check' },
-                14: { status: 'present', method: 'Face Scan', time: '08:12 AM', details: 'Verified via Gate Scanner #1' },
-                15: { status: 'present', method: 'Face Scan', time: '08:15 AM', details: 'Verified via Gate Scanner #1' },
-                16: { status: 'present', method: 'Face Scan', time: '08:18 AM', details: 'Verified via Gate Scanner #1' },
-                17: { status: 'present', method: 'Face Scan', time: '08:21 AM', details: 'Verified via Gate Scanner #2' },
-                18: { status: 'present', method: 'Face Scan', time: '08:10 AM', details: 'Verified via Main Lobby Kiosk' },
-                19: { status: 'present', method: 'Face Scan', time: '08:14 AM', details: 'Verified via Gate Scanner #1' },
-                20: { status: 'present', method: 'Rector Manual', time: '09:12 PM', details: 'Marked manually by Rector Mrs. Priya Kumar' },
-                21: { status: 'present', method: 'Face Scan', time: '08:16 AM', details: 'Verified via Gate Scanner #1' },
-                22: { status: 'present', method: 'Face Scan', time: '08:15 AM', details: 'Verified via Gate Scanner #1' },
-                23: { status: 'present', method: 'Face Scan', time: '08:11 AM', details: 'Verified via Gate Scanner #1' },
-                24: { status: 'present', method: 'Face Scan', time: '08:13 AM', details: 'Verified via Gate Scanner #1' },
-                25: { status: 'present', method: 'Rector Manual', time: '09:05 PM', details: 'Marked manually by Rector Mrs. Priya Kumar' },
-                26: { status: 'present', method: 'Face Scan', time: '08:21 AM', details: 'Verified via Gate Scanner #2' },
-                27: { status: 'present', method: 'Face Scan', time: '08:10 AM', details: 'Verified via Main Lobby Kiosk' },
-                28: { status: 'present', method: 'Face Scan', time: '08:14 AM', details: 'Verified via Gate Scanner #1' },
-                29: { status: 'present', method: 'Face Scan', time: '08:16 AM', details: 'Verified via Gate Scanner #1' },
-                30: { status: 'present', method: 'Face Scan', time: '08:18 AM', details: 'Verified via Gate Scanner #1' }
-            }
-        }
-    };
+    // Academic Year Months database generated dynamically
+    const attendanceDb = ALL_MONTHS.reduce((acc, monthKey) => {
+        acc[monthKey] = generateMonthData(monthKey);
+        return acc;
+    }, {});
 
-    const [selectedMonth, setSelectedMonth] = useState("February 2026");
-    const [selectedDay, setSelectedDay] = useState(1);
+    const [selectedMonth, setSelectedMonth] = useState(getCurrentRealMonth());
+    const [selectedDay, setSelectedDay] = useState(new Date().getDate());
     const [attendanceData, setAttendanceData] = useState(null);
     const [attendanceMonthState, setAttendanceMonthState] = useState(null);
     const [isLoadingAttendance, setIsLoadingAttendance] = useState(false);
@@ -252,7 +92,7 @@ const StudentAttendance = () => {
 
     const monthData = attendanceMonthState && attendanceMonthState.monthYear === selectedMonth
         ? attendanceMonthState
-        : attendanceDb[selectedMonth];
+        : (attendanceDb[selectedMonth] || generateMonthData(selectedMonth));
 
     const daysInMonth = monthData.daysInMonth;
     const firstDayOfMonth = monthData.firstDay;
@@ -482,6 +322,15 @@ const StudentAttendance = () => {
 
     useEffect(() => {
         fetchAttendance();
+
+        const onAttendanceUpdated = () => {
+            fetchAttendance();
+        };
+
+        socket.on('attendance_updated', onAttendanceUpdated);
+        return () => {
+            socket.off('attendance_updated', onAttendanceUpdated);
+        };
     }, [selectedMonth]);
 
     return (

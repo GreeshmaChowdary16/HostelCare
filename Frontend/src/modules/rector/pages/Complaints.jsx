@@ -5,6 +5,8 @@ import socket from '../../../socket';
 
 const Complaints = () => {
     const [complaints, setComplaints] = useState([]);
+    const [workers, setWorkers] = useState([]);
+    const [selectedWorker, setSelectedWorker] = useState(null);
 
     const fetchComplaints = async () => {
         const token = localStorage.getItem('token');
@@ -26,6 +28,13 @@ const Complaints = () => {
 
     useEffect(() => {
         fetchComplaints();
+        const token = localStorage.getItem('token');
+        if (token) {
+            fetch(`${API_BASE_URL}/workers`, { headers: { 'Authorization': `Bearer ${token}` } })
+                .then((response) => response.ok ? response.json() : [])
+                .then(setWorkers)
+                .catch((error) => console.error('Error fetching workers:', error));
+        }
 
         const onCreated = (complaint) => {
             setComplaints(prev => [complaint, ...prev]);
@@ -74,8 +83,9 @@ const Complaints = () => {
         }
     };
 
-    const handleWorkerUpdate = async (id, workerName) => {
-        if (!workerName.trim()) return;
+    const handleWorkerUpdate = async (id, workerId) => {
+        const worker = workers.find((item) => item._id === workerId);
+        if (!worker) return;
         const token = localStorage.getItem('token');
         if (!token) return;
         try {
@@ -87,9 +97,10 @@ const Complaints = () => {
                 },
                 body: JSON.stringify({
                     assignedWorker: {
-                        name: workerName,
-                        phone: '+91 98765 43210',
-                        role: 'Assigned Staff'
+                        name: worker.name,
+                        phone: worker.phone || '',
+                        category: worker.category,
+                        availability: worker.availability
                     }
                 })
             });
@@ -475,16 +486,19 @@ const Complaints = () => {
                                                 <td>{comp.problem}</td>
                                                 <td>
                                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                                                        <input 
-                                                            type="text" 
-                                                            placeholder="Assign worker..." 
-                                                            defaultValue={comp.assignedWorker?.name || ''} 
-                                                            onBlur={(e) => handleWorkerUpdate(comp._id, e.target.value)}
-                                                            style={{ width: '120px', padding: '4px', fontSize: '11px', border: '1px solid #d1d3e2', borderRadius: '4px' }}
-                                                        />
+                                                        <select
+                                                            value={workers.some((worker) => worker.name === comp.assignedWorker?.name) ? workers.find((worker) => worker.name === comp.assignedWorker?.name)._id : ''}
+                                                            onChange={(e) => handleWorkerUpdate(comp._id, e.target.value)}
+                                                            style={{ width: '140px', padding: '4px', fontSize: '11px', border: '1px solid #d1d3e2', borderRadius: '4px' }}
+                                                        >
+                                                            <option value="">Assign worker...</option>
+                                                            {workers.filter((worker) => worker.category === comp.category).map((worker) => (
+                                                                <option key={worker._id} value={worker._id}>{worker.name}</option>
+                                                            ))}
+                                                        </select>
                                                         {comp.assignedWorker?.name && (
                                                             <div style={{ fontSize: '10px', color: '#858796' }}>
-                                                                Assigned
+                                                                {comp.assignedWorker.category || comp.category}
                                                             </div>
                                                         )}
                                                     </div>
@@ -502,7 +516,13 @@ const Complaints = () => {
                                                     </select>
                                                 </td>
                                                 <td>
-                                                    <button onClick={() => alert(`Worker contact: ${comp.assignedWorker?.phone || 'Not assigned'}`)} className="btn-resolve">Contact</button>
+                                                    <button
+                                                        onClick={() => comp.assignedWorker?.name && setSelectedWorker({ ...comp.assignedWorker, complaint: comp.problem })}
+                                                        className="btn-resolve"
+                                                        disabled={!comp.assignedWorker?.name}
+                                                    >
+                                                        <i className="fas fa-phone" style={{ marginRight: '5px' }}></i> Contact
+                                                    </button>
                                                 </td>
                                             </tr>
                                         );
@@ -513,6 +533,46 @@ const Complaints = () => {
                     </div>
                 </div>
             </div>
+            {selectedWorker && (
+                <div
+                    onClick={() => setSelectedWorker(null)}
+                    style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(26, 35, 54, 0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}
+                >
+                    <div
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="worker-contact-title"
+                        onClick={(event) => event.stopPropagation()}
+                        style={{ width: 'min(420px, 100%)', background: '#fff', borderRadius: '10px', padding: '25px', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}
+                    >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '15px' }}>
+                            <div>
+                                <h2 id="worker-contact-title" style={{ margin: 0, color: '#343a40', fontSize: '20px' }}>Assigned Worker</h2>
+                                <p style={{ margin: '6px 0 20px', color: '#858796', fontSize: '13px' }}>{selectedWorker.complaint}</p>
+                            </div>
+                            <button type="button" onClick={() => setSelectedWorker(null)} aria-label="Close worker contact" style={{ border: 0, background: '#f8f9fc', borderRadius: '50%', width: '32px', height: '32px', cursor: 'pointer' }}>
+                                <i className="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <div style={{ background: '#f8f9fc', borderRadius: '8px', padding: '16px', marginBottom: '18px' }}>
+                            <div style={{ fontWeight: 700, fontSize: '17px', color: '#343a40' }}>{selectedWorker.name}</div>
+                            <div style={{ color: '#4e73df', fontWeight: 600, marginTop: '5px' }}>{selectedWorker.category || 'Assigned Staff'}</div>
+                            <div style={{ color: '#858796', fontSize: '13px', marginTop: '5px' }}>{selectedWorker.availability || 'Availability not provided'}</div>
+                            <div style={{ marginTop: '14px', color: '#5a5c69' }}>
+                                <i className="fas fa-phone" style={{ marginRight: '8px' }}></i>
+                                {selectedWorker.phone || 'Phone number not provided'}
+                            </div>
+                        </div>
+                        {selectedWorker.phone ? (
+                            <a href={`tel:${selectedWorker.phone}`} className="btn-resolve" style={{ display: 'block', textAlign: 'center', textDecoration: 'none' }}>
+                                <i className="fas fa-phone" style={{ marginRight: '7px' }}></i> Call Worker
+                            </a>
+                        ) : (
+                            <div style={{ color: '#e74a3b', fontSize: '13px', textAlign: 'center' }}>Add a phone number to this worker before calling.</div>
+                        )}
+                    </div>
+                </div>
+            )}
         </>
     );
 };

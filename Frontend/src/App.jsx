@@ -4,6 +4,8 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 // Login Module
 import LoginPage from './modules/login/LoginPage';
 import ForgotPasswordPage from './modules/login/ForgotPasswordPage';
+import SignupPage from './modules/login/SignupPage';
+import VerifyEmailPage from './modules/login/VerifyEmailPage';
 
 // Rector Module
 import Dashboard from './modules/rector/pages/Dashboard';
@@ -47,6 +49,8 @@ function App() {
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/forgot-password" element={<ForgotPasswordPage />} />
                 <Route path="/reset-password" element={<ForgotPasswordPage />} />
+                <Route path="/signup" element={<SignupPage />} />
+                <Route path="/verify-email" element={<VerifyEmailPage />} />
 
                 {/* Rector Routes */}
                 <Route path="/rector/dashboard" element={<Dashboard />} />

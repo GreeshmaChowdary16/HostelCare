@@ -76,12 +76,25 @@ const userSchema = new mongoose.Schema(
       type: String,
       default: "",
     },
+    state: {
+      type: String,
+      default: "",
+    },
     roomInfo: {
       type: String,
       default: "",
     },
     office: {
       type: String,
+      default: "",
+    },
+    staffId: {
+      type: String,
+      default: "",
+    },
+    shift: {
+      type: String,
+      enum: ["Day", "Night", "Day/Night", ""],
       default: "",
     },
     bio: {

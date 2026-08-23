@@ -70,21 +70,28 @@ const AdminComplaints = () => {
         priority: getPriority(c)
     }));
 
-    const workers = {
-        'Electrician': ['John Miller (Grade A)', 'David Chen (Grade B)'],
-        'Plumber': ['Robert Wilson', 'Samuel Jackson'],
-        'Carpenter': ['Mike Ross', 'Harvey Specter'],
-        'Cleaning': ['Cleaning Crew A', 'Cleaning Crew B']
-    };
+    const [workersList, setWorkersList] = useState([]);
+
+    useEffect(() => {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+        fetch(`${API_BASE_URL}/workers`, { headers: { 'Authorization': `Bearer ${token}` } })
+            .then((response) => response.ok ? response.json() : [])
+            .then(setWorkersList)
+            .catch((error) => console.error('Error fetching workers:', error));
+    }, []);
 
     const handleAutoAllot = () => {
         setIsAllotting(true);
         setTimeout(() => {
             const results = unassignedList.map(complaint => {
-                const categoryWorkers = workers[complaint.type] || ['Generic Staff'];
+                const categoryWorkers = workersList.filter((worker) => worker.category === complaint.type);
+                const worker = categoryWorkers[Math.floor(Math.random() * categoryWorkers.length)];
                 return {
                     ...complaint,
-                    worker: categoryWorkers[Math.floor(Math.random() * categoryWorkers.length)],
+                    worker: worker?.name || 'Unassigned',
+                    workerId: worker?._id,
+                    workerPhone: worker?.phone || '',
                     confidence: (Math.random() * (99 - 95) + 95).toFixed(1) + '%'
                 };
             });
@@ -111,8 +118,8 @@ const AdminComplaints = () => {
                         status: 'In Progress',
                         assignedWorker: {
                             name: item.worker,
-                            phone: '+91 98765 43210',
-                            role: item.type
+                            phone: item.workerPhone,
+                            category: item.type
                         }
                     })
                 });

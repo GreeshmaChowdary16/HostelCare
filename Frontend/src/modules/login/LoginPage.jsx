@@ -281,6 +281,11 @@ function LoginPage() {
                             <div id="google-signin-btn" style={{ width: '100%', display: 'flex', justifyContent: 'center' }} />
                             
                         </form>
+                        {role === 'Student' && (
+                            <p className="signup-link">
+                                New student? <Link to="/signup">Create an account</Link>
+                            </p>
+                        )}
                     </div>
                 )}
             </div>
