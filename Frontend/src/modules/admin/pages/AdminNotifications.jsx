@@ -12,11 +12,11 @@ function AdminNotifications() {
 
     // Preloaded system logs
     const systemLogs = [
-        { id: 1, action: 'User Registration', detail: 'New student account registered (Anjali Sharma, 2022CS1045)', time: '10 mins ago', type: 'user' },
-        { id: 2, action: 'Gate Pass Status Change', detail: 'Rector Mrs. Priya Kumar approved gate pass for Lucknow', time: '1 hour ago', type: 'gatepass' },
-        { id: 3, action: 'Complaint Resolved', detail: 'Complaint #302: "Taps leaking" resolved by Plumber Suresh Verma', time: '2 hours ago', type: 'complaint' },
-        { id: 4, action: 'Mess Menu Updated', detail: 'Admin Mr. System Admin updated Friday dinner menu details', time: 'Yesterday', type: 'mess' },
-        { id: 5, action: 'Rector Assigned', detail: 'Rector Priya Kumar assigned to Girls Hostel A', time: '2 days ago', type: 'admin' }
+        { id: 1, action: 'User Registration', detail: 'New student account registered', time: '10 mins ago', type: 'user' },
+        { id: 2, action: 'Gate Pass Status Change', detail: 'Rector approved gate pass request', time: '1 hour ago', type: 'gatepass' },
+        { id: 3, action: 'Complaint Resolved', detail: 'Electrical complaint resolved by assigned worker', time: '2 hours ago', type: 'complaint' },
+        { id: 4, action: 'Mess Menu Updated', detail: 'Hostel mess menu details updated by administration', time: 'Yesterday', type: 'mess' },
+        { id: 5, action: 'Rector Assigned', detail: 'New rector assigned to duty shift', time: '2 days ago', type: 'admin' }
     ];
 
     useEffect(() => {

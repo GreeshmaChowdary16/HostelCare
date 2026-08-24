@@ -1,33 +1,92 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Header from '../../../components/Header';
+import { API_BASE_URL } from '../../../config';
 
 const AdminReports = () => {
-    // Sample data for reports submitted by Rectors
-    const initialReports = [
-        { id: 'REP-001', title: 'Major Water Pipe Burst - Block 2', rector: 'Mrs. Kumar', hostel: 'Hostel A', priority: 'Emergency', date: '2026-05-11 08:30 AM', status: 'Action Required', detail: 'Main supply pipe in Block 2 has burst, flooding the basement storage.' },
-        { id: 'REP-002', title: 'Student Health Alert: Multiple Vomiting Cases', rector: 'Mr. Singh', hostel: 'Hostel B', priority: 'Emergency', date: '2026-05-11 07:45 AM', status: 'Medical Team Sent', detail: '7 students reported nausea and vomiting after dinner. Potential food poisoning.' },
-        { id: 'REP-003', title: 'Elevator Maintenance Failure', rector: 'Ms. Sharma', hostel: 'Hostel C', priority: 'Urgent', date: '2026-05-10 11:20 PM', status: 'Technician Called', detail: 'Main elevator stuck on 4th floor. No students inside, but needs immediate repair.' },
-        { id: 'REP-004', title: 'Security Camera Outage - Main Gate', rector: 'Mrs. Kumar', hostel: 'Hostel A', priority: 'Urgent', date: '2026-05-10 09:00 PM', status: 'Assigned', detail: 'Gate cameras 1 and 4 are not recording. Security blind spot created.' },
-        { id: 'REP-005', title: 'Monthly Occupancy & Revenue Report', rector: 'Mrs. Kumar', hostel: 'Hostel A', priority: 'Normal', date: '2026-05-09 04:00 PM', status: 'Reviewing', detail: 'Standard monthly report for room allocations and fee collections.' },
-        { id: 'REP-006', title: 'Worker Attendance Log - Week 19', rector: 'Mr. Singh', hostel: 'Hostel B', priority: 'Normal', date: '2026-05-09 10:00 AM', status: 'Completed', detail: 'Weekly attendance sheets for cleaning and maintenance staff.' },
-        { id: 'REP-007', title: 'Inventory Request: Cleaning Supplies', rector: 'Ms. Sharma', hostel: 'Hostel C', priority: 'Low', date: '2026-05-08 02:30 PM', status: 'Pending', detail: 'Request for stock replenishment of detergents and sanitizers.' }
-    ];
+    const [reports, setReports] = useState([]);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState('');
+    const [searchTerm, setSearchTerm] = useState('');
+    const [selectedType, setSelectedType] = useState('All');
 
-    const [reports] = useState(initialReports);
+    const fetchReports = async () => {
+        setLoading(true);
+        setError('');
+        const token = localStorage.getItem('token');
+        if (!token) {
+            setError('Authorization token missing. Please log in again.');
+            setLoading(false);
+            return;
+        }
 
-    // Function to get priority styles
-    const getPriorityStyles = (priority) => {
-        switch (priority) {
-            case 'Emergency': return { bg: '#fff5f5', color: '#e74a3b', border: '2px solid #e74a3b' };
-            case 'Urgent': return { bg: '#fffbe6', color: '#f6c23e', border: '1px solid #f6c23e' };
-            case 'Normal': return { bg: '#f0f7ff', color: '#4e73df', border: '1px solid #4e73df' };
-            default: return { bg: '#f8f9fc', color: '#858796', border: '1px solid #d1d3e2' };
+        try {
+            const res = await fetch(`${API_BASE_URL}/reports`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (res.ok) {
+                const data = await res.json();
+                setReports(data || []);
+            } else {
+                if (res.status === 401) {
+                    setError('Session expired. Please log in again.');
+                } else if (res.status === 403) {
+                    setError('Access denied. You do not have permission to view operational reports.');
+                } else {
+                    setError('Failed to fetch operational reports.');
+                }
+            }
+        } catch (err) {
+            console.error('Error fetching reports:', err);
+            setError('Could not connect to the server. Please try again.');
+        } finally {
+            setLoading(false);
         }
     };
 
+    useEffect(() => {
+        fetchReports();
+    }, []);
+
+    const getTypeStyles = (type) => {
+        switch (type) {
+            case 'Attendance': return { bg: '#e6fffa', color: '#1cc88a', border: '1px solid #1cc88a' };
+            case 'Food Wastage': return { bg: '#fff5f5', color: '#e74a3b', border: '1px solid #e74a3b' };
+            case 'Infrastructure': return { bg: '#f0f7ff', color: '#4e73df', border: '1px solid #4e73df' };
+            default: return { bg: '#fffbe6', color: '#f6c23e', border: '1px solid #f6c23e' };
+        }
+    };
+
+    const getStatusColor = (status) => {
+        switch (status) {
+            case 'Closed': return '#858796';
+            case 'Reviewed': return '#4e73df';
+            default: return '#e74a3b'; // Open
+        }
+    };
+
+    // Filter and search logic
+    const filteredReports = reports.filter((report) => {
+        const title = report.title || '';
+        const content = report.content || '';
+        const authorName = (report.author && report.author.name) || '';
+        const type = report.type || '';
+
+        const matchesSearch = 
+            title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            content.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            authorName.toLowerCase().includes(searchTerm.toLowerCase());
+
+        const matchesType = selectedType === 'All' || type === selectedType;
+
+        return matchesSearch && matchesType;
+    });
+
     return (
         <>
-            <Header title="Rector Reports & Alerts" />
+            <Header title="Rector Operational Reports" />
             <style>{`
                 .admin-reports-container {
                     padding: 30px;
@@ -41,22 +100,21 @@ const AdminReports = () => {
                 }
 
                 .section-title {
-                    font-size: 22px;
+                    font-size: 20px;
                     font-weight: 700;
                     color: #5a5c69;
                     margin-bottom: 5px;
                 }
 
-                /* Priority Section */
                 .priority-banner {
-                    background: linear-gradient(90deg, #e74a3b, #c0392b);
+                    background: linear-gradient(90deg, #4e73df, #224abe);
                     color: white;
                     padding: 15px 25px;
                     border-radius: 10px;
                     display: flex;
                     align-items: center;
                     gap: 15px;
-                    box-shadow: 0 4px 12px rgba(231, 74, 59, 0.3);
+                    box-shadow: 0 4px 12px rgba(78, 115, 223, 0.2);
                 }
 
                 .report-card {
@@ -120,9 +178,9 @@ const AdminReports = () => {
                     font-size: 14px;
                     color: #5a5c69;
                     line-height: 1.5;
+                    white-space: pre-wrap;
                 }
 
-                /* Overview Grid */
                 .overview-grid {
                     display: grid;
                     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -140,7 +198,6 @@ const AdminReports = () => {
 
                 .overview-card h4 { margin: 0 0 15px 0; font-size: 14px; color: #858796; text-transform: uppercase; }
 
-                /* Attendance Alert System */
                 .attendance-alert-card {
                     background: #fff;
                     border-radius: 15px;
@@ -190,193 +247,204 @@ const AdminReports = () => {
                     font-weight: 700;
                 }
 
-                .emergency-pulse {
-                    width: 10px;
-                    height: 10px;
-                    background: #e74a3b;
-                    border-radius: 50%;
-                    display: inline-block;
-                    margin-right: 8px;
-                    animation: pulse-red 1.5s infinite;
+                .btn-refresh {
+                    background: #4e73df;
+                    color: white;
+                    border: none;
+                    padding: 8px 15px;
+                    border-radius: 6px;
+                    font-weight: 600;
+                    cursor: pointer;
+                }
+                .btn-refresh:disabled {
+                    opacity: 0.6;
                 }
 
-                @keyframes pulse-red {
-                    0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(231, 74, 59, 0.7); }
-                    70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(231, 74, 59, 0); }
-                    100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(231, 74, 59, 0); }
+                .filter-bar {
+                    background: white;
+                    padding: 15px 20px;
+                    border-radius: 10px;
+                    border: 1px solid #eaecf4;
+                    display: flex;
+                    gap: 15px;
+                    align-items: center;
+                    margin-bottom: 10px;
+                }
+
+                .filter-input {
+                    padding: 8px 12px;
+                    border: 1px solid #d1d3e2;
+                    border-radius: 5px;
+                    font-size: 14px;
+                    outline: none;
+                }
+                .filter-select {
+                    padding: 8px 12px;
+                    border: 1px solid #d1d3e2;
+                    border-radius: 5px;
+                    font-size: 14px;
+                    outline: none;
                 }
             `}</style>
 
             <div className="admin-reports-container">
-                {/* Emergency Summary Bar */}
+                {/* Safety & Operations Dashboard Title */}
                 <div className="priority-banner">
                     <i className="fas fa-shield-alt fa-2x"></i>
-                    <div>
-                        <div style={{ fontWeight: 800, fontSize: '18px' }}>Safety & Operations Dashboard</div>
+                    <div style={{ flexGrow: 1 }}>
+                        <div style={{ fontWeight: 800, fontSize: '18px' }}>Rector Operations Center</div>
                         <div style={{ fontSize: '14px', opacity: 0.9 }}>
-                            Daily Monitoring Active: {reports.filter(r => r.priority === 'Emergency').length} System Alerts Found.
+                            Monitoring: {reports.length} total operational reports logged in MongoDB.
                         </div>
                     </div>
+                    <button type="button" disabled={loading} onClick={fetchReports} className="btn-refresh">
+                        <i className={`fas fa-sync ${loading ? 'fa-spin' : ''}`} style={{ marginRight: '5px' }}></i>
+                        Refresh
+                    </button>
                 </div>
 
                 {/* Overviews Section */}
                 <div className="overview-grid">
                     <div className="overview-card" style={{ borderTopColor: '#4e73df' }}>
-                        <h4><i className="fas fa-user-tie"></i> Rectors Overview</h4>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px' }}>
-                            <span>Active Duty: <strong>12/12</strong></span>
-                            <span>Reports Sent: <strong>8</strong></span>
+                        <h4><i className="fas fa-user-tie"></i> Operational Inflow</h4>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', marginTop: '10px' }}>
+                            <span>Total Reports: <strong>{reports.length}</strong></span>
+                            <span>Open Audits: <strong>{reports.filter(r => r.status === 'Open').length}</strong></span>
                         </div>
-                        <div style={{ marginTop: '10px', fontSize: '12px', color: '#858796' }}>All Rectors have completed morning rounds.</div>
+                        <div style={{ marginTop: '10px', fontSize: '12px', color: '#858796' }}>Submissions are stored centrally for compliance monitoring.</div>
+                    </div>
+                    <div className="overview-card" style={{ borderTopColor: '#e74a3b' }}>
+                        <h4><i className="fas fa-utensils"></i> Food Wastage Logs</h4>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', marginTop: '10px' }}>
+                            <span>Wastage Reports: <strong>{reports.filter(r => r.type === 'Food Wastage').length}</strong></span>
+                            <span>Latest Log: <strong>{reports.find(r => r.type === 'Food Wastage')?.title || 'N/A'}</strong></span>
+                        </div>
+                        <div style={{ marginTop: '10px', fontSize: '12px', color: '#858796' }}>Mess reports help reduce meal waste and review menus.</div>
                     </div>
                     <div className="overview-card" style={{ borderTopColor: '#1cc88a' }}>
-                        <h4><i className="fas fa-users"></i> Students Overview</h4>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px' }}>
-                            <span>Total Present: <strong>842</strong></span>
-                            <span>On Leave: <strong>24</strong></span>
+                        <h4><i className="fas fa-users"></i> Attendance Summaries</h4>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', marginTop: '10px' }}>
+                            <span>Attendance Logs: <strong>{reports.filter(r => r.type === 'Attendance').length}</strong></span>
+                            <span>Infrastructure Logs: <strong>{reports.filter(r => r.type === 'Infrastructure').length}</strong></span>
                         </div>
-                        <div style={{ marginTop: '10px', fontSize: '12px', color: '#858796' }}>Attendance sync complete for 98% students.</div>
-                    </div>
-                    <div className="overview-card" style={{ borderTopColor: '#f6c23e' }}>
-                        <h4><i className="fas fa-bolt"></i> Quick Actions</h4>
-                        <button style={{ width: '100%', background: '#f8f9fc', border: '1px solid #d1d3e2', padding: '8px', borderRadius: '5px', fontSize: '12px', cursor: 'pointer' }}>
-                            Generate Daily PDF
-                        </button>
+                        <div style={{ marginTop: '10px', fontSize: '12px', color: '#858796' }}>Updates include room checks and safety rounds.</div>
                     </div>
                 </div>
 
                 {/* AI Attendance Alert System */}
                 <div className="attendance-alert-card">
                     <h3 className="section-title" style={{ color: '#e74a3b' }}>
-                        <i className="fas fa-fingerprint"></i> AI Attendance Alert System
+                        <i className="fas fa-fingerprint"></i> System-Wide Compliance Check
                     </h3>
-                    <p style={{ fontSize: '14px', color: '#858796', marginBottom: '20px' }}>
-                        Automatic tracking of students missing for <strong>3+ consecutive days</strong>. AI initiates emergency protocols.
+                    <p style={{ fontSize: '14px', color: '#858796', marginBottom: '15px' }}>
+                        Automatic tracking of operations: The system analyzes reported data trends to flag security anomalies and trigger emergency responses if needed.
                     </p>
-
-                    <div className="student-missing-row">
-                        <div>
-                            <div style={{ fontWeight: 700, fontSize: '16px' }}>Aryan Mehta (ID: S-1042)</div>
-                            <div style={{ fontSize: '12px', color: '#5a5c69' }}>Hostel A, Block 1 - Room 102</div>
-                        </div>
-                        <div style={{ textAlign: 'right' }}>
-                            <div className="ai-status-badge">MISSING: 3 DAYS</div>
-                            <div style={{ fontSize: '10px', color: '#e74a3b', fontWeight: 700, marginTop: '5px' }}>EMERGENCY PROTOCOL ACTIVE</div>
-                        </div>
-                    </div>
-                    <div className="action-log">
-                        <div className="action-item text-success"><i className="fas fa-check-circle"></i> AI: SMS Alert sent to student (Day 1 & 2) - No Response.</div>
-                        <div className="action-item text-success"><i className="fas fa-phone-alt"></i> AI: Automated call initiated to Parent (+91 98XXX-XXXXX) - Informed.</div>
-                        <div className="action-item text-success"><i className="fas fa-bell"></i> AI: Alert sent to Rector (Mrs. Kumar) - Investigating.</div>
-                    </div>
-
-                    <div className="action-log">
-                        <div className="action-item text-success"><i className="fas fa-check-circle"></i> AI: SMS Alert sent to student - No Response.</div>
-                        <div className="action-item text-danger"><i className="fas fa-times-circle"></i> AI: Parent call attempt 1 failed - Retrying in 5 mins.</div>
-                        <div className="action-item text-success"><i className="fas fa-bell"></i> AI: Alert sent to Rector (Mr. Singh) - Dispatched to Room.</div>
+                    <div style={{ background: '#fdf2f2', border: '1px solid #fbdada', padding: '15px', borderRadius: '10px', fontSize: '13px', color: '#721c24' }}>
+                        <i className="fas fa-exclamation-triangle" style={{ marginRight: '8px' }}></i>
+                        AI Monitoring Active: Scanning rector attendance checklists and student gate pass status updates.
                     </div>
                 </div>
 
-                {/* Late Return Extension Reports Section */}
-                <div className="widget" style={{ background: 'white', borderRadius: '15px', padding: '25px', boxShadow: '0 4px 15px rgba(0,0,0,0.05)', borderTop: '5px solid #f6c23e' }}>
-                    <h3 className="section-title" style={{ color: '#dda20a' }}>
-                        <i className="fas fa-history"></i> Late Return Extension Reports
-                    </h3>
-                    <p style={{ fontSize: '14px', color: '#858796', marginBottom: '20px' }}>
-                        Requests submitted by Rectors for students requiring extension on their gate pass return date.
-                    </p>
-
-                    <div style={{ overflowX: 'auto' }}>
-                        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                            <thead>
-                                <tr style={{ background: '#f8f9fc' }}>
-                                    <th style={{ padding: '12px', textAlign: 'left', borderBottom: '2px solid #e3e6f0' }}>Student Name</th>
-                                    <th style={{ padding: '12px', textAlign: 'left', borderBottom: '2px solid #e3e6f0' }}>Extension</th>
-                                    <th style={{ padding: '12px', textAlign: 'left', borderBottom: '2px solid #e3e6f0' }}>Reason & Validity</th>
-                                    <th style={{ padding: '12px', textAlign: 'left', borderBottom: '2px solid #e3e6f0' }}>Proof Provided</th>
-                                    <th style={{ padding: '12px', textAlign: 'left', borderBottom: '2px solid #e3e6f0' }}>Parent Contact</th>
-                                    <th style={{ padding: '12px', textAlign: 'left', borderBottom: '2px solid #e3e6f0' }}>Rector Status</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr style={{ borderBottom: '1px solid #f1f3f8' }}>
-                                    <td style={{ padding: '15px' }}>
-                                        <div style={{ fontWeight: 700 }}>Anjali Sharma</div>
-                                        <div style={{ fontSize: '11px', color: '#858796' }}>Hostel A - Room 302</div>
-                                    </td>
-                                    <td style={{ padding: '15px', fontWeight: 700, color: '#e74a3b' }}>+2 Days</td>
-                                    <td style={{ padding: '15px' }}>
-                                        <div style={{ fontSize: '13px' }}>Train Delayed (Fog)</div>
-                                        <div style={{ fontSize: '11px', color: '#1cc88a', fontWeight: 700 }}>✓ REASON VALID</div>
-                                    </td>
-                                    <td style={{ padding: '15px' }}>
-                                        <a href="#" style={{ color: '#4e73df', textDecoration: 'none', fontSize: '12px' }}>
-                                            <i className="fas fa-file-pdf"></i> Ticket_Delay.pdf
-                                        </a>
-                                    </td>
-                                    <td style={{ padding: '15px', fontSize: '13px' }}>+91 94444 55555</td>
-                                    <td style={{ padding: '15px' }}>
-                                        <span style={{ padding: '4px 8px', background: '#e6fffa', color: '#1cc88a', borderRadius: '4px', fontSize: '11px', fontWeight: 700 }}>
-                                            VERIFIED & SUBMITTED
-                                        </span>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
+                {/* Search & Filter Bar */}
+                <div className="filter-bar">
+                    <div style={{ display: 'flex', flexGrow: 1, gap: '10px', alignItems: 'center' }}>
+                        <i className="fas fa-search" style={{ color: '#858796' }}></i>
+                        <input 
+                            type="text" 
+                            className="filter-input" 
+                            style={{ flexGrow: 1 }}
+                            placeholder="Search by title, content, or rector name..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                        />
+                    </div>
+                    <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                        <span style={{ fontSize: '13px', fontWeight: 600, color: '#5a5c69' }}>Filter Type:</span>
+                        <select 
+                            className="filter-select"
+                            value={selectedType}
+                            onChange={(e) => setSelectedType(e.target.value)}
+                        >
+                            <option value="All">All Categories</option>
+                            <option value="Attendance">Attendance</option>
+                            <option value="Food Wastage">Food Wastage</option>
+                            <option value="Infrastructure">Infrastructure</option>
+                            <option value="Other">Other</option>
+                        </select>
                     </div>
                 </div>
 
-                <div className="overview-grid">
-                    {/* Mess Wastage Analytics */}
-                    <div className="overview-card" style={{ borderTopColor: '#e74a3b' }}>
-                        <h4 style={{ color: '#e74a3b' }}><i className="fas fa-utensils"></i> Mess Wastage Alerts</h4>
-                        <div style={{ background: '#fff5f5', padding: '15px', borderRadius: '8px' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
-                                <span style={{ fontWeight: 600 }}>Hostel A: Baingan Bharta</span>
-                                <span style={{ color: '#e74a3b', fontWeight: 700 }}>18 KG Waste</span>
-                            </div>
-                            <div style={{ fontSize: '11px', color: '#858796' }}>Reason: Students reported disliking the item. Proposing menu update.</div>
-                        </div>
-                    </div>
-
-                    {/* Infrastructure Summary */}
-                    <div className="overview-card" style={{ borderTopColor: '#4e73df' }}>
-                        <h4 style={{ color: '#4e73df' }}><i className="fas fa-tools"></i> Hostel Status Updates</h4>
-                        <div style={{ fontSize: '13px', borderLeft: '3px solid #4e73df', paddingLeft: '10px' }}>
-                            <strong>Hostel B:</strong> Main water tank leakage reported. Plumber assigned.
-                        </div>
-                        <div style={{ fontSize: '13px', borderLeft: '3px solid #4e73df', paddingLeft: '10px', marginTop: '10px' }}>
-                            <strong>Hostel C:</strong> Night shift security camera restored in Wing 2.
-                        </div>
-                    </div>
-                </div>
-
+                {/* Main List */}
                 <div>
                     <h3 className="section-title">Hostel Performance & Compliance Reports</h3>
                     <p style={{ color: '#858796', fontSize: '14px', marginBottom: '20px' }}>Historical log of all reports submitted by hostel rectors.</p>
 
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                        {reports.map((report) => {
-                            const styles = getPriorityStyles(report.priority);
-                            return (
-                                <div key={report.id} className="report-card" style={{ borderLeftColor: styles.color }}>
-                                    <div className="report-header">
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                                            <span className="priority-badge" style={{ backgroundColor: styles.bg, color: styles.color, border: styles.border }}>{report.priority}</span>
-                                            <span className="hostel-info">{report.hostel}</span>
+                    {loading ? (
+                        <div style={{ padding: '50px 0', textAlign: 'center', color: '#858796' }}>
+                            <i className="fas fa-spinner fa-spin fa-2x" style={{ marginBottom: '10px' }}></i>
+                            <p>Loading operational reports...</p>
+                        </div>
+                    ) : error ? (
+                        <div style={{ padding: '30px', background: '#f8d7da', border: '1px solid #f5c6cb', color: '#721c24', borderRadius: '8px', textAlign: 'center' }}>
+                            <i className="fas fa-exclamation-circle fa-2x" style={{ marginBottom: '10px' }}></i>
+                            <p>{error}</p>
+                            <button type="button" onClick={fetchReports} className="btn-refresh" style={{ background: '#721c24', marginTop: '10px' }}>
+                                Retry Loading
+                            </button>
+                        </div>
+                    ) : filteredReports.length === 0 ? (
+                        <div style={{ padding: '50px 0', textAlign: 'center', color: '#858796', background: 'white', borderRadius: '12px', border: '1px solid #eaecf4' }}>
+                            <i className="fas fa-folder-open fa-2x" style={{ marginBottom: '10px', opacity: 0.5 }}></i>
+                            <p>No operational reports available.</p>
+                        </div>
+                    ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                            {filteredReports.map((report) => {
+                                const styles = getTypeStyles(report.type);
+                                return (
+                                    <div key={report._id} className="report-card" style={{ borderLeftColor: styles.color }}>
+                                        <div className="report-header">
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                                                <span className="priority-badge" style={{ backgroundColor: styles.bg, color: styles.color, border: styles.border }}>
+                                                    {report.type || 'Other'}
+                                                </span>
+                                                <span className="hostel-info">
+                                                    {(report.author && report.author.office) || 'N/A'}
+                                                </span>
+                                            </div>
+                                            <div style={{ fontSize: '12px', fontWeight: 700, color: getStatusColor(report.status) }}>
+                                                {report.status || 'Open'}
+                                            </div>
                                         </div>
-                                        <div style={{ fontSize: '12px', fontWeight: 700, color: styles.color }}>{report.status}</div>
+                                        <div className="report-title">{report.title}</div>
+                                        <div className="report-meta">
+                                            <span><i className="fas fa-user-tie"></i> Rector: {(report.author && report.author.name) || 'N/A'}</span>
+                                            <span><i className="fas fa-calendar-alt"></i> {new Date(report.createdAt).toLocaleString()}</span>
+                                        </div>
+                                        <div className="report-detail">{report.content}</div>
+                                        {report.attachments && report.attachments.length > 0 && (
+                                            <div style={{ marginTop: '12px', borderTop: '1px solid #eaecf4', paddingTop: '8px' }}>
+                                                <div style={{ fontSize: '11px', fontWeight: 700, color: '#858796', marginBottom: '5px' }}>ATTACHMENTS:</div>
+                                                <div style={{ display: 'flex', gap: '10px' }}>
+                                                    {report.attachments.map((file, idx) => (
+                                                        <a 
+                                                            key={idx} 
+                                                            href={`${API_BASE_URL}/uploads/${file}`} 
+                                                            target="_blank" 
+                                                            rel="noopener noreferrer" 
+                                                            style={{ color: '#4e73df', textDecoration: 'none', fontSize: '13px' }}
+                                                        >
+                                                            <i className="fas fa-file-alt"></i> {file}
+                                                        </a>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
-                                    <div className="report-title">{report.title}</div>
-                                    <div className="report-meta">
-                                        <span><i className="fas fa-user-tie"></i> Rector: {report.rector}</span>
-                                        <span><i className="fas fa-calendar-alt"></i> {report.date}</span>
-                                    </div>
-                                    <div className="report-detail">{report.detail}</div>
-                                </div>
-                            );
-                        })}
-                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
                 </div>
             </div>
         </>
@@ -384,4 +452,3 @@ const AdminReports = () => {
 };
 
 export default AdminReports;
-

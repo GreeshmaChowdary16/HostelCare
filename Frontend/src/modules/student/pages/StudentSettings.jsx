@@ -28,19 +28,15 @@ const StudentSettings = () => {
         announcements: true
     });
 
-    // Existing Notifications State
-    const [notifList, setNotifList] = useState([
-        { id: 1, title: 'Gate pass approved for weekend', time: '10 mins ago', type: 'gatepass', icon: 'fa-check-circle', color: '#1cc88a' },
-        { id: 2, title: 'Special Dinner: Paneer Butter Masala', time: '1 hour ago', type: 'mess', icon: 'fa-utensils', color: '#f6c23e' },
-        { id: 3, title: 'Hostel Night announcement', time: '5 hours ago', type: 'info', icon: 'fa-bullhorn', color: '#4e73df' }
-    ]);
+    // Real Notifications State
+    const [notifList, setNotifList] = useState([]);
 
     const handleToggle = (key) => {
         setNotifPrefs(prev => ({ ...prev, [key]: !prev[key] }));
     };
 
     const removeNotif = (id) => {
-        setNotifList(prev => prev.filter(n => n.id !== id));
+        setNotifList(prev => prev.filter(n => n._id !== id));
     };
 
     const getAuthHeader = () => {
@@ -48,12 +44,22 @@ const StudentSettings = () => {
         return token ? { Authorization: `Bearer ${token}` } : {};
     };
 
+    const getNotifMeta = (type) => {
+        if (type === 'fee') return { icon: 'fa-file-invoice-dollar', color: '#e74a3b' };
+        if (type === 'gatepass') return { icon: 'fa-check-circle', color: '#1cc88a' };
+        if (type === 'attendance') return { icon: 'fa-calendar-check', color: '#f6c23e' };
+        return { icon: 'fa-bell', color: '#4e73df' };
+    };
+
     useEffect(() => {
-        const fetchProfile = async () => {
+        const fetchData = async () => {
+            const token = localStorage.getItem('token');
+            if (!token) return;
+            const headers = { Authorization: `Bearer ${token}` };
+
+            // Fetch Profile
             try {
-                const res = await fetch(`${API_BASE_URL}/auth/me`, {
-                    headers: getAuthHeader()
-                });
+                const res = await fetch(`${API_BASE_URL}/auth/me`, { headers });
                 if (res.ok) {
                     const data = await res.json();
                     setFullName(data.name || '');
@@ -68,8 +74,19 @@ const StudentSettings = () => {
             } catch (err) {
                 console.error('Error fetching profile:', err);
             }
+
+            // Fetch System Notifications
+            try {
+                const res = await fetch(`${API_BASE_URL}/notifications`, { headers });
+                if (res.ok) {
+                    const data = await res.json();
+                    setNotifList(data || []);
+                }
+            } catch (err) {
+                console.error('Error fetching notifications:', err);
+            }
         };
-        fetchProfile();
+        fetchData();
     }, []);
 
     const handleSaveProfile = async () => {
@@ -99,16 +116,17 @@ const StudentSettings = () => {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    ...getAuthHeader(),
+                    ...getAuthHeader()
                 },
-                body: JSON.stringify({ currentPassword, newPassword, confirmPassword }),
+                body: JSON.stringify({ currentPassword, newPassword, confirmPassword })
             });
 
             const data = await res.json();
-            if (!res.ok) throw new Error(data.message || 'Failed to change password');
-            alert('Password changed. Please login again.');
-            localStorage.removeItem('token');
-            window.location.href = '/login';
+            if (!res.ok) throw new Error(data.message || 'Password update failed');
+            alert('Password updated successfully');
+            setCurrentPassword('');
+            setNewPassword('');
+            setConfirmPassword('');
         } catch (err) {
             alert(err.message);
         }
@@ -116,113 +134,207 @@ const StudentSettings = () => {
 
     return (
         <>
-            <Header title="My Account Settings" />
+            <Header title="Account Settings" />
+            <style>{`
+                .container {
+                    padding: 30px;
+                    max-width: 1200px;
+                    margin: 0 auto;
+                }
+                .settings-grid {
+                    display: grid;
+                    grid-template-columns: 280px 1fr;
+                    gap: 30px;
+                    align-items: flex-start;
+                }
+                @media (max-width: 768px) {
+                    .settings-grid {
+                        grid-template-columns: 1fr;
+                    }
+                }
+                .sidebar-menu {
+                    background: white;
+                    border-radius: 12px;
+                    padding: 15px;
+                    box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+                    border: 1px solid #eaecf4;
+                }
+                .menu-item {
+                    display: flex;
+                    align-items: center;
+                    gap: 12px;
+                    padding: 12px 18px;
+                    border-radius: 8px;
+                    color: #858796;
+                    font-weight: 600;
+                    cursor: pointer;
+                    transition: all 0.2s;
+                    margin-bottom: 5px;
+                }
+                .menu-item:last-child {
+                    margin-bottom: 0;
+                }
+                .menu-item:hover, .menu-item.active {
+                    background: #f8f9fc;
+                    color: #4e73df;
+                }
+                .settings-content {
+                    background: white;
+                    border-radius: 12px;
+                    padding: 30px;
+                    box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+                    border: 1px solid #eaecf4;
+                }
+                .widget-header {
+                    border-bottom: 2px solid #eaecf4;
+                    padding-bottom: 15px;
+                    margin-bottom: 25px;
+                }
+                .widget-title {
+                    font-size: 18px;
+                    font-weight: 700;
+                    color: #5a5c69;
+                }
+                .form-grid-2 {
+                    display: grid;
+                    grid-template-columns: 1fr 1fr;
+                    gap: 20px;
+                    margin-bottom: 20px;
+                }
+                @media (max-width: 576px) {
+                    .form-grid-2 {
+                        grid-template-columns: 1fr;
+                    }
+                }
+                .input-group {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 8px;
+                }
+                .input-group label {
+                    font-size: 13px;
+                    font-weight: 600;
+                    color: #5a5c69;
+                }
+                .input-group input {
+                    padding: 10px 12px;
+                    border: 1px solid #d1d3e2;
+                    border-radius: 6px;
+                    font-family: inherit;
+                    font-size: 14px;
+                    outline: none;
+                }
+                .input-group input:focus {
+                    border-color: #4e73df;
+                }
+                .toggle-switch {
+                    position: relative;
+                    display: inline-block;
+                    width: 50px;
+                    height: 24px;
+                }
+                .toggle-switch input {
+                    opacity: 0;
+                    width: 0;
+                    height: 0;
+                }
+                .slider {
+                    position: absolute;
+                    cursor: pointer;
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    bottom: 0;
+                    background-color: #ccc;
+                    transition: .4s;
+                    border-radius: 24px;
+                }
+                .slider:before {
+                    position: absolute;
+                    content: "";
+                    height: 18px;
+                    width: 18px;
+                    left: 3px;
+                    bottom: 3px;
+                    background-color: white;
+                    transition: .4s;
+                    border-radius: 50%;
+                }
+                input:checked + .slider {
+                    background-color: #1cc88a;
+                }
+                input:checked + .slider:before {
+                    transform: translateX(26px);
+                }
+            `}</style>
 
             <div className="container">
-                <style>{`
-                    .toggle-switch {
-                        position: relative;
-                        display: inline-block;
-                        width: 46px;
-                        height: 24px;
-                    }
-                    .toggle-switch input { opacity: 0; width: 0; height: 0; }
-                    .slider {
-                        position: absolute;
-                        cursor: pointer;
-                        top: 0; left: 0; right: 0; bottom: 0;
-                        background-color: #ccc;
-                        transition: .4s;
-                        border-radius: 24px;
-                    }
-                    .slider:before {
-                        position: absolute;
-                        content: "";
-                        height: 18px; width: 18px;
-                        left: 3px; bottom: 3px;
-                        background-color: white;
-                        transition: .4s;
-                        border-radius: 50%;
-                    }
-                    input:checked + .slider { background-color: #4e73df; }
-                    input:checked + .slider:before { transform: translateX(22px); }
-                `}</style>
-
-                <div className="dashboard-grid" style={{ gridTemplateColumns: '1fr 3fr' }}>
-                    {/* Settings Sidebar */}
-                    <div className="widget" style={{ padding: 0, overflow: 'hidden' }}>
-                        <div style={{ background: '#FFFFFF', padding: '15px', borderBottom: '1px solid #e3e6f0', fontWeight: 600, color: 'var(--text-primary)' }}>
-                            <i className="fas fa-user-circle"></i> Student Profile
+                <div className="settings-grid">
+                    <div className="sidebar-menu">
+                        <div className={`menu-item ${activeMenu === 'profile' ? 'active' : ''}`} onClick={() => setActiveMenu('profile')}>
+                            <i className="fas fa-user"></i> Edit Profile
                         </div>
-                        <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-                            <li onClick={() => setActiveMenu('profile')} style={{ padding: '12px 20px', borderLeft: activeMenu === 'profile' ? '3px solid var(--primary)' : '3px solid transparent', background: activeMenu === 'profile' ? '#f0f4f8' : 'transparent', color: activeMenu === 'profile' ? 'var(--primary)' : '#6e707e', cursor: 'pointer', transition: '0.2s' }}>
-                                <i className="fas fa-id-card" style={{ width: '20px' }}></i> Personal Info
-                            </li>
-                            <li onClick={() => setActiveMenu('security')} style={{ padding: '12px 20px', borderLeft: activeMenu === 'security' ? '3px solid var(--primary)' : '3px solid transparent', background: activeMenu === 'security' ? '#f0f4f8' : 'transparent', color: activeMenu === 'security' ? 'var(--primary)' : '#6e707e', fontWeight: 500, cursor: 'pointer' }}>
-                                <i className="fas fa-lock" style={{ width: '20px' }}></i> Password & Security
-                            </li>
-                            <li onClick={() => setActiveMenu('notifications')} style={{ padding: '12px 20px', borderLeft: activeMenu === 'notifications' ? '3px solid var(--primary)' : '3px solid transparent', background: activeMenu === 'notifications' ? '#f0f4f8' : 'transparent', color: activeMenu === 'notifications' ? 'var(--primary)' : '#6e707e', cursor: 'pointer', transition: '0.2s' }}>
-                                <i className="fas fa-bell" style={{ width: '20px' }}></i> Notifications
-                            </li>
-                        </ul>
+                        <div className={`menu-item ${activeMenu === 'security' ? 'active' : ''}`} onClick={() => setActiveMenu('security')}>
+                            <i className="fas fa-lock"></i> Security
+                        </div>
+                        <div className={`menu-item ${activeMenu === 'notifications' ? 'active' : ''}`} onClick={() => setActiveMenu('notifications')}>
+                            <i className="fas fa-bell"></i> Alerts &amp; Activity
+                        </div>
                     </div>
 
-                    {/* Settings Content */}
-                    <div className="widget">
+                    <div className="settings-content">
                         {activeMenu === 'profile' && (
                             <>
                                 <div className="widget-header">
-                                    <div className="widget-title">Academic & Personal Details</div>
+                                    <div className="widget-title">Edit Profile Details</div>
                                 </div>
-
                                 <form>
-                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
-                                        <div>
-                                            <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500, color: '#5a5c69' }}>Full Name</label>
-                                            <input type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} style={{ width: '100%', padding: '12px', border: '1px solid #d1d3e2', borderRadius: '5px', fontSize: '14px' }} />
+                                    <div className="form-grid-2">
+                                        <div className="input-group">
+                                            <label>Full Name</label>
+                                            <input type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} />
                                         </div>
-                                        <div>
-                                            <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500, color: '#5a5c69' }}>Roll Number</label>
-                                            <input type="text" value={rollNo} readOnly style={{ width: '100%', padding: '12px', border: '1px solid #d1d3e2', borderRadius: '5px', fontSize: '14px', background: '#f8f9fc' }} />
-                                        </div>
-                                    </div>
-
-                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
-                                        <div>
-                                            <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500, color: '#5a5c69' }}>Branch</label>
-                                            <input type="text" value={branch} readOnly style={{ width: '100%', padding: '12px', border: '1px solid #d1d3e2', borderRadius: '5px', fontSize: '14px', background: '#f8f9fc' }} />
-                                        </div>
-                                        <div>
-                                            <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500, color: '#5a5c69' }}>Current Year</label>
-                                            <input type="text" value={year} readOnly style={{ width: '100%', padding: '12px', border: '1px solid #d1d3e2', borderRadius: '5px', fontSize: '14px', background: '#f8f9fc' }} />
+                                        <div className="input-group">
+                                            <label>Roll Number</label>
+                                            <input type="text" value={rollNo} readOnly style={{ background: '#f8f9fc', color: '#858796' }} />
                                         </div>
                                     </div>
 
-                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
-                                        <div>
-                                            <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500, color: '#5a5c69' }}>Phone Number</label>
-                                            <input type="text" value={phone} onChange={(e) => setPhone(e.target.value)} style={{ width: '100%', padding: '12px', border: '1px solid #d1d3e2', borderRadius: '5px', fontSize: '14px' }} />
+                                    <div className="form-grid-2">
+                                        <div className="input-group">
+                                            <label>Branch</label>
+                                            <input type="text" value={branch} readOnly style={{ background: '#f8f9fc', color: '#858796' }} />
                                         </div>
-                                        <div>
-                                            <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500, color: '#5a5c69' }}>Email Address</label>
-                                            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} style={{ width: '100%', padding: '12px', border: '1px solid #d1d3e2', borderRadius: '5px', fontSize: '14px' }} />
+                                        <div className="input-group">
+                                            <label>Academic Year</label>
+                                            <input type="text" value={year} readOnly style={{ background: '#f8f9fc', color: '#858796' }} />
                                         </div>
                                     </div>
 
-                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
-                                        <div>
-                                            <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500, color: '#5a5c69' }}>Parent's Contact</label>
-                                            <input type="text" value={parentPhone} onChange={(e) => setParentPhone(e.target.value)} style={{ width: '100%', padding: '12px', border: '1px solid #d1d3e2', borderRadius: '5px', fontSize: '14px' }} />
+                                    <div className="form-grid-2">
+                                        <div className="input-group">
+                                            <label>Email Address</label>
+                                            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
                                         </div>
-                                        <div>
-                                            <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500, color: '#5a5c69' }}>Hostel Block/Room</label>
-                                            <input type="text" value={roomInfo} readOnly style={{ width: '100%', padding: '12px', border: '1px solid #d1d3e2', borderRadius: '5px', fontSize: '14px', background: '#f8f9fc' }} />
+                                        <div className="input-group">
+                                            <label>Contact Mobile</label>
+                                            <input type="text" value={phone} onChange={(e) => setPhone(e.target.value)} />
+                                        </div>
+                                    </div>
+
+                                    <div className="form-grid-2">
+                                        <div className="input-group">
+                                            <label>Parent / Guardian Contact</label>
+                                            <input type="text" value={parentPhone} onChange={(e) => setParentPhone(e.target.value)} />
+                                        </div>
+                                        <div className="input-group">
+                                            <label>Room Allocation</label>
+                                            <input type="text" value={roomInfo} readOnly style={{ background: '#f8f9fc', color: '#858796' }} />
                                         </div>
                                     </div>
 
                                     <div style={{ display: 'flex', gap: '15px', borderTop: '1px solid #e3e6f0', paddingTop: '20px' }}>
-                                        <button type="button" onClick={handleSaveProfile} className="btn-action view-btn" style={{ padding: '10px 25px', fontSize: '14px' }}>Save Changes</button>
-                                        <button type="button" className="btn-sm" style={{ fontSize: '14px', background: 'white', border: '1px solid #d1d3e2' }}>Cancel</button>
+                                        <button type="button" onClick={handleSaveProfile} className="btn-action view-btn" style={{ padding: '10px 25px', fontSize: '14px', background: '#4e73df', color: 'white', border: 'none', borderRadius: '6px', fontWeight: 700, cursor: 'pointer' }}>Save Changes</button>
                                     </div>
                                 </form>
                             </>
@@ -234,7 +346,7 @@ const StudentSettings = () => {
                                     <div className="widget-title">Update Password</div>
                                 </div>
 
-                                <div style={{ background: '#fff3cd', color: '#856404', padding: '15px', borderRadius: '8px', marginBottom: '20px', border: '1px solid #ffeeba' }}>
+                                <div style={{ background: '#fff3cd', color: '#856404', padding: '15px', borderRadius: '8px', marginBottom: '20px', border: '1px solid #ffeeba', fontSize: '13px' }}>
                                     <i className="fas fa-info-circle"></i> Security Tip: Use a combination of letters, numbers and special characters.
                                 </div>
 
@@ -255,8 +367,7 @@ const StudentSettings = () => {
                                     </div>
 
                                     <div style={{ display: 'flex', gap: '15px', borderTop: '1px solid #e3e6f0', paddingTop: '20px' }}>
-                                        <button type="button" onClick={handleUpdatePassword} className="btn-action view-btn" style={{ padding: '10px 25px', fontSize: '14px' }}>Update Password</button>
-                                        <button type="button" className="btn-sm" style={{ fontSize: '14px', background: 'white', border: '1px solid #d1d3e2' }}>Cancel</button>
+                                        <button type="button" onClick={handleUpdatePassword} className="btn-action view-btn" style={{ padding: '10px 25px', fontSize: '14px', background: '#4e73df', color: 'white', border: 'none', borderRadius: '6px', fontWeight: 700, cursor: 'pointer' }}>Update Password</button>
                                     </div>
                                 </form>
                             </>
@@ -306,22 +417,25 @@ const StudentSettings = () => {
                                 </div>
 
                                 <ul style={{ listStyle: 'none', padding: 0 }}>
-                                    {notifList.length > 0 ? notifList.map(notif => (
-                                        <li key={notif.id} style={{ padding: '15px', borderBottom: '1px solid #f1f3f8', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                                                <div style={{ background: `${notif.color}15`, width: '36px', height: '36px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: notif.color }}>
-                                                    <i className={`fas ${notif.icon}`}></i>
+                                    {notifList.length > 0 ? notifList.map(notif => {
+                                        const meta = getNotifMeta(notif.type);
+                                        return (
+                                            <li key={notif._id} style={{ padding: '15px', borderBottom: '1px solid #f1f3f8', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                                                    <div style={{ background: `${meta.color}15`, width: '36px', height: '36px', borderRadius: '50%', display: 'flex', alignItems: 'center', justify: 'center', color: meta.color }}>
+                                                        <i className={`fas ${meta.icon}`}></i>
+                                                    </div>
+                                                    <div>
+                                                        <div style={{ fontWeight: 500, color: '#5a5c69', fontSize: '14px' }}>{notif.title}</div>
+                                                        <div style={{ fontSize: '12px', color: '#858796' }}>{new Date(notif.createdAt).toLocaleDateString()}</div>
+                                                    </div>
                                                 </div>
-                                                <div>
-                                                    <div style={{ fontWeight: 500, color: '#5a5c69', fontSize: '14px' }}>{notif.title}</div>
-                                                    <div style={{ fontSize: '12px', color: '#858796' }}>{notif.time}</div>
-                                                </div>
-                                            </div>
-                                            <button onClick={() => removeNotif(notif.id)} style={{ background: 'none', border: 'none', color: '#e74a3b', cursor: 'pointer', fontSize: '13px' }}>
-                                                <i className="fas fa-trash-alt"></i> Clear
-                                            </button>
-                                        </li>
-                                    )) : (
+                                                <button type="button" onClick={() => removeNotif(notif._id)} style={{ background: 'none', border: 'none', color: '#e74a3b', cursor: 'pointer', fontSize: '13px' }}>
+                                                    <i className="fas fa-trash-alt"></i> Clear
+                                                </button>
+                                            </li>
+                                        );
+                                    }) : (
                                         <div style={{ padding: '30px', textAlign: 'center', color: '#858796' }}>
                                             <i className="fas fa-bell-slash" style={{ fontSize: '32px', marginBottom: '10px', opacity: 0.3 }}></i>
                                             <p>All clear! No recent notifications.</p>

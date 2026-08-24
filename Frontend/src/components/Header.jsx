@@ -65,15 +65,15 @@ const Header = ({ title }) => {
                         <i className="fas fa-envelope"></i>
                         <div className="dropdown-menu extended">
                             <div className="dropdown-header">Message Center</div>
-                            <a href="#" className="dropdown-list-item">
+                            <Link to={getModulePath('/fees')} className="dropdown-list-item" style={{ textDecoration: 'none' }}>
                                 <div className="icon-circle" style={{ background: '#f6c23e' }}>
                                     <i className="fas fa-file-invoice-dollar"></i>
                                 </div>
                                 <div className="content">
                                     <span style={{ fontWeight: 600, fontSize: '13px', color: '#333' }}>Fee Status Alert</span>
-                                    <div className="small-text">Your pending fee of ₹12,500 is due by 15th Feb.</div>
+                                    <div className="small-text">Check the Fee Portal to view and pay outstanding dues.</div>
                                 </div>
-                            </a>
+                            </Link>
                             <a href="#" className="dropdown-list-item">
                                 <div className="icon-circle" style={{ background: '#e74a3b' }}>
                                     <i className="fas fa-calendar-check"></i>
@@ -101,7 +101,7 @@ const Header = ({ title }) => {
                         <span>
                             {localStorage.getItem('name') || 
                              (location.pathname.startsWith('/student') ? 'Student User' : 
-                              location.pathname.startsWith('/rector') ? 'Mrs. Priya Kumar' : 
+                              location.pathname.startsWith('/rector') ? 'Rector User' : 
                               'Administrator')} 
                             <i className="fas fa-chevron-down" style={{ marginLeft: '5px', fontSize: '12px' }}></i>
                         </span>
@@ -125,18 +125,22 @@ const Header = ({ title }) => {
                     <>
                         <Link to="/admin/rectors" className={isActive('/admin/rectors') ? 'active' : ''}><i className="fas fa-user-tie"></i> Rectors</Link>
                         <Link to="/admin/workers" className={isActive('/admin/workers') ? 'active' : ''}><i className="fas fa-tools"></i> Workers</Link>
+                        <Link to="/admin/fees" className={isActive('/admin/fees') ? 'active' : ''}><i className="fas fa-file-invoice-dollar"></i> Fees</Link>
                     </>
                 )}
                 {location.pathname.startsWith('/rector') && (
                     <>
                         <Link to="/rector/students" className={isActive('/rector/students') ? 'active' : ''}><i className="fas fa-users"></i> Students</Link>
                         <Link to="/rector/gatepass" className={isActive('/rector/gatepass') ? 'active' : ''}><i className="fas fa-id-card"></i> Gate Pass</Link>
+                        <Link to="/rector/fees" className={isActive('/rector/fees') ? 'active' : ''}><i className="fas fa-file-invoice-dollar"></i> Fees</Link>
+                        <Link to="/rector/attendance" className={isActive('/rector/attendance') ? 'active' : ''}><i className="fas fa-calendar-check"></i> Attendance</Link>
                     </>
                 )}
                 {location.pathname.startsWith('/student') && (
                     <>
                         <Link to="/student/attendance" className={isActive('/student/attendance') ? 'active' : ''}><i className="fas fa-calendar-check"></i> Attendance</Link>
                         <Link to="/student/gatepass" className={isActive('/student/gatepass') ? 'active' : ''}><i className="fas fa-id-card"></i> Gate Pass</Link>
+                        <Link to="/student/fees" className={isActive('/student/fees') ? 'active' : ''}><i className="fas fa-file-invoice-dollar"></i> Fees</Link>
                     </>
                 )}
                 <Link to={getModulePath('/mess-menu')} className={isActive(getModulePath('/mess-menu')) ? 'active' : ''}><i className="fas fa-utensils"></i> Mess Menu</Link>

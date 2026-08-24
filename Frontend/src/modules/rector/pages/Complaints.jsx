@@ -5,6 +5,33 @@ import socket from '../../../socket';
 
 const Complaints = () => {
     const [complaints, setComplaints] = useState([]);
+    const [workers, setWorkers] = useState([]);
+    const [workersLoading, setWorkersLoading] = useState(false);
+    const [workersError, setWorkersError] = useState(null);
+
+    const fetchWorkers = async () => {
+        setWorkersLoading(true);
+        setWorkersError(null);
+        const token = localStorage.getItem('token');
+        if (!token) return;
+        try {
+            const response = await fetch(`${API_BASE_URL}/workers`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            if (!response.ok) {
+                throw new Error('Failed to load workers list');
+            }
+            const data = await response.json();
+            setWorkers(data || []);
+        } catch (err) {
+            console.error('Error fetching workers:', err);
+            setWorkersError('Failed to fetch workers directory.');
+        } finally {
+            setWorkersLoading(false);
+        }
+    };
 
     const fetchComplaints = async () => {
         const token = localStorage.getItem('token');
@@ -26,6 +53,7 @@ const Complaints = () => {
 
     useEffect(() => {
         fetchComplaints();
+        fetchWorkers();
 
         const onCreated = (complaint) => {
             setComplaints(prev => [complaint, ...prev]);
@@ -74,12 +102,67 @@ const Complaints = () => {
         }
     };
 
-    const handleWorkerUpdate = async (id, workerName) => {
-        if (!workerName.trim()) return;
+    const handleWorkerAssignment = async (complaintId, workerId) => {
         const token = localStorage.getItem('token');
         if (!token) return;
+
+        if (!workerId) {
+            // Unassign worker
+            try {
+                const response = await fetch(`${API_BASE_URL}/complaints/${complaintId}/status`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        assignedWorker: {
+                            name: '',
+                            phone: '',
+                            category: '',
+                            availability: ''
+                        }
+                    })
+                });
+                if (response.ok) {
+                    alert('Worker unassigned successfully.');
+                    fetchComplaints();
+                } else {
+                    const data = await response.json();
+                    alert(`Failed to unassign worker: ${data.message}`);
+                }
+            } catch (err) {
+                console.error('Error unassigning worker:', err);
+                alert('Network error. Unable to unassign worker.');
+            }
+            return;
+        }
+
+        const selectedWorker = workers.find(w => w._id === workerId);
+        if (!selectedWorker) return;
+
         try {
-            const response = await fetch(`${API_BASE_URL}/complaints/${id}/status`, {
+            // 1. Assign via worker assign API (updates Worker collection)
+            const assignRes = await fetch(`${API_BASE_URL}/workers/assign`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    workerId: selectedWorker._id,
+                    complaintId
+                })
+            });
+
+            if (!assignRes.ok) {
+                const assignData = await assignRes.json();
+                alert(`Assignment failed: ${assignData.message}`);
+                return;
+            }
+
+            // 2. Update complaint details (updates Complaint collection)
+            const complaintUpdateRes = await fetch(`${API_BASE_URL}/complaints/${complaintId}/status`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
@@ -87,17 +170,25 @@ const Complaints = () => {
                 },
                 body: JSON.stringify({
                     assignedWorker: {
-                        name: workerName,
-                        phone: '+91 98765 43210',
-                        role: 'Assigned Staff'
+                        name: selectedWorker.name,
+                        phone: selectedWorker.phone || '',
+                        category: selectedWorker.category,
+                        availability: 'Busy'
                     }
                 })
             });
-            if (response.ok) {
+
+            if (complaintUpdateRes.ok) {
+                alert('Worker assigned successfully!');
                 fetchComplaints();
+                fetchWorkers(); // refresh availability status of workers
+            } else {
+                const updateData = await complaintUpdateRes.json();
+                alert(`Failed to update complaint assignment: ${updateData.message}`);
             }
-        } catch (error) {
-            console.error('Error assigning worker:', error);
+        } catch (err) {
+            console.error('Error assigning worker:', err);
+            alert('Network error. Could not assign worker.');
         }
     };
 
@@ -474,21 +565,32 @@ const Complaints = () => {
                                                 </td>
                                                 <td>{comp.problem}</td>
                                                 <td>
-                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                                                        <input 
-                                                            type="text" 
-                                                            placeholder="Assign worker..." 
-                                                            defaultValue={comp.assignedWorker?.name || ''} 
-                                                            onBlur={(e) => handleWorkerUpdate(comp._id, e.target.value)}
-                                                            style={{ width: '120px', padding: '4px', fontSize: '11px', border: '1px solid #d1d3e2', borderRadius: '4px' }}
-                                                        />
-                                                        {comp.assignedWorker?.name && (
-                                                            <div style={{ fontSize: '10px', color: '#858796' }}>
-                                                                Assigned
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                </td>
+                                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                                                         {workersError && (
+                                                             <div style={{ color: '#e74a3b', fontSize: '9px' }}>
+                                                                 Err loading workers. <button onClick={fetchWorkers} style={{ border: 'none', background: 'none', color: '#4e73df', textDecoration: 'underline', padding: 0, fontSize: '9px', cursor: 'pointer' }}>Retry</button>
+                                                             </div>
+                                                         )}
+                                                         <select
+                                                             value={workers.find(w => w.name === comp.assignedWorker?.name)?._id || ''}
+                                                             onChange={(e) => handleWorkerAssignment(comp._id, e.target.value)}
+                                                             style={{ width: '155px', padding: '5px', fontSize: '11px', border: '1px solid #d1d3e2', borderRadius: '4px', background: '#fff' }}
+                                                             disabled={workersLoading}
+                                                         >
+                                                             <option value="">-- Unassigned --</option>
+                                                             {workers.map(w => (
+                                                                 <option key={w._id} value={w._id}>
+                                                                     {w.name} ({w.category}) — {w.availability}
+                                                                 </option>
+                                                             ))}
+                                                         </select>
+                                                         {comp.assignedWorker?.name && (
+                                                             <div style={{ fontSize: '10px', color: '#858796' }}>
+                                                                 Category: {comp.assignedWorker.category || 'N/A'}
+                                                             </div>
+                                                         )}
+                                                     </div>
+                                                 </td>
                                                 <td>
                                                     <select 
                                                         value={comp.status} 

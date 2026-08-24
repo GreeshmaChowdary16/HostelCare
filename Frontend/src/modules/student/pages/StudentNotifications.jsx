@@ -3,68 +3,49 @@ import Header from '../../../components/Header';
 import { API_BASE_URL } from '../../../config';
 
 function StudentNotifications() {
-    const personalAlerts = [
-        {
-            id: 'pers-1',
-            title: 'Pending Fee Reminder',
-            content: 'Your pending fee of ₹12,500 for the current semester is due by 15th Feb 2026. Please clear it online to avoid late fee penalties.',
-            category: 'Emergency',
-            type: 'fee',
-            createdAt: new Date(Date.now() - 3600000).toISOString() // 1 hour ago
-        },
-        {
-            id: 'pers-2',
-            title: 'Gate Pass Approved',
-            content: 'Your gate pass request for Home Visit (Lucknow) from 12th Feb to 15th Feb has been Approved by rector Mrs. Priya Kumar.',
-            category: 'Info',
-            type: 'gatepass',
-            createdAt: new Date(Date.now() - 7200000).toISOString() // 2 hours ago
-        },
-        {
-            id: 'pers-3',
-            title: 'Attendance Alert',
-            content: 'Your overall attendance for this month is 92%. Please make sure to mark attendance daily to keep it above the minimum 75% requirement.',
-            category: 'Warning',
-            type: 'attendance',
-            createdAt: new Date(Date.now() - 86400000).toISOString() // Yesterday
-        }
-    ];
-
-    const [notifications, setNotifications] = useState([...personalAlerts]);
+    const [notifications, setNotifications] = useState([]);
     const [statusMessage, setStatusMessage] = useState('');
+    const [isLoading, setIsLoading] = useState(true);
+
+    const fetchNotifications = async () => {
+        setIsLoading(true);
+        const token = localStorage.getItem('token');
+        if (!token) {
+            setStatusMessage('Session expired. Please log in.');
+            setIsLoading(false);
+            return;
+        }
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/notifications`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (response.ok) {
+                const backendNotifications = await response.json();
+                const sorted = (backendNotifications || []).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+                setNotifications(sorted);
+            } else {
+                const err = await response.json();
+                console.error('Error loading notifications:', err.message || err);
+                setStatusMessage('Could not load system notifications.');
+            }
+        } catch (error) {
+            console.error('Error loading notifications:', error);
+            setStatusMessage('Unable to fetch system notifications.');
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
     useEffect(() => {
-        const fetchNotifications = async () => {
-            const token = localStorage.getItem('token');
-            if (!token) return;
-
-            try {
-                const response = await fetch(`${API_BASE_URL}/notifications`, {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
-
-                if (response.ok) {
-                    const backendNotifications = await response.json();
-                    const combined = [...personalAlerts, ...backendNotifications].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-                    setNotifications(combined);
-                } else {
-                    const err = await response.json();
-                    console.error('Error loading notifications:', err.message || err);
-                    setStatusMessage('Could not load system notifications.');
-                }
-            } catch (error) {
-                console.error('Error loading notifications:', error);
-                setStatusMessage('Unable to fetch system notifications.');
-            }
-        };
-
         fetchNotifications();
     }, []);
 
     const handleDismiss = (id) => {
-        const updated = notifications.filter(n => n.id !== id);
+        const updated = notifications.filter(n => n._id !== id);
         setNotifications(updated);
         setStatusMessage('Notification dismissed.');
         setTimeout(() => setStatusMessage(''), 2500);
@@ -199,41 +180,37 @@ function StudentNotifications() {
                     margin-bottom: 5px;
                 }
 
-                .notif-text {
-                    font-size: 13px;
-                    color: #6e707e;
-                    line-height: 1.6;
+                .notif-content {
+                    font-size: 14px;
+                    color: #5a5c69;
+                    line-height: 1.5;
+                    margin-bottom: 10px;
                 }
 
                 .notif-meta {
-                    margin-top: 10px;
                     display: flex;
-                    gap: 15px;
+                    gap: 12px;
                     font-size: 11px;
                     color: #858796;
+                    flex-wrap: wrap;
                 }
 
                 .meta-tag {
+                    padding: 3px 8px;
                     background: #f8f9fc;
-                    padding: 2px 8px;
                     border-radius: 4px;
                     font-weight: 600;
-                    text-transform: uppercase;
                 }
-
-                .meta-tag-emergency { color: #e74a3b; background: #fff5f5; }
-                .meta-tag-warning { color: #856404; background: #fffdf0; }
-                .meta-tag-info { color: #1a73e8; background: #e8f0fe; }
 
                 .btn-dismiss {
                     position: absolute;
-                    top: 15px;
-                    right: 15px;
+                    top: 20px;
+                    right: 20px;
                     background: transparent;
-                    color: #b7b9cc;
                     border: none;
+                    color: #b7b9cc;
                     cursor: pointer;
-                    font-size: 14px;
+                    font-size: 16px;
                     transition: color 0.2s;
                 }
 
@@ -241,76 +218,69 @@ function StudentNotifications() {
                     color: #e74a3b;
                 }
 
-                .empty-state {
+                .empty-alert {
+                    text-align: center;
+                    padding: 40px 20px;
                     background: #fff;
                     border-radius: 12px;
-                    padding: 50px 30px;
-                    text-align: center;
-                    color: #858796;
                     border: 1px solid #eaecf4;
+                    color: #858796;
                 }
 
-                .empty-state i {
-                    font-size: 40px;
-                    color: #dddfeb;
-                    margin-bottom: 15px;
-                }
-
-                .empty-state p {
-                    font-size: 15px;
-                    margin: 0;
+                @keyframes fadeIn {
+                    from { opacity: 0; transform: translateY(5px); }
+                    to { opacity: 1; transform: translateY(0); }
                 }
             `}</style>
 
             <div className="notif-container">
                 <div className="notif-actions">
-                    <span style={{ fontSize: '14px', color: '#858796', fontWeight: 500 }}>
-                        {notifications.length} {notifications.length === 1 ? 'Notification' : 'Notifications'} remaining
-                    </span>
-                    {notifications.length > 0 && (
-                        <button className="btn-clear-all" onClick={handleDismissAll}>
-                            <i className="fas fa-trash-alt"></i> Clear All
-                        </button>
+                    <button className="btn-clear-all" onClick={handleDismissAll}>
+                        <i className="fas fa-trash-alt"></i> Clear All Alerts
+                    </button>
+                    {statusMessage && (
+                        <div className="status-toast">{statusMessage}</div>
                     )}
                 </div>
 
-                {statusMessage && <div className="status-toast">{statusMessage}</div>}
-
-                {notifications.length === 0 ? (
-                    <div className="empty-state">
-                        <i className="fas fa-bell-slash"></i>
-                        <p>You're all caught up! No new notifications.</p>
+                {isLoading ? (
+                    <div className="empty-alert">
+                        <i className="fas fa-spinner fa-spin" style={{ fontSize: '32px', marginBottom: '10px', color: '#4e73df' }}></i>
+                        <p>Loading alerts...</p>
+                    </div>
+                ) : notifications.length === 0 ? (
+                    <div className="empty-alert">
+                        <i className="fas fa-bell-slash" style={{ fontSize: '32px', marginBottom: '15px', color: '#dddfeb' }}></i>
+                        <h4 style={{ margin: '0 0 5px 0', color: '#5a5c69' }}>All Clear!</h4>
+                        <p style={{ margin: 0 }}>No notifications are available right now.</p>
                     </div>
                 ) : (
                     <div className="notif-list">
-                        {notifications.map((notif) => (
-                            <div key={notif.id} className="notif-card">
-                                <button className="btn-dismiss" onClick={() => handleDismiss(notif.id)} title="Dismiss alert">
-                                    <i className="fas fa-times"></i>
-                                </button>
+                        {notifications.map(notif => (
+                            <div className="notif-card" key={notif._id}>
                                 <div 
-                                    className="notif-icon-wrapper" 
-                                    style={{ background: getIconBackground(notif.type, notif.category) }}
+                                    className="notif-icon-wrapper"
+                                    style={{ 
+                                        background: getIconBackground(notif.type, notif.category)
+                                    }}
                                 >
                                     {getIcon(notif.type, notif.category)}
                                 </div>
                                 <div className="notif-details">
                                     <div className="notif-title">{notif.title}</div>
-                                    <div className="notif-text">{notif.content}</div>
+                                    <div className="notif-content">{notif.content}</div>
                                     <div className="notif-meta">
-                                        <span className={`meta-tag meta-tag-${(notif.category || 'Info').toLowerCase()}`}>
-                                            {notif.category || 'Info'}
-                                        </span>
-                                        <span>
-                                            {new Date(notif.createdAt).toLocaleDateString(undefined, {
-                                                day: 'numeric',
-                                                month: 'short',
-                                                hour: '2-digit',
-                                                minute: '2-digit'
-                                            })}
-                                        </span>
+                                        <span className="meta-tag">Category: {notif.category}</span>
+                                        <span className="meta-tag">Date: {new Date(notif.createdAt).toLocaleString()}</span>
                                     </div>
                                 </div>
+                                <button 
+                                    className="btn-dismiss" 
+                                    onClick={() => handleDismiss(notif._id)}
+                                    title="Dismiss notification"
+                                >
+                                    <i className="fas fa-times"></i>
+                                </button>
                             </div>
                         ))}
                     </div>

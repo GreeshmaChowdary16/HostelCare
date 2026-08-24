@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Header from '../../../components/Header';
+import { API_BASE_URL } from '../../../config';
 
 const AdminSettings = () => {
     const [activeMenu, setActiveMenu] = useState('security');
@@ -8,10 +9,11 @@ const AdminSettings = () => {
     const [confirmPassword, setConfirmPassword] = useState('');
 
     // Profile State
-    const [fullName, setFullName] = useState('Mr. System Admin');
-    const [email, setEmail] = useState('admin@hostel.edu');
-    const [phone, setPhone] = useState('+91 99887 76655');
-    const [office, setOffice] = useState('Main Admin Block - Room 101');
+    const [fullName, setFullName] = useState('');
+    const [email, setEmail] = useState('');
+    const [phone, setPhone] = useState('');
+    const [office, setOffice] = useState('');
+    const [bio, setBio] = useState('');
 
     // Notification Preferences State
     const [notifPrefs, setNotifPrefs] = useState({
@@ -22,26 +24,112 @@ const AdminSettings = () => {
         complaints: true
     });
 
-    // Existing Notifications State
-    const [notifList, setNotifList] = useState([
-        { id: 1, title: 'Monthly report pending', time: '10 mins ago', type: 'report', icon: 'fa-file-alt', color: '#4e73df' },
-        { id: 2, title: 'System maintenance scheduled', time: '2 hours ago', type: 'system', icon: 'fa-cog', color: '#858796' },
-        { id: 3, title: 'Urgent: Rector meeting today', time: '4 hours ago', type: 'urgent', icon: 'fa-exclamation-triangle', color: '#e74a3b' }
-    ]);
+    // Real Notifications State
+    const [notifList, setNotifList] = useState([]);
 
     const handleToggle = (key) => {
         setNotifPrefs(prev => ({ ...prev, [key]: !prev[key] }));
     };
 
     const removeNotif = (id) => {
-        setNotifList(prev => prev.filter(n => n.id !== id));
+        setNotifList(prev => prev.filter(n => n._id !== id));
+    };
+
+    const getAuthHeader = () => {
+        const token = localStorage.getItem('token');
+        return token ? { Authorization: `Bearer ${token}` } : {};
+    };
+
+    const getNotifMeta = (type) => {
+        if (type === 'fee') return { icon: 'fa-file-invoice-dollar', color: '#e74a3b' };
+        if (type === 'gatepass') return { icon: 'fa-check-circle', color: '#1cc88a' };
+        if (type === 'attendance') return { icon: 'fa-calendar-check', color: '#f6c23e' };
+        return { icon: 'fa-bell', color: '#4e73df' };
+    };
+
+    useEffect(() => {
+        const fetchData = async () => {
+            const token = localStorage.getItem('token');
+            if (!token) return;
+            const headers = { Authorization: `Bearer ${token}` };
+
+            // Fetch profile
+            try {
+                const res = await fetch(`${API_BASE_URL}/auth/me`, { headers });
+                if (res.ok) {
+                    const data = await res.json();
+                    setFullName(data.name || '');
+                    setEmail(data.email || '');
+                    setPhone(data.phone || '');
+                    setOffice(data.office || '');
+                    setBio(data.bio || '');
+                }
+            } catch (err) {
+                console.error('Error fetching admin profile:', err);
+            }
+
+            // Fetch notifications
+            try {
+                const res = await fetch(`${API_BASE_URL}/notifications`, { headers });
+                if (res.ok) {
+                    const data = await res.json();
+                    setNotifList(data || []);
+                }
+            } catch (err) {
+                console.error('Error fetching admin notifications:', err);
+            }
+        };
+        fetchData();
+    }, []);
+
+    const handleSaveProfile = async () => {
+        try {
+            const res = await fetch(`${API_BASE_URL}/auth/me`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...getAuthHeader(),
+                },
+                body: JSON.stringify({ name: fullName, email, phone, office, bio }),
+            });
+
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.message || 'Failed to update');
+            alert('Profile updated successfully');
+            localStorage.setItem('name', fullName);
+            localStorage.setItem('email', email);
+        } catch (err) {
+            alert(err.message);
+        }
+    };
+
+    const handleUpdatePassword = async () => {
+        try {
+            const res = await fetch(`${API_BASE_URL}/auth/change-password`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...getAuthHeader(),
+                },
+                body: JSON.stringify({ currentPassword, newPassword, confirmPassword }),
+            });
+
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.message || 'Password update failed');
+            alert('Password updated successfully');
+            setCurrentPassword('');
+            setNewPassword('');
+            setConfirmPassword('');
+        } catch (err) {
+            alert(err.message);
+        }
     };
 
     return (
         <>
             <Header title="System Settings" />
 
-            <div className="container">
+            <div className="container" style={{ padding: '30px', maxWidth: '1200px', margin: '0 auto' }}>
                 <style>{`
                     .toggle-switch {
                         position: relative;
@@ -69,22 +157,64 @@ const AdminSettings = () => {
                     }
                     input:checked + .slider { background-color: #4e73df; }
                     input:checked + .slider:before { transform: translateX(22px); }
+                    
+                    .dashboard-grid {
+                        display: grid;
+                        grid-template-columns: 280px 1fr;
+                        gap: 30px;
+                        align-items: flex-start;
+                    }
+                    @media (max-width: 768px) {
+                        .dashboard-grid {
+                            grid-template-columns: 1fr;
+                        }
+                    }
+                    .widget {
+                        background: white;
+                        border-radius: 12px;
+                        padding: 25px;
+                        box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+                        border: 1px solid #eaecf4;
+                    }
+                    .widget-header {
+                        border-bottom: 2px solid #eaecf4;
+                        padding-bottom: 15px;
+                        margin-bottom: 25px;
+                    }
+                    .widget-title {
+                        font-size: 18px;
+                        font-weight: 700;
+                        color: #5a5c69;
+                    }
+                    .menu-item {
+                        padding: 12px 20px;
+                        font-weight: 600;
+                        cursor: pointer;
+                        transition: all 0.2s;
+                        border-left: 3px solid transparent;
+                        color: #858796;
+                    }
+                    .menu-item:hover, .menu-item.active {
+                        background: #f8f9fc;
+                        color: #4e73df;
+                        border-left-color: #4e73df;
+                    }
                 `}</style>
 
-                <div className="dashboard-grid" style={{ gridTemplateColumns: '1fr 3fr' }}>
+                <div className="dashboard-grid">
                     {/* Settings Sidebar */}
                     <div className="widget" style={{ padding: 0, overflow: 'hidden' }}>
-                        <div style={{ background: '#FFFFFF', padding: '15px', borderBottom: '1px solid #e3e6f0', fontWeight: 600, color: 'var(--text-primary)' }}>
-                            <i className="fas fa-cogs"></i> Settings Menu
+                        <div style={{ background: '#FFFFFF', padding: '15px', borderBottom: '1px solid #e3e6f0', fontWeight: 600, color: '#5a5c69' }}>
+                            <i className="fas fa-cogs" style={{ marginRight: '8px' }}></i> Settings Menu
                         </div>
                         <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-                            <li onClick={() => setActiveMenu('security')} style={{ padding: '12px 20px', borderLeft: activeMenu === 'security' ? '3px solid var(--primary)' : '3px solid transparent', background: activeMenu === 'security' ? '#f0f4f8' : 'transparent', color: activeMenu === 'security' ? 'var(--primary)' : '#6e707e', fontWeight: 500, cursor: 'pointer' }}>
-                                <i className="fas fa-shield-alt" style={{ width: '20px' }}></i> Security & Password
+                            <li onClick={() => setActiveMenu('security')} className={`menu-item ${activeMenu === 'security' ? 'active' : ''}`}>
+                                <i className="fas fa-shield-alt" style={{ width: '20px' }}></i> Security &amp; Password
                             </li>
-                            <li onClick={() => setActiveMenu('profile')} style={{ padding: '12px 20px', borderLeft: activeMenu === 'profile' ? '3px solid var(--primary)' : '3px solid transparent', background: activeMenu === 'profile' ? '#f0f4f8' : 'transparent', color: activeMenu === 'profile' ? 'var(--primary)' : '#6e707e', cursor: 'pointer', transition: '0.2s' }}>
+                            <li onClick={() => setActiveMenu('profile')} className={`menu-item ${activeMenu === 'profile' ? 'active' : ''}`}>
                                 <i className="fas fa-user-cog" style={{ width: '20px' }}></i> Profile
                             </li>
-                            <li onClick={() => setActiveMenu('notifications')} style={{ padding: '12px 20px', borderLeft: activeMenu === 'notifications' ? '3px solid var(--primary)' : '3px solid transparent', background: activeMenu === 'notifications' ? '#f0f4f8' : 'transparent', color: activeMenu === 'notifications' ? 'var(--primary)' : '#6e707e', cursor: 'pointer', transition: '0.2s' }}>
+                            <li onClick={() => setActiveMenu('notifications')} className={`menu-item ${activeMenu === 'notifications' ? 'active' : ''}`}>
                                 <i className="fas fa-bell" style={{ width: '20px' }}></i> Notifications
                             </li>
                         </ul>
@@ -98,8 +228,8 @@ const AdminSettings = () => {
                                     <div className="widget-title">Change Password</div>
                                 </div>
 
-                                <div style={{ background: '#fff3cd', color: '#856404', padding: '15px', borderRadius: '8px', marginBottom: '20px', border: '1px solid #ffeeba' }}>
-                                    <i className="fas fa-exclamation-triangle"></i> For security reasons, you will be logged out after changing your password.
+                                <div style={{ background: '#fff3cd', color: '#856404', padding: '15px', borderRadius: '8px', marginBottom: '20px', border: '1px solid #ffeeba', fontSize: '13px' }}>
+                                    <i className="fas fa-info-circle"></i> Security Tip: Use a combination of letters, numbers and special characters.
                                 </div>
 
                                 <form>
@@ -111,7 +241,6 @@ const AdminSettings = () => {
                                     <div style={{ marginBottom: '20px' }}>
                                         <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500, color: '#5a5c69' }}>New Password</label>
                                         <input type="password" placeholder="Enter new password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} style={{ width: '100%', padding: '12px', border: '1px solid #d1d3e2', borderRadius: '5px', fontSize: '14px' }} />
-                                        <small style={{ color: '#858796', marginTop: '5px', display: 'block' }}>Minimum 8 characters, mixed case and special characters.</small>
                                     </div>
 
                                     <div style={{ marginBottom: '30px' }}>
@@ -120,8 +249,7 @@ const AdminSettings = () => {
                                     </div>
 
                                     <div style={{ display: 'flex', gap: '15px', borderTop: '1px solid #e3e6f0', paddingTop: '20px' }}>
-                                        <button type="button" className="btn-action view-btn" style={{ padding: '10px 25px', fontSize: '14px' }}>Update Password</button>
-                                        <button type="button" className="btn-sm" style={{ fontSize: '14px', background: 'white', border: '1px solid #d1d3e2' }}>Cancel</button>
+                                        <button type="button" onClick={handleUpdatePassword} className="btn-action view-btn" style={{ padding: '10px 25px', fontSize: '14px', background: '#4e73df', color: 'white', border: 'none', borderRadius: '6px', fontWeight: 700, cursor: 'pointer' }}>Update Password</button>
                                     </div>
                                 </form>
                             </>
@@ -158,12 +286,11 @@ const AdminSettings = () => {
 
                                     <div style={{ marginBottom: '30px' }}>
                                         <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500, color: '#5a5c69' }}>System Bio / Responsibilities</label>
-                                        <textarea rows="4" placeholder="Describe your administrative role..." style={{ width: '100%', padding: '12px', border: '1px solid #d1d3e2', borderRadius: '5px', fontSize: '14px', resize: 'vertical' }}></textarea>
+                                        <textarea rows="4" value={bio} onChange={(e) => setBio(e.target.value)} placeholder="Describe your administrative role..." style={{ width: '100%', padding: '12px', border: '1px solid #d1d3e2', borderRadius: '5px', fontSize: '14px', resize: 'vertical' }}></textarea>
                                     </div>
 
                                     <div style={{ display: 'flex', gap: '15px', borderTop: '1px solid #e3e6f0', paddingTop: '20px' }}>
-                                        <button type="button" className="btn-action view-btn" style={{ padding: '10px 25px', fontSize: '14px' }}>Save Changes</button>
-                                        <button type="button" className="btn-sm" style={{ fontSize: '14px', background: 'white', border: '1px solid #d1d3e2' }}>Cancel</button>
+                                        <button type="button" onClick={handleSaveProfile} className="btn-action view-btn" style={{ padding: '10px 25px', fontSize: '14px', background: '#4e73df', color: 'white', border: 'none', borderRadius: '6px', fontWeight: 700, cursor: 'pointer' }}>Save Changes</button>
                                     </div>
                                 </form>
                             </>
@@ -213,22 +340,25 @@ const AdminSettings = () => {
                                 </div>
 
                                 <ul style={{ listStyle: 'none', padding: 0 }}>
-                                    {notifList.length > 0 ? notifList.map(notif => (
-                                        <li key={notif.id} style={{ padding: '15px', borderBottom: '1px solid #f1f3f8', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                                                <div style={{ background: `${notif.color}15`, width: '36px', height: '36px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: notif.color }}>
-                                                    <i className={`fas ${notif.icon}`}></i>
+                                    {notifList.length > 0 ? notifList.map(notif => {
+                                        const meta = getNotifMeta(notif.type);
+                                        return (
+                                            <li key={notif._id} style={{ padding: '15px', borderBottom: '1px solid #f1f3f8', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                                                    <div style={{ background: `${meta.color}15`, width: '36px', height: '36px', borderRadius: '50%', display: 'flex', alignItems: 'center', justify: 'center', color: meta.color }}>
+                                                        <i className={`fas ${meta.icon}`}></i>
+                                                    </div>
+                                                    <div>
+                                                        <div style={{ fontWeight: 500, color: '#5a5c69', fontSize: '14px' }}>{notif.title}</div>
+                                                        <div style={{ fontSize: '12px', color: '#858796' }}>{new Date(notif.createdAt).toLocaleDateString()}</div>
+                                                    </div>
                                                 </div>
-                                                <div>
-                                                    <div style={{ fontWeight: 500, color: '#5a5c69', fontSize: '14px' }}>{notif.title}</div>
-                                                    <div style={{ fontSize: '12px', color: '#858796' }}>{notif.time}</div>
-                                                </div>
-                                            </div>
-                                            <button onClick={() => removeNotif(notif.id)} style={{ background: 'none', border: 'none', color: '#e74a3b', cursor: 'pointer', fontSize: '13px' }}>
-                                                <i className="fas fa-trash-alt"></i> Remove
-                                            </button>
-                                        </li>
-                                    )) : (
+                                                <button type="button" onClick={() => removeNotif(notif._id)} style={{ background: 'none', border: 'none', color: '#e74a3b', cursor: 'pointer', fontSize: '13px' }}>
+                                                    <i className="fas fa-trash-alt"></i> Remove
+                                                </button>
+                                            </li>
+                                        );
+                                    }) : (
                                         <div style={{ padding: '30px', textAlign: 'center', color: '#858796' }}>
                                             <i className="fas fa-bell-slash" style={{ fontSize: '32px', marginBottom: '10px', opacity: 0.3 }}></i>
                                             <p>No notifications to manage.</p>

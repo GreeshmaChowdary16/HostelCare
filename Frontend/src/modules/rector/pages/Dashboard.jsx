@@ -4,50 +4,152 @@ import Header from '../../../components/Header';
 import { API_BASE_URL } from '../../../config';
 
 const Dashboard = () => {
+    // Data States
     const [complaints, setComplaints] = useState([]);
     const [gatePasses, setGatePasses] = useState([]);
+    const [attendanceRecords, setAttendanceRecords] = useState([]);
+    const [studentStats, setStudentStats] = useState(null);
+    const [announcements, setAnnouncements] = useState([]);
     const [rectorInfo, setRectorInfo] = useState({
-        name: localStorage.getItem('name') || 'Mrs. Priya Kumar',
-        email: localStorage.getItem('email') || 'rector@hostelcare.com',
-        phone: '+91 98765 43210',
-        office: '101'
+        name: localStorage.getItem('name') || 'Rector',
+        email: localStorage.getItem('email') || '',
+        phone: '',
+        office: ''
     });
 
-    useEffect(() => {
-        const token = localStorage.getItem('token');
-        if (!token) return;
+    // Loading & Error States
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState(null);
 
-        const fetchData = async () => {
-            const headers = { 'Authorization': `Bearer ${token}` };
+    // Fetch dashboard components in parallel with error isolation
+    const fetchDashboardData = async () => {
+        setIsLoading(true);
+        setError(null);
+
+        const token = localStorage.getItem('token');
+        if (!token) {
+            setError('Authentication token missing. Please log in again.');
+            setIsLoading(false);
+            return;
+        }
+
+        const headers = { 'Authorization': `Bearer ${token}` };
+
+        try {
+            // 1. Fetch Rector Profile
             try {
-                // Fetch profile
                 const profileRes = await fetch(`${API_BASE_URL}/auth/me`, { headers });
                 if (profileRes.ok) {
                     const profileData = await profileRes.json();
                     setRectorInfo(profileData);
                 }
+            } catch (err) {
+                console.error('Rector profile fetch error:', err);
+            }
 
+            // 2. Fetch Complaints
+            try {
                 const compRes = await fetch(`${API_BASE_URL}/complaints`, { headers });
                 if (compRes.ok) {
                     const compData = await compRes.json();
-                    setComplaints(compData);
+                    setComplaints(compData || []);
                 }
+            } catch (err) {
+                console.error('Complaints fetch error:', err);
+            }
 
+            // 3. Fetch Gatepasses
+            try {
                 const gpRes = await fetch(`${API_BASE_URL}/gatepass`, { headers });
                 if (gpRes.ok) {
                     const gpData = await gpRes.json();
-                    setGatePasses(gpData);
+                    setGatePasses(gpData || []);
                 }
-            } catch (error) {
-                console.error('Error fetching rector dashboard data:', error);
+            } catch (err) {
+                console.error('Gatepass fetch error:', err);
             }
-        };
 
-        fetchData();
+            // 4. Fetch Student Stats
+            try {
+                const studentStatsRes = await fetch(`${API_BASE_URL}/students/stats`, { headers });
+                if (studentStatsRes.ok) {
+                    const studentStatsData = await studentStatsRes.json();
+                    setStudentStats(studentStatsData);
+                }
+            } catch (err) {
+                console.error('Student stats fetch error:', err);
+            }
+
+            // 5. Fetch Announcements
+            try {
+                const annRes = await fetch(`${API_BASE_URL}/announcements`, { headers });
+                if (annRes.ok) {
+                    const annData = await annRes.json();
+                    setAnnouncements(annData || []);
+                }
+            } catch (err) {
+                console.error('Announcements fetch error:', err);
+            }
+
+            // 6. Fetch Attendance matrix for current month (to parse today's presence count)
+            try {
+                const todayDate = new Date();
+                const mm = String(todayDate.getMonth() + 1).padStart(2, '0');
+                const monthYear = `${todayDate.getFullYear()}-${mm}`;
+                const attRes = await fetch(`${API_BASE_URL}/attendance?monthYear=${monthYear}`, { headers });
+                if (attRes.ok) {
+                    const attData = await attRes.json();
+                    setAttendanceRecords(attData || []);
+                }
+            } catch (err) {
+                console.error('Attendance fetch error:', err);
+            }
+        } catch (err) {
+            console.error('Rector dashboard data error:', err);
+            setError('Failed to refresh rector dashboard. Please retry.');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchDashboardData();
     }, []);
 
+    // Active complaints: Pending or In Progress statuses
     const activeComplaintsCount = complaints.filter(c => c.status === 'Pending' || c.status === 'In Progress').length;
-    const approvedGatePassCount = gatePasses.filter(g => g.status === 'Approved').length;
+
+    // Active approved gatepasses for today
+    const getActiveGatePassesToday = () => {
+        const today = new Date();
+        return gatePasses.filter(g => 
+            g.status === 'Approved' && 
+            new Date(g.fromDate) <= today && 
+            new Date(g.toDate) >= today
+        ).length;
+    };
+
+    // Attendance Count: Marked Present on today's day number in the monthly attendance matrix
+    const getPresentTodayCount = () => {
+        const todayDay = new Date().getDate();
+        return attendanceRecords.filter(record => 
+            record.records?.some(r => r.day === todayDay && r.status === 'present')
+        ).length;
+    };
+
+    // Extract dynamic statistics
+    const totalStudentsCount = studentStats?.total ?? 'N/A';
+    const presentTodayCount = attendanceRecords.length > 0 ? getPresentTodayCount() : 'N/A';
+    const onLeaveCount = getActiveGatePassesToday();
+
+    // Announcements helpers
+    const latestAnn = announcements[0];
+    const emergencyAnn = announcements.find(ann => 
+        ann.color === '#e74a3b' || 
+        ann.title?.toLowerCase().includes('emergency') || 
+        ann.content?.toLowerCase().includes('emergency')
+    );
+
     return (
         <>
             <Header title="Rector Dashboard" />
@@ -144,7 +246,7 @@ const Dashboard = () => {
 
                 .stats-grid-2x2 {
                     display: grid;
-                    grid-template-columns: 1fr 1fr;
+                    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
                     gap: 20px;
                 }
 
@@ -168,7 +270,7 @@ const Dashboard = () => {
                 }
                 
                 .stat-value {
-                    font-size: 42px;
+                    font-size: 36px;
                     font-weight: 700;
                     margin: 5px 0;
                 }
@@ -190,6 +292,8 @@ const Dashboard = () => {
                     border-radius: 8px;
                     box-shadow: 0 2px 10px rgba(0,0,0,0.03);
                     overflow: hidden;
+                    display: flex;
+                    flex-direction: column;
                 }
 
                 .alert-header {
@@ -204,12 +308,18 @@ const Dashboard = () => {
 
                 .alert-body {
                     padding: 20px;
+                    flex: 1;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
                 }
 
                 .alert-banner {
                     padding: 15px;
                     border-radius: 6px;
                     color: white;
+                    width: 100%;
+                    text-align: left;
                 }
 
                 .banner-blue { background: #4e73df; }
@@ -259,13 +369,15 @@ const Dashboard = () => {
                 }
 
                 .status-chip {
-                    padding: 5px 15px;
+                    padding: 5px 12px;
                     border-radius: 15px;
-                    font-size: 12px;
+                    font-size: 11px;
                     font-weight: 700;
+                    text-transform: uppercase;
                 }
                 .chip-pending { background: #fbecec; color: #e74a3b; }
                 .chip-progress { background: #fffbe6; color: #f6c23e; }
+                .chip-resolved { background: #e6fffa; color: #1cc88a; }
 
                 .btn-track {
                     background: #e8f0fe;
@@ -276,7 +388,26 @@ const Dashboard = () => {
                     font-size: 12px;
                     font-weight: 600;
                     cursor: pointer;
+                    transition: all 0.2s;
                 }
+
+                .btn-track:hover {
+                    background: #4e73df;
+                    color: #fff;
+                }
+
+                .status-message {
+                    padding: 15px;
+                    border-radius: 6px;
+                    margin-bottom: 25px;
+                    font-size: 14px;
+                    font-weight: 500;
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                }
+
+                .status-error { background: #fff5f5; color: #e74a3b; border: 1px solid #fed7d7; }
 
                 @media (max-width: 992px) {
                     .dashboard-container { flex-direction: column; }
@@ -296,8 +427,8 @@ const Dashboard = () => {
                         <h3 className="profile-name" style={{ marginBottom: '30px' }}>{rectorInfo.name}</h3>
 
                         <div className="profile-details-grid">
-                            <span className="detail-label">Staff ID</span>
-                            <span className="detail-value">88921</span>
+                            <span className="detail-label">Role</span>
+                            <span className="detail-value" style={{ textTransform: 'capitalize' }}>{rectorInfo.role || 'Rector'}</span>
 
                             <span className="detail-label">Mobile</span>
                             <span className="detail-value">{rectorInfo.phone || 'N/A'}</span>
@@ -308,141 +439,169 @@ const Dashboard = () => {
                             <span className="detail-label">Office Location</span>
                             <span className="detail-value">{rectorInfo.office || 'N/A'}</span>
 
-                            <span className="detail-label">Shift</span>
-                            <span className="detail-value green-text">Day/Night</span>
+                            <span className="detail-label">Shift Status</span>
+                            <span className="detail-value green-text">Duty Active</span>
                         </div>
                     </div>
                 </div>
 
                 {/* Main Content */}
                 <div className="main-content">
-
-                    <div>
-                        <h2 className="overview-title">Overview</h2>
-                        <div className="stats-grid-2x2">
-                            <div className="stat-card-modern" style={{ background: '#4e73df' }}>
-                                <div>
-                                    <div className="stat-label">TOTAL GIRLS</div>
-                                    <div className="stat-value">235</div>
-                                </div>
-                                <div className="stat-desc">Registered</div>
-                            </div>
-                            <div className="stat-card-modern" style={{ background: '#1cc88a' }}>
-                                <div>
-                                    <div className="stat-label">PRESENT</div>
-                                    <div className="stat-value">211</div>
-                                </div>
-                                <div className="stat-desc">In Hostel Today</div>
-                            </div>
-                            <div className="stat-card-modern" style={{ background: '#f6c23e' }}>
-                                <div>
-                                    <div className="stat-label">ON LEAVE</div>
-                                    <div className="stat-value">{approvedGatePassCount}</div>
-                                </div>
-                                <div className="stat-desc">With Parents / Home</div>
-                            </div>
-                            <div className="stat-card-modern" style={{ background: '#e74a3b' }}>
-                                <div>
-                                    <div className="stat-label">COMPLAINTS</div>
-                                    <div className="stat-value">{activeComplaintsCount}</div>
-                                </div>
-                                <div className="stat-desc">Active Issues</div>
-                            </div>
-                            <Link to="/rector/reports" className="stat-card-modern" style={{ background: '#6f42c1', textDecoration: 'none' }}>
-                                <div>
-                                    <div className="stat-label">OPERATIONAL REPORTS</div>
-                                    <div className="stat-value"><i className="fas fa-file-invoice"></i></div>
-                                </div>
-                                <div className="stat-desc">Submit Attendance & Mess Logs</div>
-                            </Link>
+                    {error && (
+                        <div className="status-message status-error">
+                            <span>{error}</span>
+                            <button className="status-chip chip-pending" style={{ border: 'none', cursor: 'pointer' }} onClick={fetchDashboardData}>
+                                Retry Refresh
+                            </button>
                         </div>
-                    </div>
+                    )}
 
-                    <div className="alert-row">
-                        {/* Latest Notification */}
-                        <div className="alert-card">
-                            <div className="alert-header">
-                                <i className="fas fa-bell"></i> Latest Notification
-                            </div>
-                            <div className="alert-body">
-                                <div className="alert-banner banner-blue">
-                                    <div style={{ fontWeight: 700, marginBottom: '5px' }}>Curfew Timing Update</div>
-                                    <div style={{ fontSize: '13px', opacity: 0.9 }}>Main gate closes at 8:00 PM strictly for safety.</div>
+                    {isLoading ? (
+                        <div className="table-card" style={{ textAlign: 'center', padding: '40px' }}>
+                            <i className="fas fa-spinner fa-spin" style={{ fontSize: '32px', marginBottom: '10px', color: '#4e73df' }}></i>
+                            <p style={{ margin: 0, color: '#858796' }}>Loading overview metrics...</p>
+                        </div>
+                    ) : (
+                        <>
+                            <div>
+                                <h2 className="overview-title">Overview</h2>
+                                <div className="stats-grid-2x2">
+                                    <Link to="/rector/students" className="stat-card-modern" style={{ background: '#4e73df', textDecoration: 'none' }}>
+                                        <div>
+                                            <div className="stat-label">TOTAL STUDENTS</div>
+                                            <div className="stat-value">{totalStudentsCount}</div>
+                                        </div>
+                                        <div className="stat-desc">View Student Profiles <i className="fas fa-arrow-right" style={{ marginLeft: '4px' }}></i></div>
+                                    </Link>
+
+                                    <Link to="/rector/attendance" className="stat-card-modern" style={{ background: '#1cc88a', textDecoration: 'none' }}>
+                                        <div>
+                                            <div className="stat-label">PRESENT TODAY</div>
+                                            <div className="stat-value">{presentTodayCount}</div>
+                                        </div>
+                                        <div className="stat-desc">Mark/View Daily Attendance <i className="fas fa-arrow-right" style={{ marginLeft: '4px' }}></i></div>
+                                    </Link>
+
+                                    <Link to="/rector/gatepass" className="stat-card-modern" style={{ background: '#f6c23e', textDecoration: 'none' }}>
+                                        <div>
+                                            <div className="stat-label">ON LEAVE TODAY</div>
+                                            <div className="stat-value">{onLeaveCount}</div>
+                                        </div>
+                                        <div className="stat-desc">View Approved Gate Passes <i className="fas fa-arrow-right" style={{ marginLeft: '4px' }}></i></div>
+                                    </Link>
+
+                                    <Link to="/rector/complaints" className="stat-card-modern" style={{ background: '#e74a3b', textDecoration: 'none' }}>
+                                        <div>
+                                            <div className="stat-label">ACTIVE COMPLAINTS</div>
+                                            <div className="stat-value">{activeComplaintsCount}</div>
+                                        </div>
+                                        <div className="stat-desc">Pending &amp; In-Progress Tasks <i className="fas fa-arrow-right" style={{ marginLeft: '4px' }}></i></div>
+                                    </Link>
                                 </div>
                             </div>
-                        </div>
 
-                        {/* Emergency */}
-                        <div className="alert-card">
-                            <div className="alert-header" style={{ color: '#e74a3b' }}>
-                                <i className="fas fa-exclamation-triangle"></i> Emergency
-                            </div>
-                            <div className="alert-body">
-                                <div className="alert-banner banner-red">
-                                    <div style={{ fontWeight: 700, marginBottom: '5px' }}>Medical Emergency - Room 102</div>
-                                    <div style={{ fontSize: '13px', opacity: 0.9 }}>Student reported high fever. Ambulance called.</div>
+                            <div className="alert-row">
+                                {/* Latest Announcement Card */}
+                                <div className="alert-card">
+                                    <div className="alert-header">
+                                        <i className="fas fa-bell"></i> Latest Announcement
+                                    </div>
+                                    <div className="alert-body">
+                                        {latestAnn ? (
+                                            <div className="alert-banner banner-blue">
+                                                <div style={{ fontWeight: 700, marginBottom: '5px' }}>{latestAnn.title}</div>
+                                                <div style={{ fontSize: '13px', opacity: 0.9 }}>{latestAnn.content}</div>
+                                            </div>
+                                        ) : (
+                                            <div style={{ color: '#858796', fontSize: '14px', fontStyle: 'italic' }}>
+                                                No announcements posted yet.
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* Emergency Alert Card */}
+                                <div className="alert-card">
+                                    <div className="alert-header" style={{ color: '#e74a3b' }}>
+                                        <i className="fas fa-exclamation-triangle"></i> Emergency Alert
+                                    </div>
+                                    <div className="alert-body">
+                                        {emergencyAnn ? (
+                                            <div className="alert-banner banner-red">
+                                                <div style={{ fontWeight: 700, marginBottom: '5px' }}>{emergencyAnn.title}</div>
+                                                <div style={{ fontSize: '13px', opacity: 0.9 }}>{emergencyAnn.content}</div>
+                                            </div>
+                                        ) : (
+                                            <div className="alert-banner" style={{ background: '#1cc88a' }}>
+                                                <div style={{ fontWeight: 700, marginBottom: '5px' }}>Hostel Safe & Secure</div>
+                                                <div style={{ fontSize: '13px', opacity: 0.9 }}>No active emergency alerts recorded.</div>
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    </div>
 
-                    {/* Complaint Table */}
-                    <div className="table-card">
-                        <div className="table-header-row">
-                            <div className="table-title">Complaint Status &amp; Assignment</div>
-                            <button className="btn-sm" style={{ background: '#eaecf4', color: '#6e707e', border: 'none' }}>View All</button>
-                        </div>
-                        <table className="custom-table">
-                            <thead>
-                                <tr>
-                                    <th>Room</th>
-                                    <th>Issue</th>
-                                    <th>Status</th>
-                                    <th>Assigned To</th>
-                                    <th>Action</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {complaints.length === 0 ? (
-                                    <tr>
-                                        <td colSpan="5" style={{ textAlign: 'center', padding: '15px', color: '#858796' }}>No complaints filed yet.</td>
-                                    </tr>
-                                ) : (
-                                    complaints.slice(0, 5).map(comp => {
-                                        let icon = 'fa-tools';
-                                        let color = '#4e73df';
-                                        if (comp.category === 'Electrician') { icon = 'fa-bolt'; color = '#f6c23e'; }
-                                        else if (comp.category === 'Plumber') { icon = 'fa-faucet'; color = '#36b9cc'; }
-                                        else if (comp.category === 'Carpenter') { icon = 'fa-hammer'; color = '#e74a3b'; }
-                                        else if (comp.category === 'Cleaning') { icon = 'fa-broom'; color = '#1cc88a'; }
-
-                                        let chipClass = 'chip-pending';
-                                        if (comp.status === 'Resolved') chipClass = 'chip-resolved';
-                                        else if (comp.status === 'In Progress') chipClass = 'chip-progress';
-
-                                        return (
-                                            <tr key={comp._id}>
-                                                <td>{comp.student?.roomInfo || comp.student?.roomNo || 'Unassigned'}</td>
-                                                <td>
-                                                    <i className={`fas ${icon}`} style={{ color: color, marginRight: '8px' }}></i>
-                                                    {comp.problem.length > 30 ? comp.problem.slice(0, 30) + '...' : comp.problem}
-                                                </td>
-                                                <td><span className={`status-chip ${chipClass}`}>{comp.status}</span></td>
-                                                <td style={{ fontWeight: 400, color: '#858796' }}>
-                                                    {comp.assignedWorker?.name ? `${comp.assignedWorker.name} (${comp.assignedWorker.role})` : 'Unassigned'}
-                                                </td>
-                                                <td>
-                                                    <Link to="/rector/complaints">
-                                                        <button className="btn-track">Review</button>
-                                                    </Link>
-                                                </td>
+                            {/* Complaint Table */}
+                            <div className="table-card">
+                                <div className="table-header-row">
+                                    <div className="table-title">Complaint Status &amp; Assignment</div>
+                                    <Link to="/rector/complaints">
+                                        <button className="btn-sm" style={{ background: '#eaecf4', color: '#6e707e', border: 'none', cursor: 'pointer' }}>View All</button>
+                                    </Link>
+                                </div>
+                                <table className="custom-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Room</th>
+                                            <th>Issue</th>
+                                            <th>Status</th>
+                                            <th>Assigned To</th>
+                                            <th>Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {complaints.length === 0 ? (
+                                            <tr>
+                                                <td colSpan="5" style={{ textAlign: 'center', padding: '15px', color: '#858796' }}>No complaints filed yet.</td>
                                             </tr>
-                                        );
-                                    })
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
+                                        ) : (
+                                            complaints.slice(0, 5).map(comp => {
+                                                let icon = 'fa-tools';
+                                                let color = '#4e73df';
+                                                if (comp.category === 'Electrician') { icon = 'fa-bolt'; color = '#f6c23e'; }
+                                                else if (comp.category === 'Plumber') { icon = 'fa-faucet'; color = '#36b9cc'; }
+                                                else if (comp.category === 'Carpenter') { icon = 'fa-hammer'; color = '#e74a3b'; }
+                                                else if (comp.category === 'Cleaning') { icon = 'fa-broom'; color = '#1cc88a'; }
+
+                                                let chipClass = 'chip-pending';
+                                                if (comp.status === 'Resolved') chipClass = 'chip-resolved';
+                                                else if (comp.status === 'In Progress') chipClass = 'chip-progress';
+
+                                                return (
+                                                    <tr key={comp._id}>
+                                                        <td>{comp.student?.roomInfo || comp.student?.roomNo || 'Unassigned'}</td>
+                                                        <td>
+                                                            <i className={`fas ${icon}`} style={{ color: color, marginRight: '8px' }}></i>
+                                                            {comp.problem.length > 30 ? comp.problem.slice(0, 30) + '...' : comp.problem}
+                                                        </td>
+                                                        <td><span className={`status-chip ${chipClass}`}>{comp.status}</span></td>
+                                                        <td style={{ fontWeight: 400, color: '#858796' }}>
+                                                            {comp.assignedWorker?.name ? `${comp.assignedWorker.name} (${comp.assignedWorker.category})` : 'Unassigned'}
+                                                        </td>
+                                                        <td>
+                                                            <Link to="/rector/complaints">
+                                                                <button className="btn-track">Review</button>
+                                                            </Link>
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </>
+                    )}
                 </div>
             </div>
         </>

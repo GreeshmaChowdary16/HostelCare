@@ -7,17 +7,41 @@ const StudentMessMenu = () => {
     const [ratings, setRatings] = useState({ Breakfast: 0, Lunch: 0, Dinner: 0 });
     const [feedback, setFeedback] = useState({ Breakfast: '', Lunch: '', Dinner: '' });
     const [reviews, setReviews] = useState([]);
+    const [menu, setMenu] = useState([]);
     const [statusMessage, setStatusMessage] = useState('');
     const [loading, setLoading] = useState(false);
+    const [menuError, setMenuError] = useState('');
 
-    const weeklyMenu = {
-        Monday: { breakfast: 'Idli, Sambhar', lunch: 'Rice, Dal Tadka', dinner: 'Roti, Paneer' },
-        Tuesday: { breakfast: 'Poha, Jalebi', lunch: 'Chole Bhature', dinner: 'Mix Veg, Paratha' },
-        Wednesday: { breakfast: 'Upma, Chutney', lunch: 'Rajma Chawal', dinner: 'Aloo Gobi, Roti' },
-        Thursday: { breakfast: 'Dosa, Chutney', lunch: 'Veg Biryani', dinner: 'Dal Fry, Rice' },
-        Friday: { breakfast: 'Aloo Paratha', lunch: 'Kadai Paneer, Naan', dinner: 'Khichdi, Kadhi' },
-        Saturday: { breakfast: 'Bread Butter', lunch: 'Pasta, Salad', dinner: 'Pav Bhaji' },
-        Sunday: { breakfast: 'Poori Bhaji', lunch: 'Special Thali', dinner: 'Fried Rice, Manchurian' }
+    const fetchMenuAndReviews = async () => {
+        setLoading(true);
+        setMenuError('');
+        const token = localStorage.getItem('token');
+        if (!token) return;
+
+        const headers = { Authorization: `Bearer ${token}` };
+
+        try {
+            // Fetch Reviews
+            const reviewsRes = await fetch(`${API_BASE_URL}/mess-reviews`, { headers });
+            if (reviewsRes.ok) {
+                const reviewsData = await reviewsRes.json();
+                setReviews(reviewsData || []);
+            }
+
+            // Fetch Menu
+            const menuRes = await fetch(`${API_BASE_URL}/mess-menu`, { headers });
+            if (menuRes.ok) {
+                const menuData = await menuRes.json();
+                setMenu(menuData || []);
+            } else {
+                setMenuError('Failed to load weekly menu from database.');
+            }
+        } catch (error) {
+            console.error('Error fetching mess menu data:', error);
+            setMenuError('Could not connect to the server. Please try again.');
+        } finally {
+            setLoading(false);
+        }
     };
 
     const fetchReviews = async () => {
@@ -39,7 +63,7 @@ const StudentMessMenu = () => {
     };
 
     useEffect(() => {
-        fetchReviews();
+        fetchMenuAndReviews();
     }, []);
 
     const handleStarClick = (meal, value) => {
@@ -129,6 +153,12 @@ const StudentMessMenu = () => {
 
         setLoading(false);
     };
+
+    const currentDayMenu = menu.find(
+        (item) => item.day.toLowerCase() === selectedDay.toLowerCase()
+    ) || { breakfast: 'Loading...', lunch: 'Loading...', dinner: 'Loading...' };
+
+    const daysOfWeek = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
     return (
         <>
@@ -242,6 +272,10 @@ const StudentMessMenu = () => {
                     cursor: pointer;
                     font-weight: 700;
                 }
+                .feedback-button:disabled {
+                    opacity: 0.6;
+                    cursor: not-allowed;
+                }
 
                 .reviews-card {
                     padding: 25px;
@@ -293,7 +327,7 @@ const StudentMessMenu = () => {
                 <div style={{ maxWidth: '800px', margin: '0 auto', width: '100%' }}>
                     <h3 className="section-title"><i className="fas fa-calendar-check"></i> Select a Day</h3>
                     <div className="calendar-strip">
-                        {Object.keys(weeklyMenu).map((day) => (
+                        {daysOfWeek.map((day) => (
                             <div
                                 key={day}
                                 className={`day-card ${selectedDay === day ? 'active' : ''}`}
@@ -305,24 +339,34 @@ const StudentMessMenu = () => {
                     </div>
                 </div>
 
-                <div className="menu-display-card">
-                    <h3 style={{ fontSize: '28px', marginBottom: '30px' }}>
-                        <i className="fas fa-utensils"></i> {selectedDay}'s Menu
-                    </h3>
+                {menuError ? (
+                    <div style={{ padding: '20px', background: '#f8d7da', border: '1px solid #f5c6cb', color: '#721c24', borderRadius: '8px', textAlign: 'center', maxWidth: '800px', margin: '0 auto', width: '100%' }}>
+                        <i className="fas fa-exclamation-circle" style={{ marginRight: '8px' }}></i>
+                        {menuError}
+                        <button type="button" onClick={fetchMenuAndReviews} style={{ background: '#721c24', color: 'white', border: 'none', padding: '5px 10px', marginLeft: '15px', borderRadius: '4px', cursor: 'pointer' }}>
+                            Retry
+                        </button>
+                    </div>
+                ) : (
+                    <div className="menu-display-card">
+                        <h3 style={{ fontSize: '28px', marginBottom: '30px' }}>
+                            <i className="fas fa-utensils"></i> {selectedDay}'s Menu
+                        </h3>
 
-                    <div className="menu-item">
-                        <div className="menu-label">Breakfast</div>
-                        <div className="menu-value">{weeklyMenu[selectedDay].breakfast}</div>
+                        <div className="menu-item">
+                            <div className="menu-label">Breakfast</div>
+                            <div className="menu-value">{currentDayMenu.breakfast}</div>
+                        </div>
+                        <div className="menu-item">
+                            <div className="menu-label">Lunch</div>
+                            <div className="menu-value">{currentDayMenu.lunch}</div>
+                        </div>
+                        <div className="menu-item">
+                            <div className="menu-label">Dinner</div>
+                            <div className="menu-value">{currentDayMenu.dinner}</div>
+                        </div>
                     </div>
-                    <div className="menu-item">
-                        <div className="menu-label">Lunch</div>
-                        <div className="menu-value">{weeklyMenu[selectedDay].lunch}</div>
-                    </div>
-                    <div className="menu-item">
-                        <div className="menu-label">Dinner</div>
-                        <div className="menu-value">{weeklyMenu[selectedDay].dinner}</div>
-                    </div>
-                </div>
+                )}
 
                 {statusMessage && <div className="message-banner">{statusMessage}</div>}
 
@@ -353,7 +397,7 @@ const StudentMessMenu = () => {
                                     type="button"
                                     className="feedback-button"
                                     onClick={() => handleSubmit(meal)}
-                                    disabled={loading}
+                                    disabled={loading || !!menuError}
                                 >
                                     {loading ? 'Processing...' : 'Submit Feedback'}
                                 </button>

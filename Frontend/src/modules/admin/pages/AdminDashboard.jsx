@@ -4,40 +4,105 @@ import Header from '../../../components/Header';
 import { API_BASE_URL } from '../../../config';
 
 const AdminDashboard = () => {
+    // Data States
     const [complaints, setComplaints] = useState([]);
+    const [studentStats, setStudentStats] = useState(null);
+    const [rectors, setRectors] = useState([]);
+    const [workers, setWorkers] = useState([]);
+    const [feeStats, setFeeStats] = useState(null);
+    
+    // Status States
     const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState(null);
+
+    // Fetch dashboard components from backend in parallel
+    const fetchDashboardData = async () => {
+        setIsLoading(true);
+        setError(null);
+
+        const token = localStorage.getItem('token');
+        if (!token) {
+            setError('Authentication token missing. Please log in again.');
+            setIsLoading(false);
+            return;
+        }
+
+        const headers = { 'Authorization': `Bearer ${token}` };
+
+        try {
+            // Fetch complaints
+            try {
+                const res = await fetch(`${API_BASE_URL}/complaints`, { headers });
+                if (res.ok) setComplaints(await res.json());
+            } catch (err) {
+                console.error('Complaints fetch error:', err);
+            }
+
+            // Fetch student stats
+            try {
+                const res = await fetch(`${API_BASE_URL}/students/stats`, { headers });
+                if (res.ok) setStudentStats(await res.json());
+            } catch (err) {
+                console.error('Student stats fetch error:', err);
+            }
+
+            // Fetch rectors list
+            try {
+                const res = await fetch(`${API_BASE_URL}/rectors`, { headers });
+                if (res.ok) setRectors(await res.json());
+            } catch (err) {
+                console.error('Rectors fetch error:', err);
+            }
+
+            // Fetch workers list
+            try {
+                const res = await fetch(`${API_BASE_URL}/workers`, { headers });
+                if (res.ok) setWorkers(await res.json());
+            } catch (err) {
+                console.error('Workers fetch error:', err);
+            }
+
+            // Fetch fee stats
+            try {
+                const res = await fetch(`${API_BASE_URL}/fees/stats`, { headers });
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.success) setFeeStats(data.stats);
+                }
+            } catch (err) {
+                console.error('Fee stats fetch error:', err);
+            }
+        } catch (err) {
+            console.error('Dashboard data fetching error:', err);
+            setError('Failed to refresh dashboard. Please retry.');
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
     useEffect(() => {
-        const fetchComplaints = async () => {
-            const token = localStorage.getItem('token');
-            if (!token) return;
-            try {
-                const response = await fetch(`${API_BASE_URL}/complaints`, {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
-                if (response.ok) {
-                    const data = await response.json();
-                    setComplaints(data);
-                }
-            } catch (error) {
-                console.error('Error fetching complaints:', error);
-            } finally {
-                setIsLoading(false);
-            }
-        };
-
-        fetchComplaints();
+        fetchDashboardData();
     }, []);
+
+    // Helper: calculate rectors currently on approved leaves matching today's date
+    const getRectorsOnLeaveCount = () => {
+        const today = new Date();
+        return rectors.filter(r => 
+            r.leaveApplications?.some(leave => 
+                leave.status === 'Approved' && 
+                new Date(leave.fromDate) <= today && 
+                new Date(leave.toDate) >= today
+            )
+        ).length;
+    };
 
     const getCountForCategory = (cat) => {
         let backendCat = cat;
         if (cat === 'Electrical') backendCat = 'Electrician';
         if (cat === 'Plumbing') backendCat = 'Plumber';
         if (cat === 'Carpentry') backendCat = 'Carpenter';
-        if (cat === 'Mess') return 5;
-        if (cat === 'Internet') return 2;
+        if (cat === 'Mess') return complaints.filter(c => c.category === 'Mess').length;
+        if (cat === 'Internet') return complaints.filter(c => c.category === 'IT Support').length;
         return complaints.filter(c => c.category === backendCat).length;
     };
 
@@ -49,6 +114,15 @@ const AdminDashboard = () => {
         { category: 'Carpentry', issue: 'Broken Furniture/Locks', count: getCountForCategory('Carpentry'), priority: 'Low' },
         { category: 'Internet', issue: 'Wi-Fi Connectivity', count: getCountForCategory('Internet'), priority: 'Low' }
     ];
+
+    // Compute stats
+    const totalStudents = studentStats?.total ?? 'N/A';
+    const totalRectors = rectors.length || 0;
+    const totalWorkers = workers.length || 0;
+    const rectorsOnLeave = getRectorsOnLeaveCount();
+    const pendingComplaints = complaints.filter(c => c.status === 'Pending').length;
+    const totalCollected = feeStats ? `₹${feeStats.totalCollected?.toLocaleString('en-IN')}` : 'N/A';
+    const totalPendingFees = feeStats ? `₹${feeStats.totalPending?.toLocaleString('en-IN')}` : 'N/A';
 
     return (
         <>
@@ -143,7 +217,7 @@ const AdminDashboard = () => {
 
                 .stats-grid-3x2 {
                     display: grid;
-                    grid-template-columns: repeat(3, 1fr);
+                    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
                     gap: 20px;
                 }
 
@@ -167,7 +241,7 @@ const AdminDashboard = () => {
                 }
                 
                 .stat-value {
-                    font-size: 42px;
+                    font-size: 36px;
                     font-weight: 700;
                     margin: 5px 0;
                 }
@@ -210,6 +284,19 @@ const AdminDashboard = () => {
                 .priority-medium { color: #f6c23e; background: #fff9e6; }
                 .priority-low { color: #1cc88a; background: #e3fdf4; }
 
+                .status-message {
+                    padding: 15px;
+                    border-radius: 6px;
+                    margin-bottom: 25px;
+                    font-size: 14px;
+                    font-weight: 500;
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                }
+
+                .status-error { background: #fff5f5; color: #e74a3b; border: 1px solid #fed7d7; }
+
                 @media (max-width: 992px) {
                     .dashboard-container { flex-direction: column; }
                     .left-sidebar { width: 100%; }
@@ -218,6 +305,7 @@ const AdminDashboard = () => {
             `}</style>
 
             <div className="dashboard-container">
+                {/* Left Sidebar */}
                 <div className="left-sidebar">
                     <div className="profile-card">
                         <div className="profile-img-container">
@@ -239,43 +327,71 @@ const AdminDashboard = () => {
                     </div>
                 </div>
 
+                {/* Main Content */}
                 <div className="main-content">
-                    <div>
-                        <h2 className="overview-title">Overview</h2>
-                        <div className="stats-grid-3x2">
-                            <div className="stat-card-modern" style={{ background: '#858796' }}>
-                                <div><div className="stat-label">GIRLS HOSTELS</div><div className="stat-value">4</div></div>
-                                <div className="stat-desc">Operational</div>
-                            </div>
-                            <div className="stat-card-modern" style={{ background: '#36b9cc' }}>
-                                <div><div className="stat-label">BOYS HOSTELS</div><div className="stat-value">6</div></div>
-                                <div className="stat-desc">Operational</div>
-                            </div>
-                            <div className="stat-card-modern" style={{ background: '#4e73df' }}>
-                                <div><div className="stat-label">MALE RECTORS</div><div className="stat-value">12</div></div>
-                                <div className="stat-desc">Active in Hostels</div>
-                            </div>
-                            <div className="stat-card-modern" style={{ background: '#1cc88a' }}>
-                                <div><div className="stat-label">FEMALE RECTORS</div><div className="stat-value">8</div></div>
-                                <div className="stat-desc">Active in Hostels</div>
-                            </div>
-                             <div className="stat-card-modern" style={{ background: '#e74a3b' }}>
-                                <div><div className="stat-label">MAJOR COMPLAINTS</div><div className="stat-value">{complaints.filter(c => c.status === 'Pending').length}</div></div>
-                                <div className="stat-desc">Pending Resolution</div>
-                            </div>
-                            <div className="stat-card-modern" style={{ background: '#f6c23e' }}>
-                                <div><div className="stat-label">RECTORS ON LEAVE</div><div className="stat-value">3</div></div>
-                                <div className="stat-desc">Currently Away</div>
-                            </div>
-                            <Link to="/admin/reports" className="stat-card-modern" style={{ background: '#6f42c1', textDecoration: 'none' }}>
-                                <div>
-                                    <div className="stat-label">REPORTS & ANALYTICS</div>
-                                    <div className="stat-value"><i className="fas fa-file-contract"></i></div>
-                                </div>
-                                <div className="stat-desc">View Attendance & Hostel Logs</div>
-                            </Link>
+                    {error && (
+                        <div className="status-message status-error">
+                            <span>{error}</span>
+                            <button className="category-badge priority-high" style={{ border: 'none', cursor: 'pointer' }} onClick={fetchDashboardData}>
+                                Retry Refresh
+                            </button>
                         </div>
-                    </div>
+                    )}
+
+                    {isLoading ? (
+                        <div className="complaints-table-card" style={{ textAlign: 'center', padding: '40px' }}>
+                            <i className="fas fa-spinner fa-spin" style={{ fontSize: '32px', marginBottom: '10px', color: '#4e73df' }}></i>
+                            <p style={{ margin: 0, color: '#858796' }}>Loading overview data...</p>
+                        </div>
+                    ) : (
+                        <div>
+                            <h2 className="overview-title">Overview</h2>
+                            <div className="stats-grid-3x2">
+                                <Link to="/admin/rectors" className="stat-card-modern" style={{ background: '#4e73df', textDecoration: 'none' }}>
+                                    <div><div className="stat-label">TOTAL RECTORS</div><div className="stat-value">{totalRectors}</div></div>
+                                    <div className="stat-desc">Manage Rector Profiles <i className="fas fa-arrow-right" style={{ marginLeft: '4px' }}></i></div>
+                                </Link>
+
+                                <div className="stat-card-modern" style={{ background: '#f6c23e' }}>
+                                    <div><div className="stat-label">RECTORS ON LEAVE</div><div className="stat-value">{rectorsOnLeave}</div></div>
+                                    <div className="stat-desc">Approved Leave Applications</div>
+                                </div>
+
+                                <div className="stat-card-modern" style={{ background: '#36b9cc' }}>
+                                    <div><div className="stat-label">REGISTERED STUDENTS</div><div className="stat-value">{totalStudents}</div></div>
+                                    <div className="stat-desc">Active Student Enrollments</div>
+                                </div>
+
+                                <Link to="/admin/workers" className="stat-card-modern" style={{ background: '#858796', textDecoration: 'none' }}>
+                                    <div><div className="stat-label">MAINTENANCE WORKERS</div><div className="stat-value">{totalWorkers}</div></div>
+                                    <div className="stat-desc">Manage Staff Directory <i className="fas fa-arrow-right" style={{ marginLeft: '4px' }}></i></div>
+                                </Link>
+
+                                <div className="stat-card-modern" style={{ background: '#e74a3b' }}>
+                                    <div><div className="stat-label">PENDING COMPLAINTS</div><div className="stat-value">{pendingComplaints}</div></div>
+                                    <div className="stat-desc">Awaiting Rector/Staff Allotment</div>
+                                </div>
+
+                                <Link to="/admin/fees" className="stat-card-modern" style={{ background: '#1cc88a', textDecoration: 'none' }}>
+                                    <div><div className="stat-label">FEES COLLECTED</div><div className="stat-value">{totalCollected}</div></div>
+                                    <div className="stat-desc">Total Collections <i className="fas fa-arrow-right" style={{ marginLeft: '4px' }}></i></div>
+                                </Link>
+
+                                <Link to="/admin/fees" className="stat-card-modern" style={{ background: '#e74a3b', textDecoration: 'none' }}>
+                                    <div><div className="stat-label">OUTSTANDING FEES</div><div className="stat-value">{totalPendingFees}</div></div>
+                                    <div className="stat-desc">Unpaid Invoices Summary <i className="fas fa-arrow-right" style={{ marginLeft: '4px' }}></i></div>
+                                </Link>
+
+                                <Link to="/admin/reports" className="stat-card-modern" style={{ background: '#6f42c1', textDecoration: 'none' }}>
+                                    <div>
+                                        <div className="stat-label">REPORTS & ANALYTICS</div>
+                                        <div className="stat-value"><i className="fas fa-file-contract"></i></div>
+                                    </div>
+                                    <div className="stat-desc">View Attendance & Logs <i className="fas fa-arrow-right" style={{ marginLeft: '4px' }}></i></div>
+                                </Link>
+                            </div>
+                        </div>
+                    )}
 
                     <div className="complaints-table-card">
                         <h3 className="overview-title" style={{ marginBottom: '10px' }}>Most Common Complaints</h3>
