@@ -5,9 +5,49 @@ import socket from '../../../socket';
 
 const StudentManagement = () => {
     const [searchQuery, setSearchQuery] = useState('');
+    const [activeSearchQuery, setActiveSearchQuery] = useState('');
+    const [activeFloorFilter, setActiveFloorFilter] = useState('');
     const [students, setStudents] = useState([]);
     const [stats, setStats] = useState({ total: 0, presentInHostel: 0, onLeave: 0, activeComplaints: 0, guardianCount: 0 });
     const [isLoading, setIsLoading] = useState(true);
+    const [attendanceSaving, setAttendanceSaving] = useState('');
+    const [attendanceMessage, setAttendanceMessage] = useState('');
+
+    const markTodayAttendance = async (student) => {
+        const token = localStorage.getItem('token');
+        const today = new Date();
+        const monthYear = today.toLocaleString('en-US', { month: 'long', year: 'numeric' });
+        const day = today.getDate();
+
+        setAttendanceSaving(student._id);
+        setAttendanceMessage('');
+        try {
+            const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
+            const existingResponse = await fetch(`${API_BASE_URL}/attendance?studentId=${student._id}&monthYear=${encodeURIComponent(monthYear)}`, { headers });
+            const existingData = existingResponse.ok ? await existingResponse.json() : [];
+            const records = (existingData[0]?.records || []).filter((record) => record.day !== day);
+            records.push({ day, status: 'present', method: 'Rector Manual', time: today.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), details: 'Verified by rector during hostel roll call.' });
+
+            const response = await fetch(`${API_BASE_URL}/attendance`, {
+                method: 'POST',
+                headers,
+                body: JSON.stringify({
+                    studentId: student._id,
+                    monthYear,
+                    daysInMonth: new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate(),
+                    firstDay: new Date(today.getFullYear(), today.getMonth(), 1).getDay(),
+                    records,
+                }),
+            });
+            if (!response.ok) throw new Error('Attendance update failed');
+            setAttendanceMessage(`${student.name}'s attendance was marked present.`);
+        } catch (error) {
+            setAttendanceMessage('Unable to update attendance. Please try again.');
+            console.error('Rector attendance update error:', error);
+        } finally {
+            setAttendanceSaving('');
+        }
+    };
 
     useEffect(() => {
         const fetchStudents = async () => {
@@ -61,6 +101,24 @@ const StudentManagement = () => {
         groups[key].present += 1;
         return groups;
     }, {}));
+
+    const visibleStudents = students.filter((student) => {
+        const query = activeSearchQuery.toLowerCase();
+        const matchesSearch = !query || [student.name, student.email, student._id, student.roomInfo]
+            .some((value) => String(value || '').toLowerCase().includes(query));
+        const room = student.roomInfo || '';
+        const match = room.match(/Room\s*(\d+)/i) || room.match(/(\d{3})$/);
+        const floorNumber = match ? Math.floor(Number(match[1]) / 100) : null;
+        const studentFloor = floorNumber === null ? 'Unknown' : floorNumber === 0 ? 'Ground' : `${floorNumber}${floorNumber === 1 ? 'st' : floorNumber === 2 ? 'nd' : floorNumber === 3 ? 'rd' : 'th'} Floor`;
+        return matchesSearch && (!activeFloorFilter || studentFloor === activeFloorFilter);
+    });
+
+    const handleFloorView = (floor) => {
+        setActiveFloorFilter(floor);
+        setSearchQuery('');
+        setActiveSearchQuery('');
+        document.getElementById('student-roll-call')?.scrollIntoView({ behavior: 'smooth' });
+    };
 
     return (
         <>
@@ -257,6 +315,17 @@ const StudentManagement = () => {
                     cursor: pointer;
                 }
 
+                .search-result-count { margin-top: 12px; color: #858796; font-size: 12px; }
+
+                .attendance-list { display: flex; flex-direction: column; gap: 10px; }
+                .attendance-row { display: flex; justify-content: space-between; align-items: center; gap: 15px; padding: 12px 0; border-bottom: 1px solid #f1f3f8; }
+                .attendance-row strong, .attendance-row span { display: block; }
+                .attendance-row span { color: #858796; font-size: 12px; margin-top: 4px; }
+                .btn-mark-present { background: #1cc88a; color: white; border: 0; border-radius: 5px; padding: 8px 12px; font-weight: 700; cursor: pointer; white-space: nowrap; }
+                .btn-mark-present:disabled { opacity: 0.6; cursor: wait; }
+                .attendance-message { background: #e9f7ef; color: #0f5132; border: 1px solid #badbcc; border-radius: 5px; padding: 10px; margin-bottom: 15px; font-size: 13px; }
+                .empty-attendance { color: #858796; font-size: 13px; }
+
                 @media (max-width: 992px) {
                     .metrics-grid { grid-template-columns: 1fr 1fr; }
                     .content-grid { grid-template-columns: 1fr; }
@@ -292,6 +361,24 @@ const StudentManagement = () => {
                 <div className="content-grid">
                     {/* Left Column */}
                     <div className="left-column">
+                        <div className="card" id="student-roll-call">
+                            <div className="card-title"><i className="fas fa-user-check"></i> Today&apos;s Hostel Roll Call</div>
+                            {attendanceMessage && <div className="attendance-message">{attendanceMessage}</div>}
+                            <div className="attendance-list">
+                                {visibleStudents.length ? visibleStudents.map((student) => (
+                                    <div className="attendance-row" key={student._id}>
+                                        <div>
+                                            <strong>{student.name}</strong>
+                                            <span>{student.roomInfo || 'Room not assigned'}</span>
+                                        </div>
+                                        <button className="btn-mark-present" onClick={() => markTodayAttendance(student)} disabled={attendanceSaving === student._id}>
+                                            <i className="fas fa-check"></i> {attendanceSaving === student._id ? 'Saving...' : 'Mark Present'}
+                                        </button>
+                                    </div>
+                                )) : <div className="empty-attendance">No students match this search.</div>}
+                            </div>
+                        </div>
+
                         {/* Floor-Wise Breakdown */}
                         <div className="card">
                             <div className="card-title">Floor-Wise Breakdown</div>
@@ -307,7 +394,7 @@ const StudentManagement = () => {
                                 <tbody>{floorRows.length ? floorRows.map(([floor, row]) => (
                                     <tr key={floor}>
                                         <td style={{ fontWeight: 500 }}>{floor}</td><td>{row.total}</td><td>{row.present}</td>
-                                        <td><button className="btn-view" onClick={() => setSearchQuery(floor)}>View</button></td>
+                                        <td><button className="btn-view" onClick={() => handleFloorView(floor)}>View</button></td>
                                     </tr>
                                 )) : <tr><td colSpan="4" style={{ textAlign: 'center' }}>No floor data available.</td></tr>}</tbody>
                             </table>
@@ -351,7 +438,7 @@ const StudentManagement = () => {
                                 <div className="box-sub">No local relatives</div>
                             </div>
 
-                            <button className="btn-full">View List</button>
+                            <button className="btn-full" onClick={() => document.getElementById('student-roll-call')?.scrollIntoView({ behavior: 'smooth' })}>View List</button>
                         </div>
 
                         {/* Search Student */}
@@ -366,7 +453,8 @@ const StudentManagement = () => {
                                 onChange={(e) => setSearchQuery(e.target.value)}
                             />
 
-                            <button className="btn-search" onClick={() => setSearchQuery(searchQuery.trim())}>Search</button>
+                            <button className="btn-search" onClick={() => { setActiveFloorFilter(''); setActiveSearchQuery(searchQuery.trim()); }}>Search</button>
+                            {(activeSearchQuery || activeFloorFilter) && <div className="search-result-count">Showing {visibleStudents.length} student{visibleStudents.length === 1 ? '' : 's'} for {activeFloorFilter || `“${activeSearchQuery}”`}.</div>}
                         </div>
                     </div>
                 </div>

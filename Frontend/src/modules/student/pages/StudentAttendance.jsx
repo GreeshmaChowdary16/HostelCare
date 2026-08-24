@@ -30,31 +30,7 @@ const generateMonthData = (monthYearStr) => {
     const daysInMonth = new Date(year, monthIdx + 1, 0).getDate();
     const firstDay = new Date(year, monthIdx, 1).getDay();
 
-    const records = {};
-    const now = new Date();
-    const isCurrentMonth = now.getFullYear() === year && now.getMonth() === monthIdx;
-    const todayDay = now.getDate();
-
-    for (let d = 1; d <= daysInMonth; d++) {
-        const isPastOrToday = !isCurrentMonth ? (monthIdx < now.getMonth() || year < now.getFullYear()) : (d <= todayDay);
-
-        if (isPastOrToday) {
-            const dateObj = new Date(year, monthIdx, d);
-            const dayOfWeek = dateObj.getDay();
-
-            if (dayOfWeek === 0) {
-                records[d] = { status: 'leave', method: 'Gate Pass', time: 'N/A', details: 'Sunday Weekend Pass' };
-            } else if (d === 11 || d === 22) {
-                records[d] = { status: 'not_marked', method: 'Not Marked', time: 'N/A', details: 'No scan or check-in logged' };
-            } else {
-                records[d] = { status: 'present', method: 'Face Scan', time: `08:${10 + (d % 12)} AM`, details: 'Verified via Gate Scanner #1' };
-            }
-        } else {
-            records[d] = { status: 'not_marked', method: 'Not Marked', time: 'N/A', details: 'Upcoming date' };
-        }
-    }
-
-    return { daysInMonth, firstDay, records };
+    return { daysInMonth, firstDay, records: {} };
 };
 
 const StudentAttendance = () => {
@@ -125,86 +101,6 @@ const StudentAttendance = () => {
             time: month.records[day].time,
             details: month.records[day].details,
         }));
-
-    const handleMarkAttendance = (status) => {
-        const newRecord = {
-            status,
-            method: status === 'present' ? 'Face Scan' : status === 'leave' ? 'Gate Pass' : 'Not Marked',
-            time: status === 'present' ? '09:00 AM' : 'N/A',
-            details: status === 'present'
-                ? 'Marked present by student.'
-                : status === 'leave'
-                    ? 'Leave requested by student.'
-                    : 'Attendance mark reset to not recorded.',
-        };
-
-        setAttendanceMonthState({
-            ...monthData,
-            records: {
-                ...monthData.records,
-                [selectedDay]: newRecord,
-            },
-        });
-
-        setAttendanceStatus(`Selected day ${selectedMonth} ${selectedDay} marked ${status.replace('_', ' ')}.`);
-    };
-
-    const saveAttendanceChanges = async () => {
-        const token = localStorage.getItem('token');
-        if (!token) {
-            setAttendanceError('Authentication token missing. Please log in again.');
-            return;
-        }
-
-        setIsLoadingAttendance(true);
-        setAttendanceError('');
-        setAttendanceStatus('');
-
-        try {
-            const response = await fetch(`${API_BASE_URL}/attendance`, {
-                method: 'POST',
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    monthYear: selectedMonth,
-                    daysInMonth,
-                    firstDay: firstDayOfMonth,
-                    records: serializeMonthRecords(monthData),
-                }),
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json();
-                setAttendanceError(errorData.message || 'Unable to save attendance.');
-                return;
-            }
-
-            const data = await response.json();
-            setAttendanceData(data.attendance);
-            setAttendanceMonthState(buildMonthState(data.attendance));
-            setAttendanceStatus('Attendance saved successfully.');
-        } catch (error) {
-            setAttendanceError('Unable to save attendance. Please try again later.');
-            console.error('Save attendance error:', error);
-        } finally {
-            setIsLoadingAttendance(false);
-        }
-    };
-
-    const attendancePayload = {
-        monthYear: selectedMonth,
-        daysInMonth: monthData.daysInMonth,
-        firstDay: monthData.firstDay,
-        records: Object.keys(monthData.records).map((day) => ({
-            day: Number(day),
-            status: monthData.records[day].status,
-            method: monthData.records[day].method,
-            time: monthData.records[day].time,
-            details: monthData.records[day].details,
-        })),
-    };
 
     // Calculate dynamic stats for this selected month
     const totalDays = daysInMonth;
@@ -280,37 +176,19 @@ const StudentAttendance = () => {
 
             if (!response.ok) {
                 const errorData = await response.json();
-                if (response.status === 404 && attendanceDb[selectedMonth]) {
-                    setAttendanceStatus('No existing attendance record found for this month, syncing static data to backend...');
-                    const saveResponse = await fetch(`${API_BASE_URL}/attendance`, {
-                        method: 'POST',
-                        headers: {
-                            Authorization: `Bearer ${token}`,
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify(attendancePayload),
-                    });
-
-                    if (!saveResponse.ok) {
-                        const saveError = await saveResponse.json();
-                        setAttendanceError(saveError.message || 'Unable to sync attendance to backend.');
-                        setAttendanceData(null);
-                        return;
-                    }
-
-                    const saveData = await saveResponse.json();
-                    setAttendanceData(saveData.attendance);
-                    setAttendanceStatus('Attendance synced successfully from demo data.');
-                    return;
+                if (response.status === 404) {
+                    setAttendanceStatus(`No verified attendance record is available for ${selectedMonth}.`);
+                } else {
+                    setAttendanceError(errorData.message || 'Unable to load attendance for this month.');
                 }
-
-                setAttendanceError(errorData.message || 'Unable to load attendance for this month.');
                 setAttendanceData(null);
                 return;
             }
 
             const attendance = await response.json();
-            setAttendanceData(attendance);
+            const attendanceRecord = Array.isArray(attendance) ? attendance[0] : attendance;
+            setAttendanceData(attendanceRecord);
+            setAttendanceMonthState(buildMonthState(attendanceRecord));
         } catch (error) {
             setAttendanceError('Unable to load attendance. Please try again later.');
             setAttendanceData(null);
@@ -724,11 +602,11 @@ const StudentAttendance = () => {
                                     <span className="legend-color" style={{ background: '#e74a3b' }}></span> On Leave
                                 </div>
                                 <div className="legend-item">
-                                    <span className="legend-color" style={{ background: '#f6c23e' }}></span> Not Marked
+                                    <span className="legend-color" style={{ background: '#f6c23e' }}></span> Not Recorded
                                 </div>
                             </div>
                             <div style={{ fontSize: '12px', color: '#858796', fontWeight: 600 }}>
-                                *Click on any day to view verification method
+                                Select a day to view its verification details
                             </div>
                         </div>
 
@@ -746,7 +624,7 @@ const StudentAttendance = () => {
                                 const bg = getStatusColor(dayRecord.status);
                                 const label = dayRecord.method === 'Face Scan' ? 'Scan' : 
                                               dayRecord.method === 'Rector Manual' ? 'Rect' : 
-                                              dayRecord.method === 'Gate Pass' ? 'Leave' : 'Miss';
+                                              dayRecord.method === 'Gate Pass' ? 'Leave' : 'No Record';
 
                                 return (
                                     <div 
@@ -792,10 +670,10 @@ const StudentAttendance = () => {
                             </div>
 
                             <div className="stat-box" style={{ borderLeft: '4px solid #f6c23e', gridColumn: 'span 2' }}>
-                                <div className="stat-label">Absent / Not Marked</div>
+                                <div className="stat-label">Not Recorded</div>
                                 <div className="stat-value" style={{ color: '#f6c23e' }}>{absentCount}</div>
                                 <div style={{ fontSize: '10px', color: '#858796', marginTop: '3px' }}>
-                                    Requires explanation from rector if unexcused
+                                    Attendance has not been verified for these days
                                 </div>
                             </div>
                         </div>
@@ -807,7 +685,7 @@ const StudentAttendance = () => {
                                     <i className="fas fa-fingerprint" style={{ color: '#4e73df' }}></i> Log Details
                                 </div>
                                 <span className={`badge-status badge-${selectedRecord.status === 'present' ? 'present' : selectedRecord.status === 'leave' ? 'leave' : 'missing'}`}>
-                                    {selectedRecord.status === 'present' ? 'Present' : selectedRecord.status === 'leave' ? 'Leave' : 'Absent'}
+                                    {selectedRecord.status === 'present' ? 'Present' : selectedRecord.status === 'leave' ? 'Leave' : 'Not Recorded'}
                                 </span>
                             </div>
 
@@ -838,21 +716,6 @@ const StudentAttendance = () => {
                                 <span className="detail-value" style={{ textAlign: 'left', color: '#5a5c69', fontSize: '12px', fontWeight: 500, lineHeight: 1.5, background: '#f8f9fc', padding: '10px', borderRadius: '6px', marginTop: '3px' }}>
                                     {selectedRecord.details}
                                 </span>
-                            </div>
-
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginTop: '20px' }}>
-                                <button className="mark-button present" onClick={() => handleMarkAttendance('present')} disabled={isLoadingAttendance}>
-                                    Mark Present
-                                </button>
-                                <button className="mark-button leave" onClick={() => handleMarkAttendance('leave')} disabled={isLoadingAttendance}>
-                                    Mark Leave
-                                </button>
-                                <button className="mark-button missing" onClick={() => handleMarkAttendance('not_marked')} disabled={isLoadingAttendance}>
-                                    Mark Not Recorded
-                                </button>
-                                <button className="save-button" onClick={saveAttendanceChanges} disabled={isLoadingAttendance}>
-                                    Save Changes
-                                </button>
                             </div>
 
                             {selectedRecord.status === 'present' && selectedRecord.method === 'Face Scan' && (

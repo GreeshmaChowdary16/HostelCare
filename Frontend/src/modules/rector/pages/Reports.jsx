@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Header from '../../../components/Header';
 import { API_BASE_URL, getImageUrl } from '../../../config';
 

@@ -119,7 +119,7 @@ const Header = ({ title }) => {
                                 </div>
                                 <div className="content">
                                     <span style={{ fontWeight: 600, fontSize: '13px', color: '#333' }}>Attendance Record</span>
-                                    <div className="small-text">Check & mark daily hostel attendance.</div>
+                                    <div className="small-text">View verified hostel attendance records.</div>
                                 </div>
                             </Link>
                             <Link to={getModulePath('/notifications')} style={{ display: 'block', textAlign: 'center', padding: '10px', fontSize: '12px', color: '#858796', textDecoration: 'none' }}>

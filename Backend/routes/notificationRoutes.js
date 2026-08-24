@@ -9,7 +9,7 @@ import {
 
 const router = express.Router();
 
-router.post("/", protect, authorizeRoles("admin"), createNotification);
+router.post("/", protect, authorizeRoles("admin", "rector"), createNotification);
 router.get("/", protect, getNotifications);
 router.delete("/:id", protect, authorizeRoles("admin"), deleteNotification);
 
