@@ -5,6 +5,13 @@ import { API_BASE_URL, getImageUrl } from '../../../config';
 
 const AdminDashboard = () => {
     // Data States
+    const [adminProfile, setAdminProfile] = useState({
+        name: localStorage.getItem('name') || 'Administrator',
+        email: localStorage.getItem('email') || '',
+        phone: '',
+        office: '',
+        profileImage: localStorage.getItem('profileImage') || ''
+    });
     const [complaints, setComplaints] = useState([]);
     const [studentStats, setStudentStats] = useState(null);
     const [rectors, setRectors] = useState([]);
@@ -30,6 +37,17 @@ const AdminDashboard = () => {
         const headers = { 'Authorization': `Bearer ${token}` };
 
         try {
+            // Fetch admin profile
+            try {
+                const profileRes = await fetch(`${API_BASE_URL}/auth/me`, { headers });
+                if (profileRes.ok) {
+                    const profileData = await profileRes.json();
+                    setAdminProfile(profileData);
+                }
+            } catch (err) {
+                console.error('Admin profile fetch error:', err);
+            }
+
             // Fetch complaints
             try {
                 const res = await fetch(`${API_BASE_URL}/complaints`, { headers });

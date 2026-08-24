@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import Header from '../../../components/Header';
-import { API_BASE_URL } from '../../../config';
+import { API_BASE_URL, getImageUrl } from '../../../config';
 
 const Reports = () => {
+    const [attendance, setAttendance] = useState({ present: 0, absent: 0, onLeave: 0, updatedAt: null });
+    const [extensionReports, setExtensionReports] = useState([]);
     const [wastageData, setWastageData] = useState({ item: '', amount: '', reason: 'Students dislike this item' });
     const [hostelStatus, setHostelStatus] = useState('');
     const [loading, setLoading] = useState(false);
@@ -46,7 +48,7 @@ const Reports = () => {
         if (reportType === 'Attendance') {
             title = 'Daily Student Attendance Report';
             type = 'Attendance';
-            content = `Daily attendance summary: Present: 204, Absent: 12, On Leave: 8. Verified by Rector.`;
+            content = `Daily attendance summary: Present: ${attendance.present}, Absent: ${attendance.absent}, On Leave: ${attendance.onLeave}. Verified by Rector.`;
         } else if (reportType === 'Mess Wastage') {
             if (!wastageData.item || !wastageData.amount) {
                 alert('Please fill out the food wastage item and estimated amount.');
