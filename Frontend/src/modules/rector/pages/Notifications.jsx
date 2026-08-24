@@ -82,6 +82,36 @@ const Notifications = () => {
         fetchData();
     }, []);
 
+    const handleSendReminder = async () => {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+
+        setIsSendingReminder(true);
+        setStatusMessage('');
+        try {
+            const response = await fetch(`${API_BASE_URL}/notifications`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    title: 'Fee Payment Reminder',
+                    content: 'Please clear any pending hostel fees before the payment deadline.',
+                    category: 'Warning',
+                    target: 'Students'
+                })
+            });
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.message || 'Could not send reminder.');
+            setStatusMessage('Fee reminder sent to students.');
+        } catch (error) {
+            setStatusMessage(error.message);
+        } finally {
+            setIsSendingReminder(false);
+        }
+    };
+
     return (
         <>
             <Header title="Notifications" />

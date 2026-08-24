@@ -20,7 +20,6 @@ function ForgotPasswordPage() {
     const [error, setError] = useState(null);
     const [successMsg, setSuccessMsg] = useState(null);
 
-    // If URL contains ?token=xyz, automatically switch to 'reset' step and set token
     useEffect(() => {
         const tokenParam = searchParams.get('token');
         if (tokenParam) {
@@ -29,7 +28,6 @@ function ForgotPasswordPage() {
         }
     }, [searchParams]);
 
-    // Password validation helpers
     const hasMinLength = newPassword.length >= 8;
     const hasUppercase = /[A-Z]/.test(newPassword);
     const hasLowercase = /[a-z]/.test(newPassword);
@@ -39,7 +37,6 @@ function ForgotPasswordPage() {
 
     const isPasswordValid = hasMinLength && hasUppercase && hasLowercase && hasNumber && hasSpecial;
 
-    // Handle Step 1: Request reset email/token
     const handleRequestReset = async (e) => {
         e.preventDefault();
         setError(null);
@@ -69,7 +66,6 @@ function ForgotPasswordPage() {
         }
     };
 
-    // Handle Step 2: Set new password
     const handleResetPassword = async (e) => {
         e.preventDefault();
         setError(null);

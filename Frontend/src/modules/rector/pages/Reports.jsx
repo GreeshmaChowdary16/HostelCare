@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Header from '../../../components/Header';
 import { API_BASE_URL } from '../../../config';
 
@@ -9,10 +9,31 @@ const Reports = () => {
     const [statusMessage, setStatusMessage] = useState('');
     const [statusType, setStatusType] = useState('success'); // 'success' or 'error'
 
-    const extensionReports = [
-        { id: 1, name: 'Anjali Sharma', days: '2', reason: 'Train Delay', status: 'Verified', proof: 'Ticket.pdf' },
-        { id: 2, name: 'Riya Gupta', days: '1', reason: 'Medical', status: 'Verified', proof: 'Note.jpg' }
-    ];
+    useEffect(() => {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+        const headers = { 'Authorization': `Bearer ${token}` };
+        Promise.all([
+            fetch(`${API_BASE_URL}/students/live-status`, { headers }),
+            fetch(`${API_BASE_URL}/gatepass`, { headers }),
+        ]).then(async ([studentsResponse, gatePassResponse]) => {
+            if (studentsResponse.ok) {
+                const data = await studentsResponse.json();
+                setAttendance({ present: data.present || 0, absent: Math.max(0, (data.total || 0) - (data.present || 0) - (data.onLeave || 0)), onLeave: data.onLeave || 0, updatedAt: data.updatedAt });
+            }
+            if (gatePassResponse.ok) {
+                const data = await gatePassResponse.json();
+                setExtensionReports(data.filter((item) => item.isExtension).map((item) => ({
+                    id: item._id,
+                    name: item.student?.name || 'Student',
+                    days: item.noOfDays,
+                    reason: item.reason,
+                    status: item.status,
+                    proof: item.proof,
+                })));
+            }
+        }).catch((error) => console.error('Error loading report data:', error));
+    }, []);
 
     const handleSubmitReport = async (reportType) => {
         setLoading(true);
@@ -135,19 +156,19 @@ const Reports = () => {
                     <div className="stats-mini">
                         <div className="stat-mini-box bg-success">
                             <div style={{ fontSize: '11px', opacity: 0.8 }}>PRESENT</div>
-                            <div style={{ fontSize: '24px', fontWeight: 700 }}>204</div>
+                            <div style={{ fontSize: '24px', fontWeight: 700 }}>{attendance.present}</div>
                         </div>
                         <div className="stat-mini-box bg-danger">
                             <div style={{ fontSize: '11px', opacity: 0.8 }}>ABSENT</div>
-                            <div style={{ fontSize: '24px', fontWeight: 700 }}>12</div>
+                            <div style={{ fontSize: '24px', fontWeight: 700 }}>{attendance.absent}</div>
                         </div>
                         <div className="stat-mini-box bg-warning">
                             <div style={{ fontSize: '11px', opacity: 0.8 }}>ON LEAVE</div>
-                            <div style={{ fontSize: '24px', fontWeight: 700 }}>08</div>
+                            <div style={{ fontSize: '24px', fontWeight: 700 }}>{attendance.onLeave}</div>
                         </div>
                     </div>
                     <div style={{ background: '#f8f9fc', padding: '15px', borderRadius: '8px', marginBottom: '15px', fontSize: '13px' }}>
-                        <i className="fas fa-info-circle text-primary"></i> Last sync with entry scanner: 10 minutes ago.
+                        <i className="fas fa-info-circle text-primary"></i> Last sync: {attendance.updatedAt ? new Date(attendance.updatedAt).toLocaleString() : 'Not available'}.
                     </div>
                     <button 
                         type="button" 
@@ -261,7 +282,7 @@ const Reports = () => {
                                     <td style={{ padding: '12px', fontSize: '13px', color: '#e74a3b' }}>+{report.days} Days</td>
                                     <td style={{ padding: '12px', fontSize: '13px' }}>{report.reason}</td>
                                     <td style={{ padding: '12px', fontSize: '12px' }}>
-                                        <a href="#" style={{ color: '#4e73df' }}><i className="fas fa-file-alt"></i> {report.proof}</a>
+                                        {report.proof ? <a href={getImageUrl(report.proof)} target="_blank" rel="noreferrer" style={{ color: '#4e73df' }}><i className="fas fa-file-alt"></i> {report.proof}</a> : 'Not provided'}
                                     </td>
                                     <td style={{ padding: '12px' }}>
                                         <span style={{ fontSize: '11px', background: '#e6fffa', color: '#1cc88a', padding: '3px 8px', borderRadius: '4px', fontWeight: 700 }}>

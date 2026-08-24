@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import Header from '../../../components/Header';
-import { API_BASE_URL } from '../../../config';
+import { API_BASE_URL, getImageUrl } from '../../../config';
 
 const AdminDashboard = () => {
     // Data States
@@ -308,21 +308,26 @@ const AdminDashboard = () => {
                 {/* Left Sidebar */}
                 <div className="left-sidebar">
                     <div className="profile-card">
-                        <div className="profile-img-container">
-                            <i className="fas fa-user-shield"></i>
+                        <div className="profile-img-container" style={{ overflow: 'hidden' }}>
+                            {adminProfile.profileImage ? (
+                                <img src={getImageUrl(adminProfile.profileImage)} alt="Admin Profile" style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
+                            ) : (
+                                <i className="fas fa-user-shield"></i>
+                            )}
                         </div>
-                        <h3 className="profile-name">Mr. System Admin</h3>
+                        <Link to="/admin/settings" style={{ fontSize: '12px', color: '#1cc88a', textDecoration: 'none', fontWeight: 600, marginTop: '-10px', marginBottom: '15px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                            <i className="fas fa-camera"></i> Change Photo
+                        </Link>
+                        <h3 className="profile-name">{adminProfile.name}</h3>
                         <div className="profile-role">Chief Administrator</div>
 
                         <div className="profile-details-grid">
-                            <span className="detail-label">Admin ID</span>
-                            <span className="detail-value">ADM-001</span>
+                            <span className="detail-label">Admin Email</span>
+                            <span className="detail-value" style={{ fontSize: '13px' }}>{adminProfile.email}</span>
                             <span className="detail-label">Mobile</span>
-                            <span className="detail-value">+91 99887 76655</span>
-                            <span className="detail-label">Email</span>
-                            <span className="detail-value" style={{ fontSize: '13px' }}>admin@hostel.edu</span>
+                            <span className="detail-value">{adminProfile.phone}</span>
                             <span className="detail-label">Office</span>
-                            <span className="detail-value">Main Block</span>
+                            <span className="detail-value">{adminProfile.office}</span>
                         </div>
                     </div>
                 </div>

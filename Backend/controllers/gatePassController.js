@@ -20,19 +20,24 @@ export const applyGatePass = async (req, res) => {
     } = req.body;
     const filePath = req.file ? `/uploads/${req.file.filename}` : proof || "";
 
+    const calculatedDays = noOfDays || (fromDate && toDate ? Math.max(1, Math.ceil((new Date(toDate) - new Date(fromDate)) / (1000 * 60 * 60 * 24))) : 1);
+    const dest = destination || "Hometown";
+    const contact = contactNo || req.user.phone || "+91 99887 76655";
+    const parentContact = parentContactNo || parentMobile || req.user.parentPhone || "+91 94444 55555";
+
     const gatePass = await GatePass.create({
       student: req.user._id,
-      reason,
-      fromDate,
-      toDate,
-      noOfDays,
-      destination,
-      contactNo,
-      parentContactNo,
+      reason: reason || "Personal Work",
+      fromDate: fromDate ? new Date(fromDate) : new Date(),
+      toDate: toDate ? new Date(toDate) : new Date(Date.now() + 86400000),
+      noOfDays: calculatedDays,
+      destination: dest,
+      contactNo: contact,
+      parentContactNo: parentContact,
       timeFrom: timeFrom || "09:00 AM",
       timeTo: timeTo || "06:00 PM",
       isExtension: isExtension || false,
-      parentMobile: parentMobile || "",
+      parentMobile: parentContact,
       proof: filePath,
     });
 

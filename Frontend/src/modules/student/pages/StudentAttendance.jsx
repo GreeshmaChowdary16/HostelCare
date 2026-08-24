@@ -1,6 +1,37 @@
 import React, { useState, useEffect } from 'react';
 import Header from '../../../components/Header';
 import { API_BASE_URL } from '../../../config';
+import socket from '../../../socket';
+
+const ALL_MONTHS = [
+    "January 2026", "February 2026", "March 2026", "April 2026",
+    "May 2026", "June 2026", "July 2026", "August 2026",
+    "September 2026", "October 2026", "November 2026", "December 2026"
+];
+
+const getCurrentRealMonth = () => {
+    const now = new Date();
+    const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+    const monthStr = `${months[now.getMonth()]} ${now.getFullYear()}`;
+    return ALL_MONTHS.includes(monthStr) ? monthStr : "August 2026";
+};
+
+const generateMonthData = (monthYearStr) => {
+    const parts = monthYearStr.split(" ");
+    const monthName = parts[0];
+    const year = parseInt(parts[1], 10) || 2026;
+    const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+    const monthIdx = monthNames.indexOf(monthName);
+    
+    if (monthIdx === -1) {
+        return { daysInMonth: 31, firstDay: 0, records: {} };
+    }
+
+    const daysInMonth = new Date(year, monthIdx + 1, 0).getDate();
+    const firstDay = new Date(year, monthIdx, 1).getDay();
+
+    return { daysInMonth, firstDay, records: {} };
+};
 
 const StudentAttendance = () => {
     // Helper to generate the current year's months dynamically (January to December)
@@ -249,7 +280,9 @@ const StudentAttendance = () => {
             }
 
             const attendance = await response.json();
-            setAttendanceData(attendance);
+            const attendanceRecord = Array.isArray(attendance) ? attendance[0] : attendance;
+            setAttendanceData(attendanceRecord);
+            setAttendanceMonthState(buildMonthState(attendanceRecord));
         } catch (error) {
             setAttendanceError('Unable to load attendance. Please try again later.');
             setAttendanceData(null);
@@ -261,6 +294,15 @@ const StudentAttendance = () => {
 
     useEffect(() => {
         fetchAttendance();
+
+        const onAttendanceUpdated = () => {
+            fetchAttendance();
+        };
+
+        socket.on('attendance_updated', onAttendanceUpdated);
+        return () => {
+            socket.off('attendance_updated', onAttendanceUpdated);
+        };
     }, [selectedMonth]);
 
     return (
@@ -652,11 +694,11 @@ const StudentAttendance = () => {
                                     <span className="legend-color" style={{ background: '#e74a3b' }}></span> On Leave
                                 </div>
                                 <div className="legend-item">
-                                    <span className="legend-color" style={{ background: '#f6c23e' }}></span> Not Marked
+                                    <span className="legend-color" style={{ background: '#f6c23e' }}></span> Not Recorded
                                 </div>
                             </div>
                             <div style={{ fontSize: '12px', color: '#858796', fontWeight: 600 }}>
-                                *Click on any day to view verification method
+                                Select a day to view its verification details
                             </div>
                         </div>
 
@@ -674,7 +716,7 @@ const StudentAttendance = () => {
                                 const bg = getStatusColor(dayRecord.status);
                                 const label = dayRecord.method === 'Face Scan' ? 'Scan' : 
                                               dayRecord.method === 'Rector Manual' ? 'Rect' : 
-                                              dayRecord.method === 'Gate Pass' ? 'Leave' : 'Miss';
+                                              dayRecord.method === 'Gate Pass' ? 'Leave' : 'No Record';
 
                                 return (
                                     <div 
@@ -720,7 +762,7 @@ const StudentAttendance = () => {
                             </div>
 
                             <div className="stat-box" style={{ borderLeft: '4px solid #f6c23e', gridColumn: 'span 2' }}>
-                                <div className="stat-label">Absent / Not Marked</div>
+                                <div className="stat-label">Not Recorded</div>
                                 <div className="stat-value" style={{ color: '#f6c23e' }}>{absentCount}</div>
                                 <div style={{ fontSize: '10px', color: '#858796', marginTop: '3px' }}>
                                     Requires roll call verification
@@ -735,7 +777,7 @@ const StudentAttendance = () => {
                                     <i className="fas fa-fingerprint" style={{ color: '#4e73df' }}></i> Log Details
                                 </div>
                                 <span className={`badge-status badge-${selectedRecord.status === 'present' ? 'present' : selectedRecord.status === 'leave' ? 'leave' : 'missing'}`}>
-                                    {selectedRecord.status === 'present' ? 'Present' : selectedRecord.status === 'leave' ? 'Leave' : 'Absent'}
+                                    {selectedRecord.status === 'present' ? 'Present' : selectedRecord.status === 'leave' ? 'Leave' : 'Not Recorded'}
                                 </span>
                             </div>
 
@@ -766,21 +808,6 @@ const StudentAttendance = () => {
                                 <span className="detail-value" style={{ textAlign: 'left', color: '#5a5c69', fontSize: '12px', fontWeight: 500, lineHeight: 1.5, background: '#f8f9fc', padding: '10px', borderRadius: '6px', marginTop: '3px' }}>
                                     {selectedRecord.details}
                                 </span>
-                            </div>
-
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginTop: '20px' }}>
-                                <button className="mark-button present" onClick={() => handleMarkAttendance('present')} disabled={isLoadingAttendance}>
-                                    Mark Present
-                                </button>
-                                <button className="mark-button leave" onClick={() => handleMarkAttendance('leave')} disabled={isLoadingAttendance}>
-                                    Mark Leave
-                                </button>
-                                <button className="mark-button missing" onClick={() => handleMarkAttendance('not_marked')} disabled={isLoadingAttendance}>
-                                    Mark Not Recorded
-                                </button>
-                                <button className="save-button" onClick={saveAttendanceChanges} disabled={isLoadingAttendance}>
-                                    Save Changes
-                                </button>
                             </div>
 
                             {selectedRecord.status === 'present' && selectedRecord.method === 'Face Scan' && (

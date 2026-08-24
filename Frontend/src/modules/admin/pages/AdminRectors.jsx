@@ -8,6 +8,7 @@ function AdminRectors() {
     const [selectedRector, setSelectedRector] = useState(null);
     const [searchQuery, setSearchQuery] = useState('');
 
+
     // Loading & Error States
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);

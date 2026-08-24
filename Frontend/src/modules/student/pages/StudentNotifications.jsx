@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Header from '../../../components/Header';
+import { useNavigate } from 'react-router-dom';
 import { API_BASE_URL } from '../../../config';
 
 function StudentNotifications() {
@@ -49,6 +50,18 @@ function StudentNotifications() {
         setNotifications(updated);
         setStatusMessage('Notification dismissed.');
         setTimeout(() => setStatusMessage(''), 2500);
+    };
+
+    const handleNotifClick = (notif) => {
+        if (notif.type === 'fee') {
+            navigate('/student/settings');
+        } else if (notif.type === 'gatepass') {
+            navigate('/student/gatepass');
+        } else if (notif.type === 'attendance') {
+            navigate('/student/attendance');
+        } else {
+            navigate('/student/announcements');
+        }
     };
 
     const handleDismissAll = () => {
@@ -149,12 +162,13 @@ function StudentNotifications() {
                     display: flex;
                     gap: 20px;
                     position: relative;
+                    cursor: pointer;
                     transition: transform 0.2s, box-shadow 0.2s;
                 }
 
                 .notif-card:hover {
                     transform: translateY(-2px);
-                    box-shadow: 0 8px 12px rgba(0,0,0,0.04);
+                    box-shadow: 0 8px 12px rgba(0,0,0,0.06);
                 }
 
                 .notif-icon-wrapper {
@@ -212,6 +226,7 @@ function StudentNotifications() {
                     cursor: pointer;
                     font-size: 16px;
                     transition: color 0.2s;
+                    z-index: 2;
                 }
 
                 .btn-dismiss:hover {

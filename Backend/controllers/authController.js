@@ -17,6 +17,8 @@ const buildAuthResponse = (user, token, refreshToken) => ({
   refreshToken,
   role: user.role,
   name: user.name,
+  email: user.email,
+  profileImage: user.profileImage || "",
 });
 
 const validatePasswordStrength = (password) => {
@@ -121,7 +123,20 @@ const createSession = (req, refreshToken) => ({
 // REGISTER
 export const registerUser = async (req, res) => {
   try {
-    const { name, email, password, role } = req.body;
+    const {
+      name,
+      email,
+      password,
+      role,
+      phone,
+      parentPhone,
+      rollNo,
+      branch,
+      year,
+      state,
+      roomInfo,
+      bio,
+    } = req.body;
 
     const normalizedRole = (role || "student").toLowerCase();
     if (normalizedRole === "admin" || normalizedRole === "rector") {
@@ -158,6 +173,14 @@ export const registerUser = async (req, res) => {
       email: email.toLowerCase(),
       password: hashedPassword,
       role: normalizedRole,
+      phone: phone || "",
+      parentPhone: parentPhone || "",
+      rollNo: rollNo || "",
+      branch: branch || "",
+      year: year || "",
+      state: state || "",
+      roomInfo: roomInfo || "",
+      bio: bio || "",
       verificationToken,
       verificationTokenExpires: Date.now() + 24 * 60 * 60 * 1000,
     });
@@ -324,8 +347,11 @@ export const updateMe = async (req, res) => {
       "rollNo",
       "branch",
       "year",
+      "state",
       "roomInfo",
       "office",
+      "staffId",
+      "shift",
       "bio",
     ];
 
@@ -337,6 +363,10 @@ export const updateMe = async (req, res) => {
 
     if (req.file) {
       req.user.profileImage = `/uploads/${req.file.filename}`;
+    } else if (req.body.removeProfileImage === "true" || req.body.removeProfileImage === true || req.body.profileImage === "") {
+      req.user.profileImage = "";
+    } else if (req.body.profileImage && typeof req.body.profileImage === "string") {
+      req.user.profileImage = req.body.profileImage;
     }
 
     if (req.body.email && !validator.isEmail(req.body.email)) {

@@ -1,12 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import Header from '../../../components/Header';
-import { Link } from 'react-router-dom';
-import { API_BASE_URL } from '../../../config';
+import { Link, useNavigate } from 'react-router-dom';
+import { API_BASE_URL, getImageUrl } from '../../../config';
+import socket from '../../../socket';
 
 const StudentDashboard = () => {
+    const navigate = useNavigate();
     const [complaints, setComplaints] = useState([]);
     const [gatepasses, setGatepasses] = useState([]);
     const [announcements, setAnnouncements] = useState([]);
+    const [attendancePercent, setAttendancePercent] = useState('92%');
+    const [todayPresent, setTodayPresent] = useState(true);
+    const [feeAmount, setFeeAmount] = useState('₹12,500');
+    const [feeDueDate, setFeeDueDate] = useState('15 Feb 2026');
     const [isLoading, setIsLoading] = useState(true);
     const [feeSummary, setFeeSummary] = useState({ totalPending: 0 });
     const [nextDueDate, setNextDueDate] = useState(null);
@@ -18,7 +24,8 @@ const StudentDashboard = () => {
         branch: 'Student',
         rollNo: '',
         roomInfo: '',
-        parentPhone: ''
+        parentPhone: '',
+        profileImage: localStorage.getItem('profileImage') || ''
     });
 
     useEffect(() => {
@@ -94,6 +101,17 @@ const StudentDashboard = () => {
         };
 
         fetchData();
+
+        const handleRealtimeUpdate = () => {
+            fetchData();
+        };
+
+        socket.on('attendance_updated', handleRealtimeUpdate);
+        window.addEventListener('profileUpdate', handleRealtimeUpdate);
+        return () => {
+            socket.off('attendance_updated', handleRealtimeUpdate);
+            window.removeEventListener('profileUpdate', handleRealtimeUpdate);
+        };
     }, []);
 
     // Filter announcements to find any marked as emergency or urgent alert
@@ -199,6 +217,24 @@ const StudentDashboard = () => {
                     text-align: right;
                 }
 
+                .interactive-card {
+                    cursor: pointer;
+                    transition: transform 0.2s ease, box-shadow 0.2s ease;
+                }
+                .interactive-card:hover {
+                    transform: translateY(-4px);
+                    box-shadow: 0 8px 16px rgba(0,0,0,0.08) !important;
+                }
+
+                .interactive-item {
+                    cursor: pointer;
+                    transition: background 0.2s ease, padding-left 0.2s ease;
+                }
+                .interactive-item:hover {
+                    background: #f8f9fc;
+                    padding-left: 8px !important;
+                }
+
                 @media (max-width: 992px) {
                     .dashboard-container { flex-direction: column; }
                     .left-sidebar { width: 100%; }
@@ -209,9 +245,16 @@ const StudentDashboard = () => {
                 {/* Left Sidebar - Student Profile */}
                 <div className="left-sidebar">
                     <div className="profile-card">
-                        <div className="profile-img-container">
-                            <img src={profilePhoto} alt="Student" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        <div className="profile-img-container" style={{ position: 'relative' }}>
+                            {studentInfo.profileImage ? (
+                                <img src={getImageUrl(studentInfo.profileImage)} alt="Student Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                            ) : (
+                                <img src={profilePhoto} alt="Student Placeholder" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                            )}
                         </div>
+                        <Link to="/student/settings" style={{ fontSize: '12px', color: '#4e73df', textDecoration: 'none', fontWeight: 600, marginTop: '-10px', marginBottom: '15px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                            <i className="fas fa-camera"></i> Change Photo
+                        </Link>
                         <h3 className="profile-name">{studentInfo.name}</h3>
                         <div className="profile-role">{studentInfo.branch}</div>
 

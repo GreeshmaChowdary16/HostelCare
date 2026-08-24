@@ -3,7 +3,7 @@ import Header from '../../../components/Header';
 import { API_BASE_URL } from '../../../config';
 
 const AdminSettings = () => {
-    const [activeMenu, setActiveMenu] = useState('security');
+    const [activeMenu, setActiveMenu] = useState('profile');
     const [currentPassword, setCurrentPassword] = useState('');
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
@@ -232,7 +232,7 @@ const AdminSettings = () => {
                                     <i className="fas fa-info-circle"></i> Security Tip: Use a combination of letters, numbers and special characters.
                                 </div>
 
-                                <form>
+                                <form onSubmit={handleUpdatePassword}>
                                     <div style={{ marginBottom: '20px' }}>
                                         <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500, color: '#5a5c69' }}>Current Password</label>
                                         <input type="password" placeholder="Enter current password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} style={{ width: '100%', padding: '12px', border: '1px solid #d1d3e2', borderRadius: '5px', fontSize: '14px' }} />
@@ -261,7 +261,34 @@ const AdminSettings = () => {
                                     <div className="widget-title">Profile Settings</div>
                                 </div>
 
-                                <form>
+                                <form onSubmit={handleSaveProfile}>
+                                    {/* Profile Photo Manager */}
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '20px', marginBottom: '25px', padding: '15px', background: '#f8f9fc', borderRadius: '10px', border: '1px dashed #d1d3e2' }}>
+                                        <div style={{ width: '85px', height: '85px', borderRadius: '50%', overflow: 'hidden', background: '#e0e0e0', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 10px rgba(0,0,0,0.1)', border: '3px solid #fff', flexShrink: 0 }}>
+                                            {previewUrl ? (
+                                                <img src={previewUrl} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                            ) : profileImage ? (
+                                                <img src={getImageUrl(profileImage)} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                            ) : (
+                                                <i className="fas fa-user-shield" style={{ fontSize: '34px', color: '#1cc88a' }}></i>
+                                            )}
+                                        </div>
+                                        <div style={{ flex: 1 }}>
+                                            <h4 style={{ margin: '0 0 4px 0', fontSize: '15px', color: '#333' }}>Administrator Profile Photo</h4>
+                                            <p style={{ margin: '0 0 10px 0', fontSize: '12px', color: '#858796' }}>Upload an official administrator photo for your account (JPG, PNG up to 5MB).</p>
+                                            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
+                                                <label style={{ padding: '8px 16px', fontSize: '13px', background: '#1cc88a', color: 'white', borderRadius: '5px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px', fontWeight: 500 }}>
+                                                    <i className="fas fa-camera"></i> {selectedFile ? 'Change Selected File' : 'Upload Photo'}
+                                                    <input type="file" accept="image/*" style={{ display: 'none' }} onChange={handleFileChange} />
+                                                </label>
+                                                {(selectedFile || profileImage) && (
+                                                    <button type="button" onClick={handleRemovePhoto} style={{ padding: '8px 16px', fontSize: '13px', background: '#fff', border: '1px solid #e74a3b', color: '#e74a3b', borderRadius: '5px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px', fontWeight: 500 }}>
+                                                        <i className="fas fa-trash-alt"></i> Remove Photo
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
                                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
                                         <div>
                                             <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500, color: '#5a5c69' }}>Full Name</label>

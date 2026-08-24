@@ -2,14 +2,23 @@ import Worker from "../models/Worker.js";
 
 export const createWorker = async (req, res) => {
   try {
-    const { name, category, phone, availability } = req.body;
-    if (!name || !category) {
-      return res.status(400).json({ message: "Name and category are required" });
+    const { name, category, skill, phone, availability } = req.body;
+    let finalCategory = category || skill || "Electrician";
+
+    if (finalCategory === "Carpentry") finalCategory = "Carpenter";
+    if (finalCategory === "Electrical") finalCategory = "Electrician";
+    if (finalCategory === "Plumbing") finalCategory = "Plumber";
+
+    const validCategories = ["Electrician", "Plumber", "Carpenter", "Cleaning", "Security", "IT Support"];
+    const matchedCategory = validCategories.find(c => c.toLowerCase() === finalCategory.toLowerCase()) || "Electrician";
+
+    if (!name) {
+      return res.status(400).json({ message: "Name is required" });
     }
 
     const worker = await Worker.create({
       name,
-      category,
+      category: matchedCategory,
       phone: phone || "",
       availability: availability || "Available",
     });

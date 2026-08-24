@@ -193,6 +193,11 @@ const Complaints = () => {
     };
 
     const electricPending = complaints.filter(c => c.category === 'Electrician' && c.status !== 'Resolved' && c.status !== 'Rejected').length;
+    const visibleComplaints = complaints.filter((complaint) => {
+        if (!roomFilter.trim()) return true;
+        const room = complaint.student?.roomInfo || complaint.student?.roomNo || '';
+        return room.toLowerCase().includes(roomFilter.trim().toLowerCase());
+    });
     const plumberPending = complaints.filter(c => c.category === 'Plumber' && c.status !== 'Resolved' && c.status !== 'Rejected').length;
     const carpenterPending = complaints.filter(c => c.category === 'Carpenter' && c.status !== 'Resolved' && c.status !== 'Rejected').length;
     const cleaningPending = complaints.filter(c => c.category === 'Cleaning' && c.status !== 'Resolved' && c.status !== 'Rejected').length;
@@ -475,7 +480,7 @@ const Complaints = () => {
                 <div className="section-card">
                     <div className="card-header">
                         <div className="card-title"><i className="fas fa-utensils"></i> Mess Menu Insights</div>
-                        <button className="action-btn-sm">View Full Menu</button>
+                        <button className="action-btn-sm" onClick={() => window.location.href = '/rector/mess-menu'}>View Full Menu</button>
                     </div>
 
                     <div className="mess-grid">
@@ -527,8 +532,17 @@ const Complaints = () => {
                 <div className="section-card">
                     <div className="card-header">
                         <div className="card-title">Complaint Status &amp; Tracking</div>
-                        <button className="action-btn-sm">Filter by Room</button>
+                        <button className="action-btn-sm" onClick={() => setShowRoomFilter(!showRoomFilter)}>{showRoomFilter ? 'Hide Room Filter' : 'Filter by Room'}</button>
                     </div>
+                    {showRoomFilter && (
+                        <input
+                            className="room-filter-input"
+                            value={roomFilter}
+                            onChange={(event) => setRoomFilter(event.target.value)}
+                            placeholder="Enter room number"
+                            aria-label="Filter complaints by room"
+                        />
+                    )}
                     <div className="table-responsive">
                         <table className="custom-table">
                             <thead>
@@ -604,7 +618,13 @@ const Complaints = () => {
                                                     </select>
                                                 </td>
                                                 <td>
-                                                    <button onClick={() => alert(`Worker contact: ${comp.assignedWorker?.phone || 'Not assigned'}`)} className="btn-resolve">Contact</button>
+                                                    <button
+                                                        onClick={() => comp.assignedWorker?.name && setSelectedWorker({ ...comp.assignedWorker, complaint: comp.problem })}
+                                                        className="btn-resolve"
+                                                        disabled={!comp.assignedWorker?.name}
+                                                    >
+                                                        <i className="fas fa-phone" style={{ marginRight: '5px' }}></i> Contact
+                                                    </button>
                                                 </td>
                                             </tr>
                                         );
@@ -615,6 +635,46 @@ const Complaints = () => {
                     </div>
                 </div>
             </div>
+            {selectedWorker && (
+                <div
+                    onClick={() => setSelectedWorker(null)}
+                    style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(26, 35, 54, 0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}
+                >
+                    <div
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="worker-contact-title"
+                        onClick={(event) => event.stopPropagation()}
+                        style={{ width: 'min(420px, 100%)', background: '#fff', borderRadius: '10px', padding: '25px', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}
+                    >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '15px' }}>
+                            <div>
+                                <h2 id="worker-contact-title" style={{ margin: 0, color: '#343a40', fontSize: '20px' }}>Assigned Worker</h2>
+                                <p style={{ margin: '6px 0 20px', color: '#858796', fontSize: '13px' }}>{selectedWorker.complaint}</p>
+                            </div>
+                            <button type="button" onClick={() => setSelectedWorker(null)} aria-label="Close worker contact" style={{ border: 0, background: '#f8f9fc', borderRadius: '50%', width: '32px', height: '32px', cursor: 'pointer' }}>
+                                <i className="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <div style={{ background: '#f8f9fc', borderRadius: '8px', padding: '16px', marginBottom: '18px' }}>
+                            <div style={{ fontWeight: 700, fontSize: '17px', color: '#343a40' }}>{selectedWorker.name}</div>
+                            <div style={{ color: '#4e73df', fontWeight: 600, marginTop: '5px' }}>{selectedWorker.category || 'Assigned Staff'}</div>
+                            <div style={{ color: '#858796', fontSize: '13px', marginTop: '5px' }}>{selectedWorker.availability || 'Availability not provided'}</div>
+                            <div style={{ marginTop: '14px', color: '#5a5c69' }}>
+                                <i className="fas fa-phone" style={{ marginRight: '8px' }}></i>
+                                {selectedWorker.phone || 'Phone number not provided'}
+                            </div>
+                        </div>
+                        {selectedWorker.phone ? (
+                            <a href={`tel:${selectedWorker.phone}`} className="btn-resolve" style={{ display: 'block', textAlign: 'center', textDecoration: 'none' }}>
+                                <i className="fas fa-phone" style={{ marginRight: '7px' }}></i> Call Worker
+                            </a>
+                        ) : (
+                            <div style={{ color: '#e74a3b', fontSize: '13px', textAlign: 'center' }}>Add a phone number to this worker before calling.</div>
+                        )}
+                    </div>
+                </div>
+            )}
         </>
     );
 };
