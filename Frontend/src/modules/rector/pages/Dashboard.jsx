@@ -524,7 +524,7 @@ const Dashboard = () => {
                     <div className="table-card">
                         <div className="table-header-row">
                             <div className="table-title">Complaint Status &amp; Assignment</div>
-                            <button className="btn-sm" style={{ background: '#eaecf4', color: '#6e707e', border: 'none' }}>View All</button>
+                            <Link to="/rector/complaints" className="btn-sm" style={{ background: '#eaecf4', color: '#6e707e', border: 'none', textDecoration: 'none' }}>View All</Link>
                         </div>
                         <table className="custom-table">
                             <thead>

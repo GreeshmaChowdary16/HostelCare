@@ -330,7 +330,7 @@ const StudentDashboard = () => {
                                 <i className={`fas ${todayPresent ? 'fa-check-circle' : 'fa-times-circle'}`}></i>
                             </div>
                             <div style={{ fontSize: '18px', fontWeight: 700, color: todayPresent ? '#1cc88a' : '#e74a3b' }}>{todayPresent ? 'Present' : 'Absent'}</div>
-                            <div style={{ fontSize: '11px', color: '#858796', marginTop: '5px' }}>Click to view / mark attendance</div>
+                            <div style={{ fontSize: '11px', color: '#858796', marginTop: '5px' }}>View verified attendance history</div>
                         </div>
 
                         <div className="widget interactive-card" style={{ textAlign: 'center', padding: '25px' }} onClick={() => navigate('/student/settings')}>

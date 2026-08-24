@@ -7,6 +7,8 @@ const Complaints = () => {
     const [complaints, setComplaints] = useState([]);
     const [workers, setWorkers] = useState([]);
     const [selectedWorker, setSelectedWorker] = useState(null);
+    const [roomFilter, setRoomFilter] = useState('');
+    const [showRoomFilter, setShowRoomFilter] = useState(false);
 
     const fetchComplaints = async () => {
         const token = localStorage.getItem('token');
@@ -113,6 +115,11 @@ const Complaints = () => {
     };
 
     const electricPending = complaints.filter(c => c.category === 'Electrician' && c.status !== 'Resolved' && c.status !== 'Rejected').length;
+    const visibleComplaints = complaints.filter((complaint) => {
+        if (!roomFilter.trim()) return true;
+        const room = complaint.student?.roomInfo || complaint.student?.roomNo || '';
+        return room.toLowerCase().includes(roomFilter.trim().toLowerCase());
+    });
     const plumberPending = complaints.filter(c => c.category === 'Plumber' && c.status !== 'Resolved' && c.status !== 'Rejected').length;
     const carpenterPending = complaints.filter(c => c.category === 'Carpenter' && c.status !== 'Resolved' && c.status !== 'Rejected').length;
     const cleaningPending = complaints.filter(c => c.category === 'Cleaning' && c.status !== 'Resolved' && c.status !== 'Rejected').length;
@@ -395,7 +402,7 @@ const Complaints = () => {
                 <div className="section-card">
                     <div className="card-header">
                         <div className="card-title"><i className="fas fa-utensils"></i> Mess Menu Insights</div>
-                        <button className="action-btn-sm">View Full Menu</button>
+                        <button className="action-btn-sm" onClick={() => window.location.href = '/rector/mess-menu'}>View Full Menu</button>
                     </div>
 
                     <div className="mess-grid">
@@ -447,8 +454,17 @@ const Complaints = () => {
                 <div className="section-card">
                     <div className="card-header">
                         <div className="card-title">Complaint Status &amp; Tracking</div>
-                        <button className="action-btn-sm">Filter by Room</button>
+                        <button className="action-btn-sm" onClick={() => setShowRoomFilter(!showRoomFilter)}>{showRoomFilter ? 'Hide Room Filter' : 'Filter by Room'}</button>
                     </div>
+                    {showRoomFilter && (
+                        <input
+                            className="room-filter-input"
+                            value={roomFilter}
+                            onChange={(event) => setRoomFilter(event.target.value)}
+                            placeholder="Enter room number"
+                            aria-label="Filter complaints by room"
+                        />
+                    )}
                     <div className="table-responsive">
                         <table className="custom-table">
                             <thead>
