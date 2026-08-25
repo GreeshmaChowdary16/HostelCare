@@ -147,7 +147,11 @@ export const getMyFees = async (req, res, next) => {
     const studentId = req.user._id;
     await updateOverdueStatus({ student: studentId });
 
-    const fees = await Fee.find({ student: studentId }).sort({ dueDate: 1 });
+    // Focus only on Hostel Fee records - exclude Academic / Tuition / College fees
+    const fees = await Fee.find({
+      student: studentId,
+      feeType: { $not: /academic|tuition|college/i },
+    }).sort({ dueDate: 1 });
 
     let totalBilled = 0;
     let totalPaid = 0;

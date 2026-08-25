@@ -13,7 +13,7 @@ import {
 
 const router = express.Router();
 
-router.get("/", protect, authorizeRoles("admin", "rector"), getRectors);
+router.get("/", protect, authorizeRoles("admin", "rector", "student"), getRectors);
 router.post("/", protect, authorizeRoles("admin"), createRector);
 router.put("/:id", protect, authorizeRoles("admin"), updateRector);
 router.delete("/:id", protect, authorizeRoles("admin"), deleteRector);

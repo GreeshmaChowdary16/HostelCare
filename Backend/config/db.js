@@ -1,4 +1,8 @@
 import mongoose from "mongoose";
+import dns from "dns";
+
+// Resolve DNS using public DNS servers to bypass misconfigured local loopback DNS / VPN resolver issues
+dns.setServers(["8.8.8.8", "8.8.4.4", "1.1.1.1"]);
 
 const connectDB = async () => {
   try {
@@ -12,4 +16,4 @@ const connectDB = async () => {
   }
 };
 
-export default connectDB;
+export default connectDB;

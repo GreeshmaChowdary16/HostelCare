@@ -24,14 +24,28 @@ export const getMessMenu = async (req, res) => {
 
 export const updateMessMenu = async (req, res) => {
   try {
-    const { weeklyMenu } = req.body;
-    if (!weeklyMenu) {
-      return res.status(400).json({ message: "Weekly menu data is required" });
-    }
+    let { weeklyMenu, day, breakfast, lunch, dinner, snacks } = req.body;
 
     let menuDoc = await MessMenu.findOne();
-    const existingMenu = menuDoc ? menuDoc.weeklyMenu : defaultMenu;
-    const mergedWeeklyMenu = { ...defaultMenu, ...existingMenu, ...weeklyMenu };
+    const currentMenu = (menuDoc && menuDoc.weeklyMenu) ? menuDoc.weeklyMenu : defaultMenu;
+
+    let mergedWeeklyMenu;
+    if (weeklyMenu) {
+      mergedWeeklyMenu = { ...defaultMenu, ...currentMenu, ...weeklyMenu };
+    } else if (day) {
+      mergedWeeklyMenu = {
+        ...defaultMenu,
+        ...currentMenu,
+        [day]: {
+          breakfast: breakfast !== undefined ? breakfast : (currentMenu[day]?.breakfast || ''),
+          lunch: lunch !== undefined ? lunch : (currentMenu[day]?.lunch || ''),
+          dinner: dinner !== undefined ? dinner : (currentMenu[day]?.dinner || ''),
+          ...(snacks !== undefined ? { snacks } : (currentMenu[day]?.snacks ? { snacks: currentMenu[day].snacks } : {}))
+        }
+      };
+    } else {
+      return res.status(400).json({ message: "Weekly menu or day menu data is required" });
+    }
 
     if (!menuDoc) {
       menuDoc = new MessMenu({ weeklyMenu: mergedWeeklyMenu });
@@ -45,3 +59,4 @@ export const updateMessMenu = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+

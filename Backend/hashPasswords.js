@@ -1,9 +1,12 @@
 import mongoose from "mongoose";
 import dotenv from "dotenv";
+import dns from "dns";
 import bcrypt from "bcryptjs";
 import User from "./models/User.js";
 
 dotenv.config();
+dns.setServers(["8.8.8.8", "8.8.4.4", "1.1.1.1"]);
+
 
 const isBcryptHash = (str) => {
   return typeof str === "string" && /^\$2[aby]\$/.test(str);
