@@ -170,15 +170,31 @@ function ForgotPasswordPage() {
                             <div style={{
                                 color: '#1cc88a',
                                 background: '#e3fdf4',
-                                padding: '10px 15px',
+                                padding: '12px 15px',
                                 borderRadius: '8px',
                                 fontSize: '13px',
                                 marginBottom: '20px',
                                 textAlign: 'left',
                                 borderLeft: '4px solid #1cc88a'
                             }}>
-                                <i className="fas fa-info-circle" style={{ marginRight: '6px' }}></i>
+                                <i className="fas fa-check-circle" style={{ marginRight: '6px' }}></i>
                                 {successMsg}
+                            </div>
+                        )}
+
+                        {step === 'request' && !error && !successMsg && (
+                            <div style={{
+                                background: '#e7f3ff',
+                                padding: '12px 15px',
+                                borderRadius: '8px',
+                                fontSize: '12px',
+                                marginBottom: '20px',
+                                textAlign: 'left',
+                                borderLeft: '4px solid #4e73df',
+                                color: '#2e384d'
+                            }}>
+                                <i className="fas fa-info-circle" style={{ marginRight: '6px', color: '#4e73df' }}></i>
+                                Enter your registered email address. You'll receive a password reset code within moments.
                             </div>
                         )}
 
@@ -219,11 +235,26 @@ function ForgotPasswordPage() {
                             </form>
                         ) : (
                             <form onSubmit={handleResetPassword}>
+                                <div style={{
+                                    background: '#fef5e7',
+                                    padding: '12px 15px',
+                                    borderRadius: '8px',
+                                    fontSize: '12px',
+                                    marginBottom: '20px',
+                                    textAlign: 'left',
+                                    borderLeft: '4px solid #f8b739',
+                                    color: '#2e384d'
+                                }}>
+                                    <i className="fas fa-envelope" style={{ marginRight: '6px', color: '#f8b739' }}></i>
+                                    <strong>Check your email!</strong> We've sent a password reset code to <strong>{email}</strong>.
+                                    <br />Check your spam folder if you don't see it.
+                                </div>
+
                                 <div className="input-group">
-                                    <label>Reset Token</label>
+                                    <label>Reset Code</label>
                                     <input
                                         type="text"
-                                        placeholder="Enter token from email/console"
+                                        placeholder="Paste the code from your email"
                                         value={token}
                                         onChange={(e) => {
                                             setToken(e.target.value);
