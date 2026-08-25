@@ -5,7 +5,7 @@ import './LoginPage.css';
 
 const initialForm = {
     name: '', email: '', password: '', phone: '', parentPhone: '', rollNo: '',
-    branch: '', year: '', state: '', roomInfo: '', bio: ''
+    branch: '', year: '', state: '', roomInfo: '', gender: '', bio: ''
 };
 
 function SignupPage() {
@@ -71,6 +71,7 @@ function SignupPage() {
                         <div className="input-group"><label>Branch</label><input name="branch" value={form.branch} onChange={updateField} /></div>
                         <div className="input-group"><label>Year</label><input name="year" value={form.year} onChange={updateField} /></div>
                         <div className="input-group"><label>State</label><input name="state" value={form.state} onChange={updateField} /></div>
+                        <div className="input-group"><label>Hostel Group</label><select name="gender" value={form.gender} onChange={updateField} required><option value="">Select group</option><option value="boys">Boys</option><option value="girls">Girls</option></select></div>
                         <div className="input-group signup-wide"><label>Room / Hostel</label><input name="roomInfo" value={form.roomInfo} onChange={updateField} placeholder="Girls Hostel A - Room 302" /></div>
                         <div className="input-group signup-wide"><label>Short Bio</label><textarea name="bio" value={form.bio} onChange={updateField} rows="2" /></div>
                     </div>

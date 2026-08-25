@@ -8,13 +8,14 @@ const rectorFields = [
   "office",
   "staffId",
   "shift",
+  "gender",
   "bio",
 ];
 
 export const getRectors = async (req, res) => {
   try {
     const rectors = await User.find({ role: "rector" }).select(
-      "name email phone office staffId shift bio profileImage leaveApplications"
+      "name email phone office staffId shift gender bio profileImage leaveApplications"
     );
     res.status(200).json(rectors);
   } catch (error) {
@@ -24,7 +25,7 @@ export const getRectors = async (req, res) => {
 
 export const createRector = async (req, res) => {
   try {
-    const { name, email, password, phone, office, staffId, shift, bio } = req.body;
+    const { name, email, password, phone, office, staffId, shift, gender, bio } = req.body;
 
     if (!name || !email) {
       return res.status(400).json({ message: "Name and email are required" });
@@ -47,6 +48,7 @@ export const createRector = async (req, res) => {
       office: office || "",
       staffId: staffId || "",
       shift: shift || "",
+      gender: gender || "",
       bio: bio || "",
     });
 

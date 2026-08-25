@@ -158,6 +158,7 @@ export const registerUser = async (req, res) => {
       year,
       state,
       roomInfo,
+      gender,
       bio,
     } = req.body;
 
@@ -203,6 +204,7 @@ export const registerUser = async (req, res) => {
       year: year || "",
       state: state || "",
       roomInfo: roomInfo || "",
+      gender: gender || "",
       bio: bio || "",
       verificationToken,
       verificationTokenExpires: Date.now() + 24 * 60 * 60 * 1000,

@@ -25,6 +25,7 @@ function AdminRectors() {
         password: '',
         phone: '',
         office: '',
+        gender: '',
         bio: ''
     });
 
@@ -34,6 +35,7 @@ function AdminRectors() {
         password: '',
         phone: '',
         office: '',
+        gender: '',
         bio: ''
     });
 
@@ -156,6 +158,7 @@ function AdminRectors() {
                     password: newRector.password || undefined,
                     phone: newRector.phone.trim(),
                     office: newRector.office.trim(),
+                    gender: newRector.gender,
                     bio: newRector.bio.trim()
                 })
             });
@@ -164,7 +167,7 @@ function AdminRectors() {
             if (response.ok) {
                 alert('Rector created successfully!');
                 setAddModalOpen(false);
-                setNewRector({ name: '', email: '', password: '', phone: '', office: '', bio: '' });
+                setNewRector({ name: '', email: '', password: '', phone: '', office: '', gender: '', bio: '' });
                 fetchRectors();
             } else {
                 alert(data.message || 'Failed to create rector.');
@@ -186,6 +189,7 @@ function AdminRectors() {
             password: '', // Blank by default, only updated if entered
             phone: selectedRector.phone || '',
             office: selectedRector.office || '',
+            gender: selectedRector.gender || '',
             bio: selectedRector.bio || ''
         });
         setEditModalOpen(true);
@@ -207,6 +211,7 @@ function AdminRectors() {
                 email: editingRectorData.email.trim(),
                 phone: editingRectorData.phone.trim(),
                 office: editingRectorData.office.trim(),
+                gender: editingRectorData.gender,
                 bio: editingRectorData.bio.trim()
             };
             if (editingRectorData.password) {
@@ -920,6 +925,14 @@ function AdminRectors() {
                                 />
                             </div>
                             <div className="form-group">
+                                <label>Hostel Group *</label>
+                                <select className="form-control" value={newRector.gender} onChange={(e) => setNewRector({ ...newRector, gender: e.target.value })} required>
+                                    <option value="">Select group</option>
+                                    <option value="boys">Boys</option>
+                                    <option value="girls">Girls</option>
+                                </select>
+                            </div>
+                            <div className="form-group">
                                 <label>Bio / Description</label>
                                 <textarea
                                     className="form-control"
@@ -996,6 +1009,14 @@ function AdminRectors() {
                                     value={editingRectorData.office}
                                     onChange={(e) => setEditingRectorData({ ...editingRectorData, office: e.target.value })}
                                 />
+                            </div>
+                            <div className="form-group">
+                                <label>Hostel Group *</label>
+                                <select className="form-control" value={editingRectorData.gender} onChange={(e) => setEditingRectorData({ ...editingRectorData, gender: e.target.value })} required>
+                                    <option value="">Select group</option>
+                                    <option value="boys">Boys</option>
+                                    <option value="girls">Girls</option>
+                                </select>
                             </div>
                             <div className="form-group">
                                 <label>Bio / Description</label>

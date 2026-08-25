@@ -1,6 +1,7 @@
 import User from "../models/User.js";
 import GatePass from "../models/GatePass.js";
 import Complaint from "../models/Complaint.js";
+import { getRectorStudentFilter } from "../utils/hostelScope.js";
 
 const parseFloorFromRoom = (roomInfo) => {
   if (!roomInfo) return null;
@@ -24,6 +25,11 @@ export const getStudents = async (req, res) => {
     const { search, branch, year, floor } = req.query;
     let filter = { role: "student" };
 
+    if (req.user.role === "rector") {
+      const rectorFilter = getRectorStudentFilter(req.user);
+      filter = rectorFilter || { _id: null };
+    }
+
     if (branch) filter.branch = branch;
     if (year) filter.year = year;
 
@@ -38,7 +44,7 @@ export const getStudents = async (req, res) => {
     }
 
     const students = await User.find(filter).select(
-      "name email role phone parentPhone rollNo branch year roomInfo bio profileImage"
+      "name email role phone parentPhone rollNo branch year roomInfo gender bio profileImage"
     );
 
     // if floor filter is provided, filter in-memory using roomInfo parsing

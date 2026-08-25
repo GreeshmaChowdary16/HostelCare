@@ -1,6 +1,13 @@
 import Attendance from "../models/Attendance.js";
 import User from "../models/User.js";
 import { emitRealtimeEvent } from "../config/socket.js";
+import { getRectorStudentIds } from "../utils/hostelScope.js";
+
+const rectorCanAccessStudent = async (req, studentId) => {
+  if (req.user.role !== "rector") return true;
+  const studentIds = await getRectorStudentIds(req.user);
+  return studentIds.some((id) => id.toString() === studentId.toString());
+};
 
 export const getAttendance = async (req, res) => {
   try {
@@ -17,7 +24,11 @@ export const getAttendance = async (req, res) => {
       filter.monthYear = monthYear;
     }
 
-    const attendance = await Attendance.find(filter).populate("student", "name email role roomInfo");
+    if (req.user.role === "rector") {
+      filter.student = { $in: await getRectorStudentIds(req.user) };
+    }
+
+    const attendance = await Attendance.find(filter).populate("student", "name email role roomInfo gender");
 
     if (!attendance.length) {
       return res.status(404).json({ message: "No attendance found" });
@@ -36,6 +47,10 @@ export const getStudentAttendance = async (req, res) => {
 
     const query = { student: studentId };
     if (monthYear) query.monthYear = monthYear;
+
+    if (!(await rectorCanAccessStudent(req, studentId))) {
+      return res.status(403).json({ message: "You can only access attendance for your assigned hostel" });
+    }
 
     const attendance = await Attendance.find(query).populate("student", "name email role roomInfo");
 
@@ -60,6 +75,9 @@ export const upsertAttendance = async (req, res) => {
     const targetStudent = req.user.role === "student" ? req.user._id : studentId || req.user._id;
     if (!targetStudent) {
       return res.status(400).json({ message: "Student ID is required for this operation" });
+    }
+    if (!(await rectorCanAccessStudent(req, targetStudent))) {
+      return res.status(403).json({ message: "You can only manage attendance for your assigned hostel" });
     }
 
     const attendance = await Attendance.findOneAndUpdate(
@@ -93,6 +111,14 @@ export const updateAttendance = async (req, res) => {
     const { id } = req.params;
     const updates = req.body;
 
+    const existingAttendance = await Attendance.findById(id);
+    if (!existingAttendance) {
+      return res.status(404).json({ message: "Attendance record not found" });
+    }
+    if (!(await rectorCanAccessStudent(req, existingAttendance.student))) {
+      return res.status(403).json({ message: "You can only manage attendance for your assigned hostel" });
+    }
+
     const attendance = await Attendance.findByIdAndUpdate(id, updates, {
       new: true,
       runValidators: true,
@@ -113,6 +139,14 @@ export const updateAttendance = async (req, res) => {
 export const deleteAttendance = async (req, res) => {
   try {
     const { id } = req.params;
+
+    const existingAttendance = await Attendance.findById(id);
+    if (!existingAttendance) {
+      return res.status(404).json({ message: "Attendance record not found" });
+    }
+    if (!(await rectorCanAccessStudent(req, existingAttendance.student))) {
+      return res.status(403).json({ message: "You can only manage attendance for your assigned hostel" });
+    }
 
     const attendance = await Attendance.findByIdAndDelete(id);
 
@@ -137,7 +171,11 @@ export const attendanceAnalytics = async (req, res) => {
       query.monthYear = monthYear;
     }
 
-    const records = await Attendance.find(query).populate("student", "name email role roomInfo");
+    if (req.user.role === "rector") {
+      query.student = { $in: await getRectorStudentIds(req.user) };
+    }
+
+    const records = await Attendance.find(query).populate("student", "name email role roomInfo gender");
 
     if (!records.length) {
       return res.status(404).json({ message: "No attendance records available for analytics" });

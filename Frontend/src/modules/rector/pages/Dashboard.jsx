@@ -682,61 +682,6 @@ const Dashboard = () => {
                 </div>
             </div>
 
-            {showAllGirls && (
-                <div className="student-modal-backdrop" role="presentation" onClick={() => setShowAllGirls(false)}>
-                    <section
-                        className="student-modal"
-                        role="dialog"
-                        aria-modal="true"
-                        aria-labelledby="all-girls-title"
-                        onClick={(event) => event.stopPropagation()}
-                    >
-                        <div className="student-modal-header">
-                            <div>
-                                <h2 id="all-girls-title" className="student-modal-title">All Girls Hostel Details</h2>
-                                <p className="student-modal-subtitle">
-                                    {liveStudents.total} students • {liveStudents.present} present • {liveStudents.onLeave} on leave
-                                </p>
-                            </div>
-                            <button
-                                type="button"
-                                className="modal-close-button"
-                                onClick={() => setShowAllGirls(false)}
-                                aria-label="Close student details"
-                            >
-                                <i className="fas fa-times"></i>
-                            </button>
-                        </div>
-                        <div style={{ overflowX: 'auto' }}>
-                            <table className="custom-table student-details-table">
-                                <thead>
-                                    <tr>
-                                        <th>Name</th><th>Roll No</th><th>Room</th><th>Phone</th>
-                                        <th>Email</th><th>Branch / Year</th><th>Status</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {liveStudents.students.map((student) => (
-                                        <tr key={student._id}>
-                                            <td>{student.name}</td>
-                                            <td>{student.rollNo || '—'}</td>
-                                            <td>{student.roomInfo || 'Unassigned'}</td>
-                                            <td>{student.phone || '—'}</td>
-                                            <td>{student.email || '—'}</td>
-                                            <td>{[student.branch, student.year].filter(Boolean).join(' / ') || '—'}</td>
-                                            <td>
-                                                <span className={`status-chip ${student.status === 'present' ? 'chip-resolved' : 'chip-pending'}`}>
-                                                    {student.status === 'present' ? 'Present' : 'On Leave'}
-                                                </span>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    </section>
-                </div>
-            )}
         </>
     );
 };
