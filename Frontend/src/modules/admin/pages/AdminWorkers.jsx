@@ -687,64 +687,33 @@ function AdminWorkers() {
                 )}
             </div>
 
-            {/* ADD WORKER MODAL */}
-            {addModalOpen && (
-                <div className="modal-overlay">
-                    <div className="modal-content">
-                        <div className="modal-header">
-                            <h3 className="modal-title"><i className="fas fa-user-plus"></i> Add New Worker</h3>
-                            <button className="modal-close" onClick={() => setAddModalOpen(false)}>&times;</button>
-                        </div>
-                        <form onSubmit={handleAddWorkerSubmit}>
-                            <div className="form-group">
-                                <label>Name *</label>
-                                <input
-                                    type="text"
-                                    className="form-control"
-                                    value={newWorker.name}
-                                    onChange={(e) => setNewWorker({ ...newWorker, name: e.target.value })}
-                                    placeholder="Enter worker's full name"
-                                    required
-                                />
+                {/* Section 3: Worker Directory (Tabs) */}
+                <div className="worker-card">
+                    <h3 className="section-title">Maintenance Directory</h3>
+                    
+                    <div className="role-tabs">
+                        {Object.keys(workersList).map(role => (
+                            <div 
+                                key={role} 
+                                className={`role-tab ${activeRole === role ? 'active' : ''}`}
+                                onClick={() => setActiveRole(role)}
+                            >
+                                {role}
                             </div>
-                            <div className="form-group">
-                                <label>Category (Trade) *</label>
-                                <select
-                                    className="form-control"
-                                    value={newWorker.category}
-                                    onChange={(e) => setNewWorker({ ...newWorker, category: e.target.value })}
-                                    required
-                                >
-                                    {categories.map(c => <option key={c} value={c}>{c}</option>)}
-                                </select>
-                            </div>
-                            <div className="form-group">
-                                <label>Phone</label>
-                                <input
-                                    type="text"
-                                    className="form-control"
-                                    value={newWorker.phone}
-                                    onChange={(e) => setNewWorker({ ...newWorker, phone: e.target.value })}
-                                    placeholder="e.g. +91 99999 88888"
-                                />
-                            </div>
-                            <div className="form-group">
-                                <label>Availability</label>
-                                <select
-                                    className="form-control"
-                                    value={newWorker.availability}
-                                    onChange={(e) => setNewWorker({ ...newWorker, availability: e.target.value })}
-                                >
-                                    <option value="Available">Available</option>
-                                    <option value="Busy">Busy</option>
-                                    <option value="Off">Off</option>
-                                </select>
-                            </div>
-                            <div className="modal-footer">
-                                <button type="button" className="btn-cancel" onClick={() => setAddModalOpen(false)}>Cancel</button>
-                                <button type="submit" className="btn-submit" disabled={isSubmitting}>
-                                    {isSubmitting ? 'Creating...' : 'Create Worker'}
-                                </button>
+                        ))}
+                    </div>
+
+                    <div className="worker-grid">
+                        {(workersList[activeRole] || []).map(worker => (
+                            <div key={worker.id} className="worker-item-card">
+                                <div className="worker-name">{worker.name}</div>
+                                <div className="worker-info">
+                                    <i className="fas fa-id-badge" style={{ width: '20px' }}></i> ID: {worker.id}<br/>
+                                    <i className="fas fa-phone" style={{ width: '20px' }}></i> {worker.phone}
+                                </div>
+                                <span className={`status-chip status-${worker.status.toLowerCase().replace(' ', '-')}`}>
+                                    {worker.status}
+                                </span>
                             </div>
                         </form>
                     </div>
