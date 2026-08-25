@@ -17,6 +17,7 @@ const StudentSettings = () => {
     const [phone, setPhone] = useState('');
     const [parentPhone, setParentPhone] = useState('');
     const [roomInfo, setRoomInfo] = useState('');
+    const [nativePlace, setNativePlace] = useState('');
 
     // Profile Photo State
     const [profileImage, setProfileImage] = useState(localStorage.getItem('profileImage') || '');
@@ -76,6 +77,7 @@ const StudentSettings = () => {
                     setPhone(data.phone || '');
                     setParentPhone(data.parentPhone || '');
                     setRoomInfo(data.roomInfo || '');
+                    setNativePlace(data.nativePlace || '');
                     setProfileImage(data.profileImage || '');
                     localStorage.setItem('profileImage', data.profileImage || '');
                 }
@@ -129,6 +131,7 @@ const StudentSettings = () => {
             formData.append('branch', branch);
             formData.append('year', year);
             formData.append('roomInfo', roomInfo);
+            formData.append('nativePlace', nativePlace);
 
             if (selectedFile) {
                 formData.append('profileImage', selectedFile);
@@ -378,11 +381,22 @@ const StudentSettings = () => {
                                     <div className="form-grid-2">
                                         <div className="input-group">
                                             <label>Parent / Guardian Contact</label>
-                                            <input type="text" value={parentPhone} onChange={(e) => setParentPhone(e.target.value)} />
+                                            <input type="text" value={parentPhone} onChange={(e) => setParentPhone(e.target.value)} placeholder="+91 98765 43210" />
                                         </div>
+                                        <div className="input-group">
+                                            <label>Native Place / Hometown</label>
+                                            <input type="text" value={nativePlace} onChange={(e) => setNativePlace(e.target.value)} placeholder="e.g. Pune, Maharashtra" />
+                                        </div>
+                                    </div>
+
+                                    <div className="form-grid-2">
                                         <div className="input-group">
                                             <label>Room Allocation</label>
                                             <input type="text" value={roomInfo} readOnly style={{ background: '#f8f9fc', color: '#858796' }} />
+                                        </div>
+                                        <div className="input-group">
+                                            <label>Account Role</label>
+                                            <input type="text" value="Hostel Resident (Student)" readOnly style={{ background: '#f8f9fc', color: '#858796' }} />
                                         </div>
                                     </div>
 

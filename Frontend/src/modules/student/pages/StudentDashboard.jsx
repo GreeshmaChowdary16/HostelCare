@@ -17,6 +17,7 @@ const StudentDashboard = () => {
     const [feeSummary, setFeeSummary] = useState({ totalPending: 0 });
     const [nextDueDate, setNextDueDate] = useState(null);
     const [attendanceRecord, setAttendanceRecord] = useState(null);
+    const [primaryRector, setPrimaryRector] = useState(null);
 
     const [studentInfo, setStudentInfo] = useState({
         name: localStorage.getItem('name') || 'Student',
@@ -25,6 +26,7 @@ const StudentDashboard = () => {
         rollNo: '',
         roomInfo: '',
         parentPhone: '',
+        nativePlace: '',
         profileImage: localStorage.getItem('profileImage') || ''
     });
 
@@ -92,6 +94,18 @@ const StudentDashboard = () => {
                     if (attData && attData.length > 0) {
                         setAttendanceRecord(attData[0]);
                     }
+                }
+                // Fetch rectors
+                try {
+                    const rectorsRes = await fetch(`${API_BASE_URL}/rectors`, { headers });
+                    if (rectorsRes.ok) {
+                        const rectorsData = await rectorsRes.json();
+                        if (rectorsData && rectorsData.length > 0) {
+                            setPrimaryRector(rectorsData[0]);
+                        }
+                    }
+                } catch (rErr) {
+                    console.error('Error fetching rector info for student:', rErr);
                 }
             } catch (error) {
                 console.error('Error fetching dashboard data:', error);
@@ -260,45 +274,88 @@ const StudentDashboard = () => {
 
                         <div className="profile-details-grid">
                             <span className="detail-label">Roll/Enroll No</span>
-                            <span className="detail-value">{studentInfo.rollNo || 'N/A'}</span>
+                            <span className="detail-value">{studentInfo.rollNo || 'Not provided'}</span>
 
                             <span className="detail-label">Hostel & Room</span>
-                            <span className="detail-value">{studentInfo.roomInfo || 'N/A'}</span>
+                            <span className="detail-value">{studentInfo.roomInfo || 'Not provided'}</span>
+
+                            <span className="detail-label">Native Place</span>
+                            <span className="detail-value">{studentInfo.nativePlace || 'Not provided'}</span>
 
                             <span className="detail-label">Mobile</span>
-                            <span className="detail-value">{studentInfo.phone || 'N/A'}</span>
+                            <span className="detail-value">{studentInfo.phone || 'Not provided'}</span>
 
                             <span className="detail-label">Parent Mobile</span>
-                            <span className="detail-value">{studentInfo.parentPhone || 'N/A'}</span>
+                            <span className="detail-value">{studentInfo.parentPhone || 'Not provided'}</span>
                         </div>
                     </div>
 
-                    {/* Rector Status Card in Sidebar (No direct student API available, fallback to placeholder) */}
+                    {/* Rector Status Card in Sidebar */}
                     <div className="widget" style={{ marginTop: '30px' }}>
                         <div style={{ fontSize: '12px', color: '#858796', textTransform: 'uppercase', fontWeight: 700, marginBottom: '15px', letterSpacing: '0.5px' }}>
                             Hostel Rector Status
                         </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '20px' }}>
-                            <div style={{ width: '45px', height: '45px', borderRadius: '12px', background: '#f8f9fc', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#858796' }}>
-                                <i className="fas fa-user-tie"></i>
-                            </div>
-                            <div>
-                                <div style={{ fontWeight: 700, color: '#858796', fontSize: '15px' }}>Rector Info</div>
-                                <div style={{ fontSize: '11px', color: '#a0aec0' }}>Contact Admin Office</div>
-                            </div>
-                        </div>
-                        <div style={{ 
-                            padding: '10px', 
-                            borderRadius: '10px', 
-                            background: '#f8f9fc', 
-                            display: 'flex', 
-                            alignItems: 'center', 
-                            gap: '10px',
-                            justifyContent: 'center',
-                            color: '#858796'
-                        }}>
-                            <span style={{ fontWeight: 700, fontSize: '13px' }}>Offline / Unknown</span>
-                        </div>
+                        {primaryRector ? (
+                            <>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '15px' }}>
+                                    <div style={{ width: '45px', height: '45px', borderRadius: '12px', overflow: 'hidden', background: '#f8f9fc', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#4e73df', border: '1px solid #eaecf4' }}>
+                                        {primaryRector.profileImage ? (
+                                            <img src={getImageUrl(primaryRector.profileImage)} alt={primaryRector.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                        ) : (
+                                            <i className="fas fa-user-tie" style={{ fontSize: '20px' }}></i>
+                                        )}
+                                    </div>
+                                    <div>
+                                        <div style={{ fontWeight: 700, color: '#333', fontSize: '15px' }}>{primaryRector.name}</div>
+                                        <div style={{ fontSize: '12px', color: '#858796' }}>{primaryRector.office || 'Hostel Care Office'}</div>
+                                    </div>
+                                </div>
+                                <div style={{ 
+                                    padding: '10px', 
+                                    borderRadius: '8px', 
+                                    background: '#e6fffa', 
+                                    display: 'flex', 
+                                    alignItems: 'center', 
+                                    gap: '8px',
+                                    justifyContent: 'center',
+                                    color: '#1cc88a'
+                                }}>
+                                    <i className="fas fa-circle" style={{ fontSize: '8px' }}></i>
+                                    <span style={{ fontWeight: 700, fontSize: '12px' }}>Active on Duty ({primaryRector.shift || 'General Shift'})</span>
+                                </div>
+                                {primaryRector.phone && (
+                                    <div style={{ marginTop: '10px', textAlign: 'center' }}>
+                                        <a href={`tel:${primaryRector.phone}`} style={{ fontSize: '12px', color: '#4e73df', textDecoration: 'none', fontWeight: 600 }}>
+                                            <i className="fas fa-phone-alt" style={{ marginRight: '5px' }}></i> {primaryRector.phone}
+                                        </a>
+                                    </div>
+                                )}
+                            </>
+                        ) : (
+                            <>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '15px' }}>
+                                    <div style={{ width: '45px', height: '45px', borderRadius: '12px', background: '#f8f9fc', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#858796' }}>
+                                        <i className="fas fa-user-tie"></i>
+                                    </div>
+                                    <div>
+                                        <div style={{ fontWeight: 700, color: '#5a5c69', fontSize: '14px' }}>Hostel Care Helpdesk</div>
+                                        <div style={{ fontSize: '11px', color: '#a0aec0' }}>Administration Office</div>
+                                    </div>
+                                </div>
+                                <div style={{ 
+                                    padding: '8px', 
+                                    borderRadius: '8px', 
+                                    background: '#f8f9fc', 
+                                    display: 'flex', 
+                                    alignItems: 'center', 
+                                    gap: '8px',
+                                    justifyContent: 'center',
+                                    color: '#858796'
+                                }}>
+                                    <span style={{ fontWeight: 600, fontSize: '12px' }}>Office Open: 9 AM - 6 PM</span>
+                                </div>
+                            </>
+                        )}
                     </div>
                 </div>
 

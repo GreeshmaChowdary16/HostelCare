@@ -89,6 +89,10 @@ const userSchema = new mongoose.Schema(
       type: String,
       default: "",
     },
+    nativePlace: {
+      type: String,
+      default: "",
+    },
     office: {
       type: String,
       default: "",

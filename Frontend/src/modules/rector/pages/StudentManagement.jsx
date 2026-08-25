@@ -598,6 +598,10 @@ const StudentManagement = () => {
                                     <div className="detail-label">Hostel & Room</div>
                                     <div className="detail-value">{selectedStudent.roomInfo || 'N/A'}</div>
                                 </div>
+                                <div className="detail-item">
+                                    <div className="detail-label">Native Place</div>
+                                    <div className="detail-value">{selectedStudent.nativePlace || 'Not provided'}</div>
+                                </div>
                                 {selectedStudent.bio && (
                                     <div className="detail-bio">
                                         <strong>Bio:</strong> {selectedStudent.bio}

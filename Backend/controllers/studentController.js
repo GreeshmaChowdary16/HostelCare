@@ -44,7 +44,7 @@ export const getStudents = async (req, res) => {
     }
 
     const students = await User.find(filter).select(
-      "name email role phone parentPhone rollNo branch year roomInfo gender bio profileImage"
+      "name email role phone parentPhone rollNo branch year roomInfo gender nativePlace bio profileImage"
     );
 
     // if floor filter is provided, filter in-memory using roomInfo parsing
