@@ -73,8 +73,10 @@ const sendResetPasswordEmail = async (user, token) => {
   const transporter = createTransporter();
   const from = process.env.EMAIL_FROM || 'no-reply@hostelcare.local';
   const subject = 'HostelCare — Password Reset';
-  const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/reset-password`;
-  const text = `Hello ${user.name || ''},\n\nUse the following token to reset your HostelCare password:\n\n${token}\n\nOr visit: ${resetUrl}\n\nThis token expires in 1 hour.`;
+  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+  const resetUrl = `${frontendUrl}/reset-password?token=${token}`;
+  const directResetUrl = `${frontendUrl}/reset-password/${token}`;
+  const text = `Hello ${user.name || ''},\n\nUse the following token to reset your HostelCare password:\n\n${token}\n\nOr click here to reset directly: ${directResetUrl}\n\nThis token expires in 1 hour.\n\nIf you didn't request this, please ignore this email.`;
 
   if (!transporter) {
     console.log('Password reset token for', user.email, token);
@@ -86,7 +88,28 @@ const sendResetPasswordEmail = async (user, token) => {
     to: user.email,
     subject,
     text,
-    html: `<p>Hello ${user.name || ''},</p><p>Use the following token to reset your HostelCare password:</p><pre>${token}</pre><p>Or click <a href="${resetUrl}">${resetUrl}</a></p><p>This token expires in 1 hour.</p>`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <div style="background-color: #f8f9fa; padding: 20px; border-radius: 5px; margin-bottom: 20px;">
+          <h2 style="color: #2e384d; margin-top: 0;">Reset Your Password</h2>
+          <p style="color: #858796;">Hello ${user.name || 'User'},</p>
+          <p style="color: #858796;">You requested a password reset for your HostelCare account. Use the code below or click the button to reset your password.</p>
+        </div>
+
+        <div style="background-color: #e3f2fd; padding: 15px; border-left: 4px solid #1976d2; margin: 20px 0; border-radius: 3px;">
+          <p style="color: #2e384d; margin: 0; font-size: 18px; font-weight: bold; word-break: break-all;">${token}</p>
+        </div>
+
+        <div style="text-align: center; margin: 25px 0;">
+          <a href="${directResetUrl}" style="display: inline-block; background-color: #1cc88a; color: white; padding: 12px 30px; text-decoration: none; border-radius: 4px; font-weight: bold;">Reset Password</a>
+        </div>
+
+        <p style="color: #858796; font-size: 13px;">Token expires in <strong>1 hour</strong>.</p>
+        <p style="color: #858796; font-size: 13px;">If you didn't request this email, you can safely ignore it.</p>
+        <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">
+        <p style="color: #858796; font-size: 12px; text-align: center;">© HostelCare. All rights reserved.</p>
+      </div>
+    `,
   });
 };
 

@@ -3,6 +3,8 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 
 // Login Module
 import LoginPage from './modules/login/LoginPage';
+import SignupPage from './modules/login/SignupPage';
+import VerifyEmailPage from './modules/login/VerifyEmailPage';
 import ForgotPasswordPage from './modules/login/ForgotPasswordPage';
 import ResetPasswordPage from './modules/login/ResetPasswordPage';
 
@@ -55,6 +57,8 @@ function App() {
             <Routes>
                 <Route path="/" element={<Navigate to="/login" replace />} />
                 <Route path="/login" element={<LoginPage />} />
+                <Route path="/signup" element={<SignupPage />} />
+                <Route path="/verify-email" element={<VerifyEmailPage />} />
                 <Route path="/forgot-password" element={<ForgotPasswordPage />} />
                 <Route path="/reset-password" element={<ResetPasswordPage />} />
                 <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
