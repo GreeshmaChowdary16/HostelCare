@@ -118,37 +118,39 @@ const Dashboard = () => {
     }, []);
 
     // Active complaints: Pending or In Progress statuses
-    const activeComplaintsCount = complaints.filter(c => c.status === 'Pending' || c.status === 'In Progress').length;
+    const activeComplaintsCount = (complaints || []).filter(c => c && (c.status === 'Pending' || c.status === 'In Progress')).length;
 
     // Active approved gatepasses for today
     const getActiveGatePassesToday = () => {
         const today = new Date();
-        return gatePasses.filter(g => 
-            g.status === 'Approved' && 
-            new Date(g.fromDate) <= today && 
-            new Date(g.toDate) >= today
+        return (gatePasses || []).filter(g => 
+            g && g.status === 'Approved' && 
+            g.fromDate && new Date(g.fromDate) <= today && 
+            g.toDate && new Date(g.toDate) >= today
         ).length;
     };
 
     // Attendance Count: Marked Present on today's day number in the monthly attendance matrix
     const getPresentTodayCount = () => {
         const todayDay = new Date().getDate();
-        return attendanceRecords.filter(record => 
-            record.records?.some(r => r.day === todayDay && r.status === 'present')
+        return (attendanceRecords || []).filter(record => 
+            record?.records && Array.isArray(record.records) && record.records.some(r => r && r.day === todayDay && r.status === 'present')
         ).length;
     };
 
     // Extract dynamic statistics
     const totalStudentsCount = studentStats?.total ?? 'N/A';
-    const presentTodayCount = attendanceRecords.length > 0 ? getPresentTodayCount() : 'N/A';
+    const presentTodayCount = (attendanceRecords && attendanceRecords.length > 0) ? getPresentTodayCount() : 'N/A';
     const onLeaveCount = getActiveGatePassesToday();
 
     // Announcements helpers
-    const latestAnn = announcements[0];
-    const emergencyAnn = announcements.find(ann => 
-        ann.color === '#e74a3b' || 
-        ann.title?.toLowerCase().includes('emergency') || 
-        ann.content?.toLowerCase().includes('emergency')
+    const latestAnn = (announcements && announcements.length > 0) ? announcements[0] : null;
+    const emergencyAnn = (announcements || []).find(ann => 
+        ann && (
+            ann.color === '#e74a3b' || 
+            ann.title?.toLowerCase().includes('emergency') || 
+            ann.content?.toLowerCase().includes('emergency')
+        )
     );
 
     return (
@@ -259,75 +261,6 @@ const Dashboard = () => {
                     display: flex;
                     flex-direction: column;
                     justify-content: space-between;
-                }
-
-                .stat-card-button {
-                    width: 100%;
-                    border: 0;
-                    text-align: left;
-                    cursor: pointer;
-                    font: inherit;
-                }
-
-                .student-modal-backdrop {
-                    position: fixed;
-                    inset: 0;
-                    z-index: 1000;
-                    padding: 30px;
-                    background: rgba(26, 35, 54, 0.55);
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                }
-
-                .student-modal {
-                    width: min(1100px, 100%);
-                    max-height: 90vh;
-                    overflow: auto;
-                    background: #fff;
-                    border-radius: 10px;
-                    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
-                    padding: 25px;
-                }
-
-                .student-modal-header {
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: flex-start;
-                    gap: 20px;
-                    margin-bottom: 20px;
-                }
-
-                .student-modal-title {
-                    margin: 0 0 5px;
-                    color: #343a40;
-                    font-size: 22px;
-                }
-
-                .student-modal-subtitle {
-                    margin: 0;
-                    color: #858796;
-                    font-size: 13px;
-                }
-
-                .modal-close-button {
-                    border: 0;
-                    background: #f8f9fc;
-                    color: #5a5c69;
-                    width: 34px;
-                    height: 34px;
-                    border-radius: 50%;
-                    cursor: pointer;
-                    font-size: 18px;
-                }
-
-                .student-details-table {
-                    min-width: 850px;
-                }
-
-                @media (max-width: 600px) {
-                    .student-modal-backdrop { padding: 12px; }
-                    .student-modal { padding: 18px; }
                 }
                 
                 .stat-label {
@@ -637,7 +570,7 @@ const Dashboard = () => {
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {complaints.length === 0 ? (
+                                        {(!complaints || complaints.length === 0) ? (
                                             <tr>
                                                 <td colSpan="5" style={{ textAlign: 'center', padding: '15px', color: '#858796' }}>No complaints filed yet.</td>
                                             </tr>
@@ -654,16 +587,18 @@ const Dashboard = () => {
                                                 if (comp.status === 'Resolved') chipClass = 'chip-resolved';
                                                 else if (comp.status === 'In Progress') chipClass = 'chip-progress';
 
+                                                const problemText = comp.problem || 'No description';
+
                                                 return (
-                                                    <tr key={comp._id}>
+                                                    <tr key={comp._id || Math.random()}>
                                                         <td>{comp.student?.roomInfo || comp.student?.roomNo || 'Unassigned'}</td>
                                                         <td>
                                                             <i className={`fas ${icon}`} style={{ color: color, marginRight: '8px' }}></i>
-                                                            {comp.problem.length > 30 ? comp.problem.slice(0, 30) + '...' : comp.problem}
+                                                            {problemText.length > 30 ? problemText.slice(0, 30) + '...' : problemText}
                                                         </td>
-                                                        <td><span className={`status-chip ${chipClass}`}>{comp.status}</span></td>
+                                                        <td><span className={`status-chip ${chipClass}`}>{comp.status || 'Pending'}</span></td>
                                                         <td style={{ fontWeight: 400, color: '#858796' }}>
-                                                            {comp.assignedWorker?.name ? `${comp.assignedWorker.name} (${comp.assignedWorker.category})` : 'Unassigned'}
+                                                            {comp.assignedWorker?.name ? `${comp.assignedWorker.name} (${comp.assignedWorker.category || 'Staff'})` : 'Unassigned'}
                                                         </td>
                                                         <td>
                                                             <Link to="/rector/complaints">
@@ -681,9 +616,9 @@ const Dashboard = () => {
                     )}
                 </div>
             </div>
-
         </>
     );
 };
 
 export default Dashboard;
+

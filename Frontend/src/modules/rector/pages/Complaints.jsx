@@ -8,6 +8,10 @@ const Complaints = () => {
     const [workers, setWorkers] = useState([]);
     const [workersLoading, setWorkersLoading] = useState(false);
     const [workersError, setWorkersError] = useState(null);
+    const [roomFilter, setRoomFilter] = useState('');
+    const [showRoomFilter, setShowRoomFilter] = useState(false);
+    const [selectedWorker, setSelectedWorker] = useState(null);
+
 
     const fetchWorkers = async () => {
         setWorkersLoading(true);
@@ -557,12 +561,13 @@ const Complaints = () => {
                                 </tr>
                             </thead>
                             <tbody>
-                                {complaints.length === 0 ? (
+                                {visibleComplaints.length === 0 ? (
                                     <tr>
                                         <td colSpan="7" style={{ textAlign: 'center', padding: '15px', color: '#858796' }}>No complaints submitted.</td>
                                     </tr>
                                 ) : (
-                                    complaints.map(comp => {
+                                    visibleComplaints.map(comp => {
+
                                         let icon = 'fa-tools';
                                         let color = '#4e73df';
                                         if (comp.category === 'Electrician') { icon = 'fa-bolt'; color = '#f6c23e'; }

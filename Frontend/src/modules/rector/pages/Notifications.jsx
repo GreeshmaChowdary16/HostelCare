@@ -8,8 +8,10 @@ const Notifications = () => {
     const [pendingFeesCount, setPendingFeesCount] = useState('N/A');
     const [lastPaymentDate, setLastPaymentDate] = useState('N/A');
     const [isLoading, setIsLoading] = useState(true);
+    const [isSendingReminder, setIsSendingReminder] = useState(false);
 
     const fetchData = async () => {
+
         setIsLoading(true);
         setStatusMessage('');
         const token = localStorage.getItem('token');
@@ -118,7 +120,7 @@ const Notifications = () => {
 
             <div className="container" style={{ padding: '30px', maxWidth: '1600px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '30px' }}>
                 {/* Fee Payment Alerts */}
-                <div className="widget" style={{ background: '#white', borderRadius: '12px', padding: '25px', boxShadow: '0 4px 6px rgba(0,0,0,0.02)', borderLeft: '5px solid #e74a3b', border: '1px solid #eaecf4', borderLeftWidth: '5px' }}>
+                <div className="widget" style={{ background: '#ffffff', borderRadius: '12px', padding: '25px', boxShadow: '0 4px 6px rgba(0,0,0,0.02)', borderLeft: '5px solid #e74a3b', border: '1px solid #eaecf4', borderLeftWidth: '5px' }}>
                     <div className="widget-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '2px solid #eaecf4', paddingBottom: '15px' }}>
                         <div className="widget-title" style={{ fontSize: '18px', fontWeight: 700, color: '#e74a3b' }}>Fee Payment Alerts</div>
                         <button className="btn-sm" style={{ padding: '6px 12px', background: '#e74a3b', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 600 }} onClick={fetchData}>
@@ -137,7 +139,7 @@ const Notifications = () => {
                     </div>
                 </div>
 
-                <div className="widget" style={{ background: '#white', borderRadius: '12px', padding: '25px', boxShadow: '0 4px 6px rgba(0,0,0,0.02)', border: '1px solid #eaecf4' }}>
+                <div className="widget" style={{ background: '#ffffff', borderRadius: '12px', padding: '25px', boxShadow: '0 4px 6px rgba(0,0,0,0.02)', border: '1px solid #eaecf4' }}>
                     <div className="widget-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '2px solid #eaecf4', paddingBottom: '15px' }}>
                         <div className="widget-title" style={{ fontSize: '18px', fontWeight: 700, color: '#5a5c69' }}>Recent System Notifications</div>
                     </div>

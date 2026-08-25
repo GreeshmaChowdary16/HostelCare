@@ -90,11 +90,19 @@ const Settings = () => {
         fetchData();
     }, []);
 
+    const [isSaving, setIsSaving] = useState(false);
+    const [uploadError, setUploadError] = useState('');
+
     const handleFileChange = (e) => {
         const file = e.target.files[0];
+        setUploadError('');
         if (file) {
+            if (!file.type.startsWith('image/')) {
+                setUploadError('Please select a valid image file (JPG, PNG, WEBP).');
+                return;
+            }
             if (file.size > 5 * 1024 * 1024) {
-                alert('File size must be under 5MB');
+                setUploadError('Image file size must be under 5MB.');
                 return;
             }
             setSelectedFile(file);
@@ -109,9 +117,12 @@ const Settings = () => {
         setPreviewUrl('');
         setProfileImage('');
         setRemovePhotoFlag(true);
+        setUploadError('');
     };
 
     const handleSaveProfile = async () => {
+        setIsSaving(true);
+        setUploadError('');
         try {
             const formData = new FormData();
             formData.append('name', fullName);
@@ -133,9 +144,9 @@ const Settings = () => {
             });
 
             const data = await res.json();
-            if (!res.ok) throw new Error(data.message || 'Failed to update');
+            if (!res.ok) throw new Error(data.message || 'Failed to update profile');
 
-            alert('Profile & Photo updated successfully');
+            alert('Rector profile and photo updated successfully!');
             const updatedUser = data.user || data;
             const updatedPhoto = updatedUser.profileImage || '';
 
@@ -149,7 +160,10 @@ const Settings = () => {
             localStorage.setItem('profileImage', updatedPhoto);
             window.dispatchEvent(new Event('profileUpdate'));
         } catch (err) {
-            alert(err.message);
+            setUploadError(err.message || 'Error updating profile photo');
+            alert(err.message || 'Failed to update profile');
+        } finally {
+            setIsSaving(false);
         }
     };
 
@@ -326,28 +340,71 @@ const Settings = () => {
                         {activeMenu === 'profile' && (
                             <>
                                 <div className="widget-header">
-                                    <div className="widget-title">Edit Profile Details</div>
+                                    <div className="widget-title">Edit Profile &amp; Photo</div>
                                 </div>
-                                <form>
+                                <form onSubmit={(e) => { e.preventDefault(); handleSaveProfile(); }}>
+                                    {/* Profile Photo Manager */}
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '20px', marginBottom: '25px', padding: '20px', background: '#f8f9fc', borderRadius: '10px', border: '1px dashed #d1d3e2' }}>
+                                        <div style={{ width: '90px', height: '90px', borderRadius: '50%', overflow: 'hidden', background: '#e8f0fe', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 10px rgba(0,0,0,0.08)', border: '3px solid #fff', flexShrink: 0 }}>
+                                            {previewUrl ? (
+                                                <img src={previewUrl} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                            ) : profileImage ? (
+                                                <img src={getImageUrl(profileImage)} alt="Rector Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                            ) : (
+                                                <i className="fas fa-female" style={{ fontSize: '38px', color: '#4e73df' }}></i>
+                                            )}
+                                        </div>
+                                        <div style={{ flex: 1 }}>
+                                            <h4 style={{ margin: '0 0 4px 0', fontSize: '16px', color: '#333', fontWeight: 700 }}>Rector Profile Photo</h4>
+                                            <p style={{ margin: '0 0 10px 0', fontSize: '13px', color: '#858796' }}>
+                                                Upload an official photo for your Rector profile (JPG, PNG, WEBP up to 5MB).
+                                            </p>
+
+                                            {uploadError && (
+                                                <div style={{ color: '#e74a3b', fontSize: '12px', fontWeight: 600, marginBottom: '8px' }}>
+                                                    <i className="fas fa-exclamation-circle"></i> {uploadError}
+                                                </div>
+                                            )}
+
+                                            {selectedFile && (
+                                                <div style={{ fontSize: '12px', color: '#1cc88a', fontWeight: 600, marginBottom: '8px' }}>
+                                                    <i className="fas fa-check-circle"></i> Selected: {selectedFile.name} ({(selectedFile.size / 1024).toFixed(1)} KB) - Ready to save
+                                                </div>
+                                            )}
+
+                                            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
+                                                <label style={{ padding: '8px 16px', fontSize: '13px', background: '#4e73df', color: 'white', borderRadius: '5px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px', fontWeight: 600, transition: 'all 0.2s' }}>
+                                                    <i className="fas fa-camera"></i> {selectedFile || profileImage ? 'Change Photo' : 'Upload Photo'}
+                                                    <input type="file" accept="image/*" style={{ display: 'none' }} onChange={handleFileChange} />
+                                                </label>
+                                                {(selectedFile || profileImage) && (
+                                                    <button type="button" onClick={handleRemovePhoto} style={{ padding: '8px 16px', fontSize: '13px', background: '#fff', border: '1px solid #e74a3b', color: '#e74a3b', borderRadius: '5px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px', fontWeight: 600 }}>
+                                                        <i className="fas fa-trash-alt"></i> Remove Photo
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+
                                     <div className="form-grid-2">
                                         <div className="input-group">
                                             <label>Full Name</label>
-                                            <input type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} />
+                                            <input type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} required />
                                         </div>
                                         <div className="input-group">
                                             <label>Email Address</label>
-                                            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+                                            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
                                         </div>
                                     </div>
 
                                     <div className="form-grid-2">
                                         <div className="input-group">
                                             <label>Contact Mobile</label>
-                                            <input type="text" value={phone} onChange={(e) => setPhone(e.target.value)} />
+                                            <input type="text" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+91 98765 43210" />
                                         </div>
                                         <div className="input-group">
                                             <label>Office Location</label>
-                                            <input type="text" value={office} onChange={(e) => setOffice(e.target.value)} />
+                                            <input type="text" value={office} onChange={(e) => setOffice(e.target.value)} placeholder="e.g. Block A, Office 101" />
                                         </div>
                                     </div>
 
@@ -359,7 +416,28 @@ const Settings = () => {
                                     </div>
 
                                     <div style={{ display: 'flex', gap: '15px', borderTop: '1px solid #e3e6f0', paddingTop: '20px' }}>
-                                        <button type="button" onClick={handleSaveProfile} className="btn-action view-btn" style={{ padding: '10px 25px', fontSize: '14px', background: '#4e73df', color: 'white', border: 'none', borderRadius: '6px', fontWeight: 700, cursor: 'pointer' }}>Save Changes</button>
+                                        <button 
+                                            type="submit" 
+                                            disabled={isSaving} 
+                                            className="btn-action view-btn" 
+                                            style={{ 
+                                                padding: '10px 25px', 
+                                                fontSize: '14px', 
+                                                background: '#4e73df', 
+                                                color: 'white', 
+                                                border: 'none', 
+                                                borderRadius: '6px', 
+                                                fontWeight: 700, 
+                                                cursor: isSaving ? 'not-allowed' : 'pointer',
+                                                opacity: isSaving ? 0.7 : 1,
+                                                display: 'inline-flex',
+                                                alignItems: 'center',
+                                                gap: '8px'
+                                            }}
+                                        >
+                                            {isSaving && <i className="fas fa-spinner fa-spin"></i>}
+                                            {isSaving ? 'Saving Changes...' : 'Save Profile & Photo'}
+                                        </button>
                                     </div>
                                 </form>
                             </>

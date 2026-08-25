@@ -2,10 +2,49 @@ import React, { useState, useEffect } from 'react';
 import Header from '../../../components/Header';
 import { API_BASE_URL } from '../../../config';
 
+const defaultWeeklyMenu = {
+    Monday: { breakfast: 'Idli, Sambhar', lunch: 'Rice, Dal Tadka', dinner: 'Roti, Paneer', snacks: 'Tea & Biscuits' },
+    Tuesday: { breakfast: 'Poha, Jalebi', lunch: 'Chole Bhature', dinner: 'Mix Veg, Paratha', snacks: 'Samosa & Tea' },
+    Wednesday: { breakfast: 'Upma, Chutney', lunch: 'Rajma Chawal', dinner: 'Aloo Gobi, Roti', snacks: 'Pakoda & Coffee' },
+    Thursday: { breakfast: 'Dosa, Chutney', lunch: 'Veg Biryani', dinner: 'Dal Fry, Rice', snacks: 'Cookies & Tea' },
+    Friday: { breakfast: 'Aloo Paratha', lunch: 'Kadai Paneer, Naan', dinner: 'Khichdi, Kadhi', snacks: 'Sandwich & Tea' },
+    Saturday: { breakfast: 'Bread Butter', lunch: 'Pasta, Salad', dinner: 'Pav Bhaji', snacks: 'Banana & Milk' },
+    Sunday: { breakfast: 'Poori Bhaji', lunch: 'Special Thali', dinner: 'Fried Rice, Manchurian', snacks: 'Fruit Chaat' }
+};
+
+const getMenuForDay = (menuData, dayName) => {
+    if (!menuData) return defaultWeeklyMenu[dayName] || { breakfast: '', lunch: '', dinner: '', snacks: '' };
+    if (Array.isArray(menuData)) {
+        const found = menuData.find(item => item && item.day && item.day.toLowerCase() === dayName.toLowerCase());
+        if (found) {
+            return {
+                breakfast: found.breakfast || '',
+                lunch: found.lunch || '',
+                dinner: found.dinner || '',
+                snacks: found.snacks || ''
+            };
+        }
+        return defaultWeeklyMenu[dayName] || { breakfast: '', lunch: '', dinner: '', snacks: '' };
+    }
+    // If menuData is an object like { Monday: { breakfast, lunch, dinner } }
+    if (typeof menuData === 'object') {
+        const key = Object.keys(menuData).find(k => k.toLowerCase() === dayName.toLowerCase());
+        if (key && menuData[key]) {
+            return {
+                breakfast: menuData[key].breakfast || '',
+                lunch: menuData[key].lunch || '',
+                dinner: menuData[key].dinner || '',
+                snacks: menuData[key].snacks || ''
+            };
+        }
+    }
+    return defaultWeeklyMenu[dayName] || { breakfast: '', lunch: '', dinner: '', snacks: '' };
+};
+
 const RectorMessMenu = () => {
     const [selectedDay, setSelectedDay] = useState('Monday');
     const [reviews, setReviews] = useState([]);
-    const [menu, setMenu] = useState([]);
+    const [menu, setMenu] = useState(defaultWeeklyMenu);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
@@ -13,6 +52,7 @@ const RectorMessMenu = () => {
     const [editBreakfast, setEditBreakfast] = useState('');
     const [editLunch, setEditLunch] = useState('');
     const [editDinner, setEditDinner] = useState('');
+    const [editSnacks, setEditSnacks] = useState('');
     const [saving, setSaving] = useState(false);
     const [saveStatus, setSaveStatus] = useState('');
     const [saveStatusType, setSaveStatusType] = useState('success');
@@ -31,21 +71,28 @@ const RectorMessMenu = () => {
 
         try {
             // Fetch Reviews
-            const reviewsRes = await fetch(`${API_BASE_URL}/mess-reviews`, { headers });
-            let reviewsData = [];
-            if (reviewsRes.ok) {
-                reviewsData = await reviewsRes.json();
+            try {
+                const reviewsRes = await fetch(`${API_BASE_URL}/mess-reviews`, { headers });
+                if (reviewsRes.ok) {
+                    const reviewsData = await reviewsRes.json();
+                    setReviews(Array.isArray(reviewsData) ? reviewsData : []);
+                }
+            } catch (revErr) {
+                console.error('Error fetching mess reviews:', revErr);
             }
 
             // Fetch Menu
             const menuRes = await fetch(`${API_BASE_URL}/mess-menu`, { headers });
-            let menuData = [];
             if (menuRes.ok) {
-                menuData = await menuRes.json();
+                const menuData = await menuRes.json();
+                if (menuData && typeof menuData === 'object' && Object.keys(menuData).length > 0) {
+                    setMenu(menuData);
+                } else if (Array.isArray(menuData) && menuData.length > 0) {
+                    setMenu(menuData);
+                }
+            } else {
+                setError('Failed to fetch mess menu from the database.');
             }
-
-            setReviews(reviewsData || []);
-            setMenu(menuData || []);
         } catch (err) {
             console.error('Error fetching mess menu data:', err);
             setError('Could not connect to the server. Please try again.');
@@ -59,14 +106,12 @@ const RectorMessMenu = () => {
     }, []);
 
     // Sync editing inputs when selectedDay or menu data changes
-    const currentDayMenu = menu.find(
-        (item) => item.day.toLowerCase() === selectedDay.toLowerCase()
-    ) || { breakfast: '', lunch: '', dinner: '' };
-
     useEffect(() => {
-        setEditBreakfast(currentDayMenu.breakfast || '');
-        setEditLunch(currentDayMenu.lunch || '');
-        setEditDinner(currentDayMenu.dinner || '');
+        const dayMenu = getMenuForDay(menu, selectedDay);
+        setEditBreakfast(dayMenu.breakfast || '');
+        setEditLunch(dayMenu.lunch || '');
+        setEditDinner(dayMenu.dinner || '');
+        setEditSnacks(dayMenu.snacks || '');
         setSaveStatus('');
     }, [selectedDay, menu]);
 
@@ -77,12 +122,23 @@ const RectorMessMenu = () => {
         const token = localStorage.getItem('token');
         if (!token) {
             setSaveStatusType('error');
-            setSaveStatus('Authorization missing.');
+            setSaveStatus('Authorization missing. Please log in.');
             setSaving(false);
             return;
         }
 
         try {
+            const updatedDayMenu = {
+                breakfast: editBreakfast,
+                lunch: editLunch,
+                dinner: editDinner,
+                snacks: editSnacks
+            };
+
+            const updatedWeeklyMenu = (typeof menu === 'object' && !Array.isArray(menu) && menu !== null)
+                ? { ...menu, [selectedDay]: updatedDayMenu }
+                : { ...defaultWeeklyMenu, [selectedDay]: updatedDayMenu };
+
             const res = await fetch(`${API_BASE_URL}/mess-menu`, {
                 method: 'PUT',
                 headers: {
@@ -90,27 +146,22 @@ const RectorMessMenu = () => {
                     'Authorization': `Bearer ${token}`
                 },
                 body: JSON.stringify({
+                    weeklyMenu: updatedWeeklyMenu,
                     day: selectedDay,
                     breakfast: editBreakfast,
                     lunch: editLunch,
-                    dinner: editDinner
+                    dinner: editDinner,
+                    snacks: editSnacks
                 })
             });
 
             if (res.ok) {
+                const data = await res.json();
                 setSaveStatusType('success');
                 setSaveStatus(`Menu for ${selectedDay} saved successfully!`);
-                
-                // Refresh local menu states
-                const menuRes = await fetch(`${API_BASE_URL}/mess-menu`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-                if (menuRes.ok) {
-                    const menuData = await menuRes.json();
-                    setMenu(menuData || []);
-                }
+                setMenu(data.weeklyMenu || updatedWeeklyMenu);
             } else {
-                const data = await res.json();
+                const data = await res.json().catch(() => ({}));
                 setSaveStatusType('error');
                 setSaveStatus(data.message || 'Failed to update menu.');
             }
@@ -124,16 +175,16 @@ const RectorMessMenu = () => {
     };
 
     // Calculate dynamic stats for selected day
-    const selectedDayReviews = reviews.filter(
-        (r) => r.day && r.day.toLowerCase() === selectedDay.toLowerCase()
+    const selectedDayReviews = (Array.isArray(reviews) ? reviews : []).filter(
+        (r) => r && r.day && r.day.toLowerCase() === selectedDay.toLowerCase()
     );
 
     const getMealStats = (mealName) => {
         const mealReviews = selectedDayReviews.filter(
-            (r) => r.meal && r.meal.toLowerCase() === mealName.toLowerCase()
+            (r) => r && r.meal && r.meal.toLowerCase() === mealName.toLowerCase()
         );
         const count = mealReviews.length;
-        const sum = mealReviews.reduce((acc, curr) => acc + curr.rating, 0);
+        const sum = mealReviews.reduce((acc, curr) => acc + (curr.rating || 0), 0);
         const average = count > 0 ? (sum / count).toFixed(1) : 'N/A';
         
         const commentWithText = mealReviews.find(r => r.comment && r.comment.trim() !== '');
@@ -214,6 +265,7 @@ const RectorMessMenu = () => {
                     max-width: 800px;
                     margin: 0 auto;
                     width: 100%;
+                    border: 1px solid #eaecf4;
                 }
 
                 .menu-item {
@@ -222,34 +274,76 @@ const RectorMessMenu = () => {
                     border-bottom: 1px solid #f8f9fc;
                 }
 
-                .menu-label { font-size: 11px; text-transform: uppercase; font-weight: 800; color: #858796; }
+                .menu-label { 
+                    font-size: 12px; 
+                    text-transform: uppercase; 
+                    font-weight: 800; 
+                    color: #4e73df;
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                }
                 
                 .menu-input {
                     width: 100%;
-                    padding: 10px;
+                    padding: 12px;
                     border: 1px solid #d1d3e2;
                     border-radius: 6px;
-                    font-size: 15px;
+                    font-size: 14px;
                     color: #5a5c69;
-                    margin-top: 5px;
+                    margin-top: 6px;
                     outline: none;
+                    transition: border-color 0.2s;
                 }
                 .menu-input:focus {
                     border-color: #1cc88a;
                 }
 
-                .calendar-strip { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 10px; margin-bottom: 10px; }
-                .day-card { min-width: 90px; padding: 12px; background: white; border-radius: 10px; text-align: center; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border: 2px solid transparent; }
-                .day-card.active { background: #1cc88a; color: white; }
+                .calendar-strip { 
+                    display: flex; 
+                    gap: 10px; 
+                    overflow-x: auto; 
+                    padding-bottom: 10px; 
+                    margin-bottom: 10px; 
+                }
+                
+                .day-card { 
+                    min-width: 100px; 
+                    padding: 14px 10px; 
+                    background: white; 
+                    border-radius: 10px; 
+                    text-align: center; 
+                    cursor: pointer; 
+                    box-shadow: 0 2px 5px rgba(0,0,0,0.05); 
+                    border: 2px solid transparent; 
+                    transition: all 0.2s;
+                }
+                .day-card:hover {
+                    border-color: #1cc88a;
+                    transform: translateY(-2px);
+                }
+                .day-card.active { 
+                    background: #1cc88a; 
+                    color: white; 
+                    font-weight: 700;
+                    box-shadow: 0 4px 10px rgba(28, 200, 138, 0.3);
+                }
 
                 .btn-refresh {
                     background: #4e73df;
                     color: white;
                     border: none;
-                    padding: 8px 15px;
+                    padding: 9px 18px;
                     border-radius: 6px;
                     font-weight: 600;
                     cursor: pointer;
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 8px;
+                    transition: background 0.2s;
+                }
+                .btn-refresh:hover {
+                    background: #2e59d9;
                 }
                 .btn-refresh:disabled {
                     opacity: 0.6;
@@ -264,13 +358,17 @@ const RectorMessMenu = () => {
                     cursor: pointer;
                     width: 100%;
                     font-size: 15px;
+                    transition: background 0.2s;
+                }
+                .btn-save:hover {
+                    background: #17a673;
                 }
                 .btn-save:disabled {
                     opacity: 0.6;
                     cursor: not-allowed;
                 }
                 .status-alert {
-                    padding: 12px;
+                    padding: 12px 16px;
                     border-radius: 6px;
                     margin-bottom: 20px;
                     font-size: 14px;
@@ -290,31 +388,42 @@ const RectorMessMenu = () => {
 
             <div className="rector-mess-container">
                 {/* Header Actions */}
-                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '15px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '15px' }}>
+                    <div>
+                        <h2 style={{ margin: '0 0 5px 0', fontSize: '24px', fontWeight: 800, color: '#333' }}>
+                            <i className="fas fa-utensils" style={{ color: '#1cc88a', marginRight: '10px' }}></i>
+                            Mess & Food Operations
+                        </h2>
+                        <p style={{ margin: 0, fontSize: '13px', color: '#858796' }}>
+                            Manage weekly dining schedules, update daily meal menus, and review student meal ratings.
+                        </p>
+                    </div>
                     <button type="button" disabled={loading} onClick={fetchMenuAndReviews} className="btn-refresh">
-                        <i className={`fas fa-sync ${loading ? 'fa-spin' : ''}`} style={{ marginRight: '5px' }}></i>
-                        Refresh Overview
+                        <i className={`fas fa-sync ${loading ? 'fa-spin' : ''}`}></i>
+                        {loading ? 'Refreshing...' : 'Refresh Overview'}
                     </button>
                 </div>
 
                 {error && (
-                    <div style={{ padding: '15px', background: '#f8d7da', border: '1px solid #f5c6cb', color: '#721c24', borderRadius: '8px', textAlign: 'center' }}>
-                        <i className="fas fa-exclamation-circle" style={{ marginRight: '8px' }}></i>
-                        {error}
-                        <button type="button" onClick={fetchMenuAndReviews} style={{ background: '#721c24', color: 'white', border: 'none', padding: '5px 10px', marginLeft: '15px', borderRadius: '4px', cursor: 'pointer' }}>
-                            Retry
+                    <div style={{ padding: '15px 20px', background: '#f8d7da', border: '1px solid #f5c6cb', color: '#721c24', borderRadius: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div>
+                            <i className="fas fa-exclamation-circle" style={{ marginRight: '8px' }}></i>
+                            {error}
+                        </div>
+                        <button type="button" onClick={fetchMenuAndReviews} style={{ background: '#721c24', color: 'white', border: 'none', padding: '6px 14px', borderRadius: '4px', cursor: 'pointer', fontWeight: 600 }}>
+                            Retry Loading
                         </button>
                     </div>
                 )}
 
                 {/* Food Feedback Section */}
-                <div className="detailed-reviews-card" style={{ borderLeft: '5px solid #4e73df', marginBottom: '30px' }}>
+                <div className="detailed-reviews-card" style={{ borderLeft: '5px solid #4e73df' }}>
                     <h3 className="section-title">
                         <i className="fas fa-comments" style={{ color: '#4e73df' }}></i>
                         {selectedDay}'s Meal Feedback Summary
                     </h3>
                     <p style={{ fontSize: '13px', color: '#858796', marginBottom: '20px' }}>
-                        Summary of student feedback calculated dynamically from database submissions.
+                        Summary of student feedback calculated dynamically from database submissions for {selectedDay}.
                     </p>
                     
                     {loading ? (
@@ -325,19 +434,21 @@ const RectorMessMenu = () => {
                     ) : (
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '20px' }}>
                             {[
-                                { meal: 'Breakfast', stats: breakfastStats },
-                                { meal: 'Lunch', stats: lunchStats },
-                                { meal: 'Dinner', stats: dinnerStats }
+                                { meal: 'Breakfast', icon: 'fa-coffee', stats: breakfastStats },
+                                { meal: 'Lunch', icon: 'fa-sun', stats: lunchStats },
+                                { meal: 'Dinner', icon: 'fa-moon', stats: dinnerStats }
                             ].map((item, idx) => (
-                                <div key={idx} style={{ padding: '15px', borderRadius: '12px', background: '#f8f9fc', border: '1px solid #e3e6f0' }}>
+                                <div key={idx} style={{ padding: '18px', borderRadius: '12px', background: '#f8f9fc', border: '1px solid #e3e6f0' }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                                        <div style={{ fontWeight: 700, color: '#4e73df' }}>{item.meal}</div>
-                                        <div style={{ fontSize: '12px', fontWeight: 600, color: item.stats.average !== 'N/A' ? '#f6c23e' : '#858796' }}>
+                                        <div style={{ fontWeight: 700, color: '#4e73df', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            <i className={`fas ${item.icon}`}></i> {item.meal}
+                                        </div>
+                                        <div style={{ fontSize: '13px', fontWeight: 700, color: item.stats.average !== 'N/A' ? '#f6c23e' : '#858796' }}>
                                             <i className="fas fa-star"></i> {item.stats.average}
                                         </div>
                                     </div>
                                     <p style={{ fontSize: '12px', color: '#5a5c69', marginBottom: '10px', height: '35px', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                        {item.stats.sampleComment}
+                                        "{item.stats.sampleComment}"
                                     </p>
                                     <div style={{ fontSize: '11px', color: '#858796', borderTop: '1px solid #eaecf4', paddingTop: '8px' }}>
                                         <i className="fas fa-users"></i> {item.stats.count} Student Response{item.stats.count !== 1 ? 's' : ''}
@@ -348,8 +459,11 @@ const RectorMessMenu = () => {
                     )}
                 </div>
 
+                {/* Day Selection Strip */}
                 <div style={{ maxWidth: '800px', margin: '0 auto', width: '100%' }}>
-                    <h3 className="section-title"><i className="fas fa-calendar-alt" style={{ color: '#1cc88a' }}></i> Weekly Menu Overview</h3>
+                    <h3 className="section-title">
+                        <i className="fas fa-calendar-alt" style={{ color: '#1cc88a' }}></i> Weekly Menu Schedule
+                    </h3>
                     <div className="calendar-strip">
                         {daysOfWeek.map((day) => (
                             <div 
@@ -363,10 +477,14 @@ const RectorMessMenu = () => {
                     </div>
                 </div>
 
+                {/* Menu Edit Card */}
                 <div className="menu-card">
-                    <h3 className="section-title" style={{ color: '#1cc88a' }}>
+                    <h3 className="section-title" style={{ color: '#1cc88a', marginBottom: '15px' }}>
                         <i className="fas fa-clipboard-list"></i> Edit {selectedDay}'s Menu
                     </h3>
+                    <p style={{ fontSize: '13px', color: '#858796', marginBottom: '20px' }}>
+                        Changes saved here update the live menu visible to all hostel students and administrators.
+                    </p>
 
                     {saveStatus && (
                         <div className={`status-alert ${saveStatusType}`}>
@@ -376,32 +494,53 @@ const RectorMessMenu = () => {
                     )}
 
                     <div className="menu-item">
-                        <div className="menu-label">Breakfast</div>
+                        <div className="menu-label">
+                            <i className="fas fa-coffee"></i> Breakfast Items
+                        </div>
                         <input 
                             type="text" 
                             className="menu-input"
                             value={editBreakfast}
-                            placeholder="Enter breakfast items..."
+                            placeholder="e.g. Idli, Sambhar, Chutney, Tea"
                             onChange={(e) => setEditBreakfast(e.target.value)}
                         />
                     </div>
+
                     <div className="menu-item">
-                        <div className="menu-label">Lunch</div>
+                        <div className="menu-label">
+                            <i className="fas fa-sun"></i> Lunch Items
+                        </div>
                         <input 
                             type="text" 
                             className="menu-input"
                             value={editLunch}
-                            placeholder="Enter lunch items..."
+                            placeholder="e.g. Steamed Rice, Dal Tadka, Seasonal Sabzi, Roti"
                             onChange={(e) => setEditLunch(e.target.value)}
                         />
                     </div>
+
                     <div className="menu-item">
-                        <div className="menu-label">Dinner</div>
+                        <div className="menu-label">
+                            <i className="fas fa-cookie-bite"></i> Evening Snacks / Refreshments (Optional)
+                        </div>
+                        <input 
+                            type="text" 
+                            className="menu-input"
+                            value={editSnacks}
+                            placeholder="e.g. Tea & Biscuits, Samosa"
+                            onChange={(e) => setEditSnacks(e.target.value)}
+                        />
+                    </div>
+
+                    <div className="menu-item">
+                        <div className="menu-label">
+                            <i className="fas fa-moon"></i> Dinner Items
+                        </div>
                         <input 
                             type="text" 
                             className="menu-input"
                             value={editDinner}
-                            placeholder="Enter dinner items..."
+                            placeholder="e.g. Phulka Roti, Paneer Butter Masala, Jeera Rice, Gulab Jamun"
                             onChange={(e) => setEditDinner(e.target.value)}
                         />
                     </div>
@@ -412,55 +551,55 @@ const RectorMessMenu = () => {
                         className="btn-save"
                         onClick={handleSaveMenu}
                     >
-                        <i className="fas fa-save" style={{ marginRight: '8px' }}></i>
-                        {saving ? 'Saving updates...' : `Save ${selectedDay}'s Menu`}
+                        <i className={`fas ${saving ? 'fa-spinner fa-spin' : 'fa-save'}`} style={{ marginRight: '8px' }}></i>
+                        {saving ? 'Saving Menu Updates...' : `Save ${selectedDay}'s Menu`}
                     </button>
                 </div>
 
                 {/* Detailed Student Reviews for Selected Day */}
-                {!loading && (
-                    <div className="detailed-reviews-card">
-                        <h3 className="section-title">
-                            <i className="fas fa-clipboard-list" style={{ color: '#1cc88a' }}></i>
-                            Detailed Student Reviews ({selectedDay})
-                        </h3>
-                        {selectedDayReviews.length === 0 ? (
-                            <div style={{ padding: '20px', textAlign: 'center', color: '#858796' }}>
-                                No detailed reviews logged for {selectedDay}.
-                            </div>
-                        ) : (
-                            <div style={{ overflowX: 'auto' }}>
-                                <table className="detailed-table">
-                                    <thead>
-                                        <tr style={{ textAlign: 'left' }}>
-                                            <th>Student</th>
-                                            <th>Meal</th>
-                                            <th>Rating</th>
-                                            <th>Comment</th>
-                                            <th>Date</th>
+                <div className="detailed-reviews-card">
+                    <h3 className="section-title">
+                        <i className="fas fa-clipboard-list" style={{ color: '#1cc88a' }}></i>
+                        Detailed Student Reviews ({selectedDay})
+                    </h3>
+                    {selectedDayReviews.length === 0 ? (
+                        <div style={{ padding: '30px 20px', textAlign: 'center', color: '#858796' }}>
+                            <i className="fas fa-comment-slash" style={{ fontSize: '36px', color: '#dddfeb', marginBottom: '10px', display: 'block' }}></i>
+                            <p style={{ margin: 0, fontWeight: 500 }}>No individual reviews submitted for {selectedDay} yet.</p>
+                        </div>
+                    ) : (
+                        <div style={{ overflowX: 'auto' }}>
+                            <table className="detailed-table">
+                                <thead>
+                                    <tr>
+                                        <th>Student</th>
+                                        <th>Meal</th>
+                                        <th>Rating</th>
+                                        <th>Feedback Comment</th>
+                                        <th>Submission Date</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {selectedDayReviews.map((rev) => (
+                                        <tr key={rev._id || Math.random()}>
+                                            <td style={{ fontWeight: 600 }}>{rev.student?.name || 'Anonymous Student'}</td>
+                                            <td><strong>{rev.meal}</strong></td>
+                                            <td style={{ color: '#f6c23e', fontWeight: 700 }}>
+                                                <i className="fas fa-star"></i> {rev.rating}/5
+                                            </td>
+                                            <td>{rev.comment || <em style={{ color: '#858796' }}>No comment provided</em>}</td>
+                                            <td>{rev.createdAt ? new Date(rev.createdAt).toLocaleDateString() : 'N/A'}</td>
                                         </tr>
-                                    </thead>
-                                    <tbody>
-                                        {selectedDayReviews.map((rev) => (
-                                            <tr key={rev._id} style={{ borderBottom: '1px solid #eaecf4' }}>
-                                                <td style={{ fontWeight: 600 }}>{rev.student?.name || 'Anonymous Student'}</td>
-                                                <td><strong>{rev.meal}</strong></td>
-                                                <td style={{ color: '#f6c23e', fontWeight: 700 }}>
-                                                    <i className="fas fa-star"></i> {rev.rating}/5
-                                                </td>
-                                                <td>{rev.comment || <em style={{ color: '#858796' }}>No comment provided</em>}</td>
-                                                <td>{new Date(rev.createdAt).toLocaleDateString()}</td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        )}
-                    </div>
-                )}
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
+                </div>
             </div>
         </>
     );
 };
 
 export default RectorMessMenu;
+
