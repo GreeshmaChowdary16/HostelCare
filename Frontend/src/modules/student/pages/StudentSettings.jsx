@@ -345,6 +345,37 @@ const StudentSettings = () => {
                                     <div className="widget-title">Edit Profile Details</div>
                                 </div>
                                 <form>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '20px', marginBottom: '25px', padding: '15px', background: '#f8f9fc', borderRadius: '10px', border: '1px dashed #d1d3e2' }}>
+                                        <div style={{ width: '85px', height: '85px', borderRadius: '50%', overflow: 'hidden', background: '#e0e0e0', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                            {previewUrl ? (
+                                                <img src={previewUrl} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                            ) : profileImage ? (
+                                                <img src={getImageUrl(profileImage)} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                            ) : (
+                                                <i className="fas fa-user-graduate" style={{ fontSize: '34px', color: '#4e73df' }}></i>
+                                            )}
+                                        </div>
+                                        <div style={{ flex: 1 }}>
+                                            <h4 style={{ margin: '0 0 4px 0', fontSize: '15px', color: '#333' }}>Student Profile Photo</h4>
+                                            <p style={{ margin: '0 0 10px 0', fontSize: '12px', color: '#858796' }}>Upload a profile photo (JPG, PNG, WEBP up to 5MB).</p>
+                                            {selectedFile && (
+                                                <div style={{ fontSize: '12px', color: '#1cc88a', fontWeight: 600, marginBottom: '8px' }}>
+                                                    <i className="fas fa-check-circle"></i> Selected: {selectedFile.name}
+                                                </div>
+                                            )}
+                                            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
+                                                <label style={{ padding: '8px 16px', fontSize: '13px', background: '#4e73df', color: 'white', borderRadius: '5px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px', fontWeight: 500 }}>
+                                                    <i className="fas fa-camera"></i> {selectedFile || profileImage ? 'Change Photo' : 'Upload Photo'}
+                                                    <input type="file" accept="image/*" style={{ display: 'none' }} onChange={handleFileChange} />
+                                                </label>
+                                                {(selectedFile || profileImage) && (
+                                                    <button type="button" onClick={handleRemovePhoto} style={{ padding: '8px 16px', fontSize: '13px', background: '#fff', border: '1px solid #e74a3b', color: '#e74a3b', borderRadius: '5px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px', fontWeight: 500 }}>
+                                                        <i className="fas fa-trash-alt"></i> Remove Photo
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
                                     <div className="form-grid-2">
                                         <div className="input-group">
                                             <label>Full Name</label>
