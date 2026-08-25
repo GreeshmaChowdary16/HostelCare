@@ -283,10 +283,10 @@ function AdminWorkers() {
                     border-top: 4px solid #eaecf4;
                 }
 
-                .card.bg-blue { border-top-color: #4e73df; }
-                .card.bg-green { border-top-color: #1cc88a; }
-                .card.bg-orange { border-top-color: #f6c23e; }
-                .card.bg-red { border-top-color: #e74a3b; }
+                .card.border-blue { border-top-color: #4e73df; }
+                .card.border-green { border-top-color: #1cc88a; }
+                .card.border-orange { border-top-color: #f6c23e; }
+                .card.border-red { border-top-color: #e74a3b; }
 
                 .card h3 {
                     font-size: 28px;
@@ -589,22 +589,22 @@ function AdminWorkers() {
 
                 {/* Metrics Cards */}
                 <div className="stats-grid">
-                    <div className="card bg-blue">
+                    <div className="card border-blue">
                         <span className="card-label">Total Staff</span>
                         <h3>{totalCount}</h3>
                         <p>Registered Workers</p>
                     </div>
-                    <div className="card bg-green">
+                    <div className="card border-green">
                         <span className="card-label">Available Staff</span>
                         <h3>{availableCount}</h3>
                         <p>Active and free to allot</p>
                     </div>
-                    <div className="card bg-orange">
+                    <div className="card border-orange">
                         <span className="card-label">Busy Staff</span>
                         <h3>{busyCount}</h3>
                         <p>Currently on complaints</p>
                     </div>
-                    <div className="card bg-red">
+                    <div className="card border-red">
                         <span className="card-label">Off Duty</span>
                         <h3>{offCount}</h3>
                         <p>On leave or off shift</p>

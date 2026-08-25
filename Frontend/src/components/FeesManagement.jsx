@@ -383,10 +383,10 @@ const FeesManagement = ({ role }) => {
                     color: #a0aec0;
                 }
 
-                .bg-blue { border-top: 4px solid #4e73df; }
-                .bg-teal { border-top: 4px solid #1cc88a; }
-                .bg-orange { border-top: 4px solid #f6c23e; }
-                .bg-red { border-top: 4px solid #e74a3b; }
+                .border-blue { border-top: 4px solid #4e73df; }
+                .border-teal { border-top: 4px solid #1cc88a; }
+                .border-orange { border-top: 4px solid #f6c23e; }
+                .border-red { border-top: 4px solid #e74a3b; }
 
                 .tabs-header {
                     display: flex;
@@ -678,22 +678,22 @@ const FeesManagement = ({ role }) => {
                 <>
                     {/* Stats Metrics Cards */}
                     <div className="stats-grid">
-                        <div className="card bg-blue">
+                        <div className="card border-blue">
                             <span className="card-label">Total Invoices</span>
                             <h3>{stats.totalInvoices || 0}</h3>
                             <p>₹{stats.totalBilled?.toLocaleString('en-IN') || 0} Total Billed</p>
                         </div>
-                        <div className="card bg-teal">
+                        <div className="card border-teal">
                             <span className="card-label">Total Collections</span>
                             <h3>₹{stats.totalCollected?.toLocaleString('en-IN') || 0}</h3>
                             <p>{stats.counts?.paid || 0} Settled Invoices</p>
                         </div>
-                        <div className="card bg-orange">
+                        <div className="card border-orange">
                             <span className="card-label">Pending Collections</span>
                             <h3>₹{stats.totalPending?.toLocaleString('en-IN') || 0}</h3>
                             <p>{(stats.counts?.pending || 0) + (stats.counts?.partial || 0)} Pending/Partial</p>
                         </div>
-                        <div className="card bg-red">
+                        <div className="card border-red">
                             <span className="card-label">Overdue Invoices</span>
                             <h3>{stats.counts?.overdue || 0}</h3>
                             <p>Passed payment deadline</p>

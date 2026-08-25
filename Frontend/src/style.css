@@ -337,53 +337,97 @@ h6 {
     color: #858796;
 }
 
-/* Card Variants */
-.bg-blue {
-    background-color: #4e73df;
+/* Card Variants - Solid Backgrounds */
+.card.bg-blue,
+.stat-box.bg-blue,
+.metric-card.bg-blue {
+    background-color: #4e73df !important;
     border-top: none;
-    color: white;
+    color: #ffffff !important;
 }
 
-.bg-blue .card-label,
-.bg-blue h3,
-.bg-blue p {
-    color: white !important;
+.card.bg-blue .card-label,
+.card.bg-blue h3,
+.card.bg-blue p,
+.card.bg-blue div,
+.card.bg-blue span {
+    color: #ffffff !important;
 }
 
-.bg-teal {
-    background-color: #1cc88a;
+.card.bg-teal,
+.card.bg-green,
+.stat-box.bg-green,
+.metric-card.bg-green {
+    background-color: #1cc88a !important;
     border-top: none;
-    color: white;
+    color: #ffffff !important;
 }
 
-.bg-teal .card-label,
-.bg-teal h3,
-.bg-teal p {
-    color: white !important;
+.card.bg-teal .card-label,
+.card.bg-teal h3,
+.card.bg-teal p,
+.card.bg-teal div,
+.card.bg-teal span,
+.card.bg-green .card-label,
+.card.bg-green h3,
+.card.bg-green p,
+.card.bg-green div,
+.card.bg-green span {
+    color: #ffffff !important;
 }
 
-.bg-orange {
-    background-color: #f6c23e;
+.card.bg-orange,
+.card.bg-yellow,
+.stat-box.bg-yellow,
+.metric-card.bg-yellow {
+    background-color: #f6c23e !important;
     border-top: none;
-    color: white;
+    color: #ffffff !important;
 }
 
-.bg-orange .card-label,
-.bg-orange h3,
-.bg-orange p {
-    color: white !important;
+.card.bg-orange .card-label,
+.card.bg-orange h3,
+.card.bg-orange p,
+.card.bg-orange div,
+.card.bg-orange span,
+.card.bg-yellow .card-label,
+.card.bg-yellow h3,
+.card.bg-yellow p,
+.card.bg-yellow div,
+.card.bg-yellow span {
+    color: #ffffff !important;
 }
 
-.bg-red {
-    background-color: #e74a3b;
+.card.bg-red,
+.stat-box.bg-red,
+.metric-card.bg-red {
+    background-color: #e74a3b !important;
     border-top: none;
-    color: white;
+    color: #ffffff !important;
 }
 
-.bg-red .card-label,
-.bg-red h3,
-.bg-red p {
-    color: white !important;
+.card.bg-red .card-label,
+.card.bg-red h3,
+.card.bg-red p,
+.card.bg-red div,
+.card.bg-red span {
+    color: #ffffff !important;
+}
+
+/* Card Variants - White Cards with Top/Left Accent Borders */
+.card.border-blue { border-top: 4px solid #4e73df; background: #ffffff !important; color: #5a5c69; }
+.card.border-teal, .card.border-green { border-top: 4px solid #1cc88a; background: #ffffff !important; color: #5a5c69; }
+.card.border-orange, .card.border-yellow { border-top: 4px solid #f6c23e; background: #ffffff !important; color: #5a5c69; }
+.card.border-red { border-top: 4px solid #e74a3b; background: #ffffff !important; color: #5a5c69; }
+
+.card.border-blue .card-label, .card.border-teal .card-label, .card.border-green .card-label, .card.border-orange .card-label, .card.border-red .card-label {
+    color: #858796 !important;
+}
+.card.border-blue h3, .card.border-teal h3, .card.border-green h3, .card.border-orange h3, .card.border-red h3 {
+    color: #2d3748 !important;
+}
+.card.border-blue p, .card.border-teal p, .card.border-green p, .card.border-orange p, .card.border-red p {
+    color: #718096 !important;
 }
 
 .bg-warn {
