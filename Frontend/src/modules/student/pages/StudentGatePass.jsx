@@ -303,21 +303,29 @@ const StudentGatePass = () => {
                             </tr>
                         </thead>
                         <tbody>
-                            {requests.map(req => (
-                                <tr key={req._id}>
-                                    <td>{new Date(req.createdAt).toLocaleDateString(undefined, {day: 'numeric', month: 'short', year: 'numeric'})}</td>
-                                    <td style={{ fontWeight: 600 }}>
-                                        {new Date(req.fromDate).toLocaleDateString(undefined, {day: 'numeric', month: 'short'})} to {new Date(req.toDate).toLocaleDateString(undefined, {day: 'numeric', month: 'short'})}
-                                    </td>
-                                    <td>{req.destination}</td>
-                                    <td>{req.reason}</td>
-                                    <td>
-                                        <span className={`status-badge ${req.status === 'Approved' ? 'status-resolved' : req.status === 'Pending' ? 'status-progress' : 'status-pending'}`}>
-                                            {req.status}
-                                        </span>
+                            {requests.length === 0 ? (
+                                <tr>
+                                    <td colSpan="5" style={{ textAlign: 'center', padding: '25px', color: '#858796' }}>
+                                        No gate pass requests found. Fill in the form above to submit your first pass request.
                                     </td>
                                 </tr>
-                            ))}
+                            ) : (
+                                requests.map(req => (
+                                    <tr key={req._id}>
+                                        <td>{new Date(req.createdAt).toLocaleDateString(undefined, {day: 'numeric', month: 'short', year: 'numeric'})}</td>
+                                        <td style={{ fontWeight: 600 }}>
+                                            {new Date(req.fromDate).toLocaleDateString(undefined, {day: 'numeric', month: 'short'})} to {new Date(req.toDate).toLocaleDateString(undefined, {day: 'numeric', month: 'short'})}
+                                        </td>
+                                        <td>{req.destination}</td>
+                                        <td>{req.reason}</td>
+                                        <td>
+                                            <span className={`status-badge ${req.status === 'Approved' ? 'status-resolved' : req.status === 'Pending' ? 'status-progress' : 'status-pending'}`}>
+                                                {req.status}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                ))
+                            )}
                         </tbody>
                     </table>
                 </div>

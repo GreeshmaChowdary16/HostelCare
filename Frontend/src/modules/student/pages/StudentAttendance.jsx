@@ -282,7 +282,6 @@ const StudentAttendance = () => {
             const attendance = await response.json();
             const attendanceRecord = Array.isArray(attendance) ? attendance[0] : attendance;
             setAttendanceData(attendanceRecord);
-            setAttendanceMonthState(buildMonthState(attendanceRecord));
         } catch (error) {
             setAttendanceError('Unable to load attendance. Please try again later.');
             setAttendanceData(null);
@@ -290,6 +289,7 @@ const StudentAttendance = () => {
         } finally {
             setIsLoadingAttendance(false);
         }
+
     };
 
     useEffect(() => {

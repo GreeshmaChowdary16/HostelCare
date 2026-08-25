@@ -4,9 +4,11 @@ import { useNavigate } from 'react-router-dom';
 import { API_BASE_URL } from '../../../config';
 
 function StudentNotifications() {
+    const navigate = useNavigate();
     const [notifications, setNotifications] = useState([]);
     const [statusMessage, setStatusMessage] = useState('');
     const [isLoading, setIsLoading] = useState(true);
+
 
     const fetchNotifications = async () => {
         setIsLoading(true);
@@ -272,7 +274,7 @@ function StudentNotifications() {
                 ) : (
                     <div className="notif-list">
                         {notifications.map(notif => (
-                            <div className="notif-card" key={notif._id}>
+                            <div className="notif-card" key={notif._id} onClick={() => handleNotifClick(notif)}>
                                 <div 
                                     className="notif-icon-wrapper"
                                     style={{ 
@@ -291,7 +293,10 @@ function StudentNotifications() {
                                 </div>
                                 <button 
                                     className="btn-dismiss" 
-                                    onClick={() => handleDismiss(notif._id)}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleDismiss(notif._id);
+                                    }}
                                     title="Dismiss notification"
                                 >
                                     <i className="fas fa-times"></i>
@@ -299,6 +304,7 @@ function StudentNotifications() {
                             </div>
                         ))}
                     </div>
+
                 )}
             </div>
         </>

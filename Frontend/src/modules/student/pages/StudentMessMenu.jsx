@@ -56,12 +56,12 @@ const StudentMessMenu = () => {
 
             if (revRes.ok) {
                 const data = await revRes.json();
-                setReviews(data);
+                setReviews(data || []);
             }
             if (menuRes.ok) {
                 const menuData = await menuRes.json();
                 if (menuData && Object.keys(menuData).length > 0) {
-                    setWeeklyMenu(menuData);
+                    setMenu(menuData);
                 }
             }
         } catch (error) {
@@ -116,7 +116,7 @@ const StudentMessMenu = () => {
                 setStatusMessage('Review submitted successfully.');
                 setFeedback((prev) => ({ ...prev, [meal]: '' }));
                 setRatings((prev) => ({ ...prev, [meal]: 0 }));
-                fetchReviews();
+                fetchMenuAndReviews();
             } else {
                 setStatusMessage(data.message || 'Failed to submit review.');
             }
@@ -149,7 +149,7 @@ const StudentMessMenu = () => {
             const data = await response.json();
             if (response.ok) {
                 setStatusMessage('Review marked complete.');
-                fetchReviews();
+                fetchMenuAndReviews();
             } else {
                 setStatusMessage(data.message || 'Failed to mark complete.');
             }
@@ -161,9 +161,31 @@ const StudentMessMenu = () => {
         setLoading(false);
     };
 
-    const currentDayMenu = menu.find(
-        (item) => item.day.toLowerCase() === selectedDay.toLowerCase()
-    ) || { breakfast: 'Loading...', lunch: 'Loading...', dinner: 'Loading...' };
+    const defaultWeeklyMenu = {
+        Monday: { breakfast: 'Idli, Sambhar', lunch: 'Rice, Dal Tadka', dinner: 'Roti, Paneer' },
+        Tuesday: { breakfast: 'Poha, Jalebi', lunch: 'Chole Bhature', dinner: 'Mix Veg, Paratha' },
+        Wednesday: { breakfast: 'Upma, Chutney', lunch: 'Rajma Chawal', dinner: 'Aloo Gobi, Roti' },
+        Thursday: { breakfast: 'Dosa, Chutney', lunch: 'Veg Biryani', dinner: 'Dal Fry, Rice' },
+        Friday: { breakfast: 'Aloo Paratha', lunch: 'Kadai Paneer, Naan', dinner: 'Khichdi, Kadhi' },
+        Saturday: { breakfast: 'Bread Butter', lunch: 'Pasta, Salad', dinner: 'Pav Bhaji' },
+        Sunday: { breakfast: 'Poori Bhaji', lunch: 'Special Thali', dinner: 'Fried Rice, Manchurian' }
+    };
+
+    const getMenuForDay = (menuData, dayName) => {
+        if (!menuData) return defaultWeeklyMenu[dayName] || { breakfast: 'Not Available', lunch: 'Not Available', dinner: 'Not Available' };
+        if (Array.isArray(menuData)) {
+            const found = menuData.find(item => item && item.day && item.day.toLowerCase() === dayName.toLowerCase());
+            return found || defaultWeeklyMenu[dayName] || { breakfast: 'Not Available', lunch: 'Not Available', dinner: 'Not Available' };
+        }
+        if (typeof menuData === 'object') {
+            const key = Object.keys(menuData).find(k => k.toLowerCase() === dayName.toLowerCase());
+            if (key && menuData[key]) return menuData[key];
+        }
+        return defaultWeeklyMenu[dayName] || { breakfast: 'Not Available', lunch: 'Not Available', dinner: 'Not Available' };
+    };
+
+    const currentDayMenu = getMenuForDay(menu, selectedDay);
+
 
     const daysOfWeek = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
