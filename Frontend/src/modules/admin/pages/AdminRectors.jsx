@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Header from '../../../components/Header';
-import { API_BASE_URL } from '../../../config';
+import { API_BASE_URL, getImageUrl } from '../../../config';
 
 function AdminRectors() {
     // Data States
@@ -746,7 +746,7 @@ function AdminRectors() {
                                     >
                                         <div className="rector-avatar">
                                             {rector.profileImage ? (
-                                                <img src={rector.profileImage} alt={rector.name} />
+                                                <img src={getImageUrl(rector.profileImage)} alt={rector.name} />
                                             ) : (
                                                 <i className="fas fa-user-tie"></i>
                                             )}
@@ -770,7 +770,7 @@ function AdminRectors() {
                             <div className="details-card">
                                 <div className="details-avatar">
                                     {selectedRector.profileImage ? (
-                                        <img src={selectedRector.profileImage} alt={selectedRector.name} />
+                                        <img src={getImageUrl(selectedRector.profileImage)} alt={selectedRector.name} />
                                     ) : (
                                         <i className="fas fa-user-tie"></i>
                                     )}

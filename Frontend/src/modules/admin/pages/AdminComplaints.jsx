@@ -201,7 +201,7 @@ const AdminComplaints = () => {
 
                 .stat-icon {
                     font-size: 32px;
-                    opacity: 0.2;
+                    opacity: 0.85;
                 }
 
                 .analysis-grid {

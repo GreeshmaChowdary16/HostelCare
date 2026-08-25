@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Header from '../../../components/Header';
-import { API_BASE_URL } from '../../../config';
+import { API_BASE_URL, getImageUrl } from '../../../config';
 
 const AdminSettings = () => {
     const [activeMenu, setActiveMenu] = useState('profile');
@@ -14,6 +14,12 @@ const AdminSettings = () => {
     const [phone, setPhone] = useState('');
     const [office, setOffice] = useState('');
     const [bio, setBio] = useState('');
+
+    // Profile Photo State
+    const [profileImage, setProfileImage] = useState(localStorage.getItem('profileImage') || '');
+    const [selectedFile, setSelectedFile] = useState(null);
+    const [previewUrl, setPreviewUrl] = useState('');
+    const [removePhotoFlag, setRemovePhotoFlag] = useState(false);
 
     // Notification Preferences State
     const [notifPrefs, setNotifPrefs] = useState({
@@ -63,6 +69,8 @@ const AdminSettings = () => {
                     setPhone(data.phone || '');
                     setOffice(data.office || '');
                     setBio(data.bio || '');
+                    setProfileImage(data.profileImage || '');
+                    localStorage.setItem('profileImage', data.profileImage || '');
                 }
             } catch (err) {
                 console.error('Error fetching admin profile:', err);
@@ -82,26 +90,68 @@ const AdminSettings = () => {
         fetchData();
     }, []);
 
+    const handleFileChange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            if (file.size > 5 * 1024 * 1024) {
+                alert('File size must be under 5MB');
+                return;
+            }
+            setSelectedFile(file);
+            setRemovePhotoFlag(false);
+            const objectUrl = URL.createObjectURL(file);
+            setPreviewUrl(objectUrl);
+        }
+    };
+
+    const handleRemovePhoto = () => {
+        setSelectedFile(null);
+        setPreviewUrl('');
+        setProfileImage('');
+        setRemovePhotoFlag(true);
+    };
+
     const handleSaveProfile = async () => {
         try {
+            const formData = new FormData();
+            formData.append('name', fullName);
+            formData.append('email', email);
+            formData.append('phone', phone);
+            formData.append('office', office);
+            formData.append('bio', bio);
+
+            if (selectedFile) {
+                formData.append('profileImage', selectedFile);
+            } else if (removePhotoFlag) {
+                formData.append('removeProfileImage', 'true');
+            }
+
             const res = await fetch(`${API_BASE_URL}/auth/me`, {
                 method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...getAuthHeader(),
-                },
-                body: JSON.stringify({ name: fullName, email, phone, office, bio }),
+                headers: getAuthHeader(),
+                body: formData,
             });
 
             const data = await res.json();
             if (!res.ok) throw new Error(data.message || 'Failed to update');
             alert('Profile updated successfully');
+            const updatedUser = data.user || data;
+            const updatedPhoto = updatedUser.profileImage || '';
+
+            setProfileImage(updatedPhoto);
+            setSelectedFile(null);
+            setPreviewUrl('');
+            setRemovePhotoFlag(false);
+
             localStorage.setItem('name', fullName);
             localStorage.setItem('email', email);
+            localStorage.setItem('profileImage', updatedPhoto);
+            window.dispatchEvent(new Event('profileUpdate'));
         } catch (err) {
             alert(err.message);
         }
     };
+
 
     const handleUpdatePassword = async () => {
         try {
