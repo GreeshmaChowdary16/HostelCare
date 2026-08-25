@@ -328,7 +328,7 @@ const AdminSettings = () => {
                                             <p style={{ margin: '0 0 10px 0', fontSize: '12px', color: '#858796' }}>Upload an official administrator photo for your account (JPG, PNG up to 5MB).</p>
                                             <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
                                                 <label style={{ padding: '8px 16px', fontSize: '13px', background: '#1cc88a', color: 'white', borderRadius: '5px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px', fontWeight: 500 }}>
-                                                    <i className="fas fa-camera"></i> {selectedFile ? 'Change Selected File' : 'Upload Photo'}
+                                                    <i className="fas fa-camera"></i> {selectedFile || profileImage ? 'Change Photo' : 'Upload Photo'}
                                                     <input type="file" accept="image/*" style={{ display: 'none' }} onChange={handleFileChange} />
                                                 </label>
                                                 {(selectedFile || profileImage) && (
