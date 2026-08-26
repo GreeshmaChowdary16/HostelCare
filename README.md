@@ -770,10 +770,5 @@ Real-time communication
 
 This structure makes the project easier to maintain, test, and extend.
 
-📄 License
-
-This project is distributed under the ISC License.
-
-See the LICENSE file for complete license information.
 
 <p align="center"> <strong>🏢 HostelCare</strong> </p> <p align="center"> Smarter Hostel Management • Better Complaint Tracking • Faster Resolution </p> <p align="center"> Built with ❤️ for better hostel management. </p> ```
