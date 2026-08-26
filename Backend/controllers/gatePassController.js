@@ -1,5 +1,6 @@
 import GatePass from "../models/GatePass.js";
 import { emitRealtimeEvent } from "../config/socket.js";
+import { getRectorStudentIds } from "../utils/hostelScope.js";
 
 // Apply Gate Pass (Student only)
 export const applyGatePass = async (req, res) => {
@@ -60,6 +61,8 @@ export const getGatePasses = async (req, res) => {
     let filter = {};
     if (req.user.role === "student") {
       filter = { student: req.user._id };
+    } else if (req.user.role === "rector") {
+      filter = { student: { $in: await getRectorStudentIds(req.user) } };
     }
 
     const gatePasses = await GatePass.find(filter)
@@ -86,6 +89,13 @@ export const updateGatePassStatus = async (req, res) => {
       return res.status(404).json({
         message: "Gate pass request not found",
       });
+    }
+
+    if (req.user.role === "rector") {
+      const studentIds = await getRectorStudentIds(req.user);
+      if (!studentIds.some((studentId) => studentId.toString() === gatePass.student.toString())) {
+        return res.status(403).json({ message: "You can only manage gate passes for your assigned hostel" });
+      }
     }
 
     if (status) {

@@ -1,5 +1,12 @@
 import Fee from "../models/Fee.js";
 import User from "../models/User.js";
+import { getRectorStudentFilter, getRectorStudentIds } from "../utils/hostelScope.js";
+
+const rectorCanAccessStudent = async (req, studentId) => {
+  if (req.user.role !== "rector") return true;
+  const studentIds = await getRectorStudentIds(req.user);
+  return studentIds.some((id) => id.toString() === studentId.toString());
+};
 
 /**
  * Helper to update overdue status for fees past due date
@@ -30,6 +37,9 @@ export const createFee = async (req, res, next) => {
     const studentUser = await User.findById(student);
     if (!studentUser || studentUser.role !== "student") {
       return res.status(404).json({ success: false, message: "Student not found" });
+    }
+    if (!(await rectorCanAccessStudent(req, student))) {
+      return res.status(403).json({ success: false, message: "You can only manage fees for your assigned hostel" });
     }
 
     const fee = await Fee.create({
@@ -66,7 +76,9 @@ export const bulkCreateFees = async (req, res, next) => {
       return res.status(400).json({ success: false, message: "Amount and dueDate are required" });
     }
 
-    const filter = { role: "student" };
+    const filter = req.user.role === "rector"
+      ? getRectorStudentFilter(req.user) || { _id: null }
+      : { role: "student" };
     if (branch) filter.branch = branch;
     if (year) filter.year = year;
 
@@ -113,6 +125,10 @@ export const getFees = async (req, res, next) => {
     if (feeType) filter.feeType = feeType;
     if (academicYear) filter.academicYear = academicYear;
     if (studentId) filter.student = studentId;
+
+    if (req.user.role === "rector") {
+      filter.student = { $in: await getRectorStudentIds(req.user) };
+    }
 
     let fees = await Fee.find(filter)
       .populate("student", "name email rollNo roomInfo branch year phone")
@@ -190,6 +206,9 @@ export const getFeeById = async (req, res, next) => {
     if (!fee) {
       return res.status(404).json({ success: false, message: "Fee invoice not found" });
     }
+    if (!(await rectorCanAccessStudent(req, fee.student))) {
+      return res.status(403).json({ success: false, message: "You can only access fees for your assigned hostel" });
+    }
 
     // Access check for student
     if (req.user.role === "student" && fee.student._id.toString() !== req.user._id.toString()) {
@@ -215,6 +234,9 @@ export const recordPayment = async (req, res, next) => {
     const fee = await Fee.findById(req.params.id);
     if (!fee) {
       return res.status(404).json({ success: false, message: "Fee invoice not found" });
+    }
+    if (!(await rectorCanAccessStudent(req, fee.student))) {
+      return res.status(403).json({ success: false, message: "You can only manage fees for your assigned hostel" });
     }
 
     // If student, check ownership
@@ -269,6 +291,9 @@ export const updateFee = async (req, res, next) => {
     if (!fee) {
       return res.status(404).json({ success: false, message: "Fee invoice not found" });
     }
+    if (!(await rectorCanAccessStudent(req, fee.student))) {
+      return res.status(403).json({ success: false, message: "You can only manage fees for your assigned hostel" });
+    }
 
     if (feeType) fee.feeType = feeType;
     if (academicYear) fee.academicYear = academicYear;
@@ -305,6 +330,9 @@ export const deleteFee = async (req, res, next) => {
     if (!fee) {
       return res.status(404).json({ success: false, message: "Fee invoice not found" });
     }
+    if (!(await rectorCanAccessStudent(req, fee.student))) {
+      return res.status(403).json({ success: false, message: "You can only manage fees for your assigned hostel" });
+    }
 
     await fee.deleteOne();
 
@@ -324,7 +352,11 @@ export const getFeeStats = async (req, res, next) => {
   try {
     await updateOverdueStatus();
 
-    const fees = await Fee.find();
+    const fees = await Fee.find(
+      req.user.role === "rector"
+        ? { student: { $in: await getRectorStudentIds(req.user) } }
+        : {}
+    );
 
     let totalBilled = 0;
     let totalCollected = 0;
