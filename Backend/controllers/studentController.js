@@ -35,12 +35,19 @@ export const getStudents = async (req, res) => {
 
     if (search) {
       const regex = new RegExp(search, "i");
-      filter.$or = [
-        { name: regex },
-        { email: regex },
-        { rollNo: regex },
-        { phone: regex },
-      ];
+      filter = {
+        $and: [
+          filter,
+          {
+            $or: [
+              { name: regex },
+              { email: regex },
+              { rollNo: regex },
+              { phone: regex },
+            ],
+          },
+        ],
+      };
     }
 
     const students = await User.find(filter).select(
@@ -62,7 +69,10 @@ export const getStudents = async (req, res) => {
 
 export const getStudentStats = async (req, res) => {
   try {
-    const students = await User.find({ role: "student" }).select(
+    const studentFilter = req.user.role === "rector"
+      ? getRectorStudentFilter(req.user) || { _id: null }
+      : { role: "student" };
+    const students = await User.find(studentFilter).select(
       "branch year state roomInfo parentPhone"
     );
 
@@ -71,13 +81,19 @@ export const getStudentStats = async (req, res) => {
     startOfToday.setHours(0, 0, 0, 0);
     const endOfToday = new Date(now);
     endOfToday.setHours(23, 59, 59, 999);
+    const studentIds = students.map((student) => student._id);
+    const studentScope = { student: { $in: studentIds } };
     const [onLeave, activeComplaints] = await Promise.all([
       GatePass.countDocuments({
+        ...studentScope,
         status: "Approved",
         fromDate: { $lte: endOfToday },
         toDate: { $gte: startOfToday },
       }),
-      Complaint.countDocuments({ status: { $in: ["Pending", "In Progress"] } }),
+      Complaint.countDocuments({
+        ...studentScope,
+        status: { $in: ["Pending", "In Progress"] },
+      }),
     ]);
 
     const stats = {
@@ -125,7 +141,10 @@ export const getStudentsByFloor = async (req, res) => {
     const floor = parseInt(req.params.floor, 10);
     if (Number.isNaN(floor)) return res.status(400).json({ message: "Invalid floor" });
 
-    const students = await User.find({ role: "student" }).select(
+    const studentFilter = req.user.role === "rector"
+      ? getRectorStudentFilter(req.user) || { _id: null }
+      : { role: "student" };
+    const students = await User.find(studentFilter).select(
       "name email role phone parentPhone rollNo branch year roomInfo bio profileImage"
     );
 
@@ -146,7 +165,9 @@ export const getLiveStudentStatus = async (req, res) => {
     endOfToday.setHours(23, 59, 59, 999);
 
     const [students, approvedGatePasses] = await Promise.all([
-      User.find({ role: "student" }).select(
+      User.find(req.user.role === "rector"
+        ? getRectorStudentFilter(req.user) || { _id: null }
+        : { role: "student" }).select(
         "name email phone rollNo branch year state roomInfo profileImage"
       ).sort({ name: 1 }),
       GatePass.find({

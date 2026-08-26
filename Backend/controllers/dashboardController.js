@@ -2,26 +2,36 @@ import User from "../models/User.js";
 import Complaint from "../models/Complaint.js";
 import GatePass from "../models/GatePass.js";
 import Attendance from "../models/Attendance.js";
+import { getRectorStudentIds } from "../utils/hostelScope.js";
 
 
 export const getDashboardAnalytics = async (req, res, next) => {
   try {
+    const rectorStudentIds = req.user.role === "rector"
+      ? await getRectorStudentIds(req.user)
+      : null;
+    const studentScope = rectorStudentIds
+      ? { student: { $in: rectorStudentIds } }
+      : {};
     const today = new Date();
     const currentYear = today.getFullYear();
     const currentMonth = String(today.getMonth() + 1).padStart(2, "0");
     const monthYearStr = `${currentYear}-${currentMonth}`;
     const todayDay = today.getDate();
 
-    const totalStudents = await User.countDocuments({ role: "student" });
+    const totalStudents = rectorStudentIds
+      ? rectorStudentIds.length
+      : await User.countDocuments({ role: "student" });
     const totalRectors = await User.countDocuments({ role: "rector" });
 
-    const totalComplaints = await Complaint.countDocuments();
-    const pendingComplaints = await Complaint.countDocuments({ status: "Pending" });
-    const inProgressComplaints = await Complaint.countDocuments({ status: "In Progress" });
-    const resolvedComplaints = await Complaint.countDocuments({ status: "Resolved" });
-    const rejectedComplaints = await Complaint.countDocuments({ status: "Rejected" });
+    const totalComplaints = await Complaint.countDocuments(studentScope);
+    const pendingComplaints = await Complaint.countDocuments({ ...studentScope, status: "Pending" });
+    const inProgressComplaints = await Complaint.countDocuments({ ...studentScope, status: "In Progress" });
+    const resolvedComplaints = await Complaint.countDocuments({ ...studentScope, status: "Resolved" });
+    const rejectedComplaints = await Complaint.countDocuments({ ...studentScope, status: "Rejected" });
 
     const complaintsByCategoryRaw = await Complaint.aggregate([
+      { $match: studentScope },
       { $group: { _id: "$category", count: { $sum: 1 } } }
     ]);
     const complaintsByCategory = {};
@@ -29,20 +39,21 @@ export const getDashboardAnalytics = async (req, res, next) => {
       if (item._id) complaintsByCategory[item._id] = item.count;
     });
 
-    const totalGatePasses = await GatePass.countDocuments();
-    const pendingGatePasses = await GatePass.countDocuments({ status: "Pending" });
-    const approvedGatePasses = await GatePass.countDocuments({ status: "Approved" });
-    const rejectedGatePasses = await GatePass.countDocuments({ status: "Rejected" });
+    const totalGatePasses = await GatePass.countDocuments(studentScope);
+    const pendingGatePasses = await GatePass.countDocuments({ ...studentScope, status: "Pending" });
+    const approvedGatePasses = await GatePass.countDocuments({ ...studentScope, status: "Approved" });
+    const rejectedGatePasses = await GatePass.countDocuments({ ...studentScope, status: "Rejected" });
 
     const startOfToday = new Date(today.setHours(0, 0, 0, 0));
     const endOfToday = new Date(today.setHours(23, 59, 59, 999));
     const activeLeavesToday = await GatePass.countDocuments({
+      ...studentScope,
       status: "Approved",
       fromDate: { $lte: endOfToday },
       toDate: { $gte: startOfToday }
     });
 
-    const monthAttendances = await Attendance.find({ monthYear: monthYearStr });
+    const monthAttendances = await Attendance.find({ ...studentScope, monthYear: monthYearStr });
     let presentToday = 0;
     let leaveToday = 0;
     let notMarkedToday = 0;
@@ -189,28 +200,32 @@ export const getStudentDashboard = async (req, res, next) => {
 
 export const getRectorDashboard = async (req, res, next) => {
   try {
-    const totalStudents = await User.countDocuments({ role: "student" });
+    const studentIds = await getRectorStudentIds(req.user);
+    const studentFilter = { student: { $in: studentIds } };
+    const totalStudents = studentIds.length;
 
     const today = new Date();
     const startOfToday = new Date(today.setHours(0, 0, 0, 0));
     const endOfToday = new Date(today.setHours(23, 59, 59, 999));
 
     const activeLeavesCount = await GatePass.countDocuments({
+      ...studentFilter,
       status: "Approved",
       fromDate: { $lte: endOfToday },
       toDate: { $gte: startOfToday }
     });
 
     const activeComplaintsCount = await Complaint.countDocuments({
+      ...studentFilter,
       status: { $in: ["Pending", "In Progress"] }
     });
 
-    const recentComplaints = await Complaint.find()
+    const recentComplaints = await Complaint.find(studentFilter)
       .populate("student", "name rollNo roomInfo")
       .sort({ createdAt: -1 })
       .limit(5);
 
-    const pendingGatePasses = await GatePass.find({ status: "Pending" })
+    const pendingGatePasses = await GatePass.find({ ...studentFilter, status: "Pending" })
       .populate("student", "name rollNo roomInfo")
       .sort({ createdAt: -1 })
       .limit(5);

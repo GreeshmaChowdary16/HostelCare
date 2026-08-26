@@ -1,6 +1,7 @@
 import Complaint from "../models/Complaint.js";
 import Worker from "../models/Worker.js";
 import { emitRealtimeEvent } from "../config/socket.js";
+import { getRectorStudentIds } from "../utils/hostelScope.js";
 
 const addHistoryEntry = (complaint, note, status, updatedBy, role) => {
   complaint.history.push({
@@ -9,6 +10,12 @@ const addHistoryEntry = (complaint, note, status, updatedBy, role) => {
     updatedBy,
     role,
   });
+};
+
+const rectorCanAccessComplaint = async (req, complaint) => {
+  if (req.user.role !== "rector") return true;
+  const studentIds = await getRectorStudentIds(req.user);
+  return studentIds.some((studentId) => studentId.toString() === complaint.student.toString());
 };
 
 export const createComplaint = async (req, res) => {
@@ -50,6 +57,8 @@ export const getComplaints = async (req, res) => {
 
     if (req.user.role === "student") {
       filter.student = req.user._id;
+    } else if (req.user.role === "rector") {
+      filter.student = { $in: await getRectorStudentIds(req.user) };
     }
     if (category) {
       filter.category = category;
@@ -81,6 +90,16 @@ export const getComplaintById = async (req, res) => {
     if (!complaint) {
       return res.status(404).json({ message: "Complaint not found" });
     }
+    if (!(await rectorCanAccessComplaint(req, complaint))) {
+      return res.status(403).json({ message: "You can only manage complaints for your assigned hostel" });
+    }
+
+    if (req.user.role === "rector") {
+      const studentIds = await getRectorStudentIds(req.user);
+      if (!studentIds.some((studentId) => studentId.toString() === complaint.student.toString())) {
+        return res.status(403).json({ message: "You can only access complaints for your assigned hostel" });
+      }
+    }
 
     if (req.user.role === "student" && complaint.student._id.toString() !== req.user._id.toString()) {
       return res.status(403).json({ message: "Access denied" });
@@ -100,6 +119,9 @@ export const updateComplaint = async (req, res) => {
     const complaint = await Complaint.findById(id);
     if (!complaint) {
       return res.status(404).json({ message: "Complaint not found" });
+    }
+    if (!(await rectorCanAccessComplaint(req, complaint))) {
+      return res.status(403).json({ message: "You can only manage complaints for your assigned hostel" });
     }
 
     if (category) complaint.category = category;
@@ -137,6 +159,9 @@ export const deleteComplaint = async (req, res) => {
     const complaint = await Complaint.findById(req.params.id);
     if (!complaint) {
       return res.status(404).json({ message: "Complaint not found" });
+    }
+    if (!(await rectorCanAccessComplaint(req, complaint))) {
+      return res.status(403).json({ message: "You can only manage complaints for your assigned hostel" });
     }
 
     await complaint.deleteOne();
