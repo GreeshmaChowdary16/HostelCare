@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
-    "hash-passwords": "node hashPasswords.js"
+    "hash-passwords": "node hashPasswords.js",
+    "migrate-rectors": "node migrateRectors.js"
   },
   "keywords": [],
   "author": "",
