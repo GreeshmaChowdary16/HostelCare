@@ -44,6 +44,23 @@ function AdminWorkers() {
     // Categories array
     const categories = ["Electrician", "Plumber", "Carpenter", "Cleaning", "Security", "IT Support"];
 
+    // State for Maintenance Directory tabs
+    const [activeRole, setActiveRole] = useState('Electricians');
+    const workersList = {
+        'Electricians': [
+            { id: 'E1', name: 'Ramesh Sharma', phone: '9876543212', status: 'On Duty' },
+            { id: 'E2', name: 'Sanjay Gupta', phone: '9876543213', status: 'On Duty' }
+        ],
+        'Plumbers': [
+            { id: 'P1', name: 'Suresh Verma', phone: '9876543214', status: 'On Duty' },
+            { id: 'P2', name: 'Amit Patel', phone: '9876543215', status: 'Off Duty' }
+        ],
+        'Carpenters': [
+            { id: 'C1', name: 'Mahesh Kumar', phone: '9876543210', status: 'On Duty' },
+            { id: 'C2', name: 'Rahul Singh', phone: '9876543211', status: 'On Leave' }
+        ]
+    };
+
     // Fetch Workers directory
     const fetchWorkers = async () => {
         setIsLoading(true);
@@ -351,6 +368,47 @@ function AdminWorkers() {
 
                 .btn-add:hover {
                     background: #2e59d9;
+                }
+
+                .section-title {
+                    margin: 0 0 15px 0;
+                    color: #2d3748;
+                    font-weight: 700;
+                    font-size: 18px;
+                }
+
+                .role-tabs {
+                    display: flex;
+                    gap: 12px;
+                    margin-bottom: 25px;
+                    overflow-x: auto;
+                    padding-bottom: 5px;
+                }
+
+                .role-tab {
+                    padding: 10px 20px;
+                    background: #fff;
+                    border: 1px solid #d1d3e2;
+                    border-radius: 8px;
+                    color: #5a5c69;
+                    cursor: pointer;
+                    white-space: nowrap;
+                    font-weight: 600;
+                    font-size: 14px;
+                    transition: all 0.2s;
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+                }
+
+                .role-tab:hover {
+                    border-color: #4e73df;
+                    color: #4e73df;
+                }
+
+                .role-tab.active {
+                    background: #4e73df;
+                    color: #fff;
+                    border-color: #4e73df;
+                    box-shadow: 0 4px 8px rgba(78, 115, 223, 0.2);
                 }
 
                 .worker-grid {
@@ -685,10 +743,9 @@ function AdminWorkers() {
                         ))}
                     </div>
                 )}
-            </div>
 
                 {/* Section 3: Worker Directory (Tabs) */}
-                <div className="worker-card">
+                <div className="card" style={{ marginTop: '30px' }}>
                     <h3 className="section-title">Maintenance Directory</h3>
                     
                     <div className="role-tabs">
@@ -711,9 +768,73 @@ function AdminWorkers() {
                                     <i className="fas fa-id-badge" style={{ width: '20px' }}></i> ID: {worker.id}<br/>
                                     <i className="fas fa-phone" style={{ width: '20px' }}></i> {worker.phone}
                                 </div>
-                                <span className={`status-chip status-${worker.status.toLowerCase().replace(' ', '-')}`}>
+                                <span className={`status-chip status-${worker.status ? worker.status.toLowerCase().replace(' ', '-') : ''}`}>
                                     {worker.status}
                                 </span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </div>
+
+            {/* ADD WORKER MODAL */}
+            {addModalOpen && (
+                <div className="modal-overlay">
+                    <div className="modal-content">
+                        <div className="modal-header">
+                            <h3 className="modal-title"><i className="fas fa-user-plus"></i> Add New Worker</h3>
+                            <button className="modal-close" onClick={() => setAddModalOpen(false)}>&times;</button>
+                        </div>
+                        <form onSubmit={handleAddWorkerSubmit}>
+                            <div className="form-group">
+                                <label>Name *</label>
+                                <input
+                                    type="text"
+                                    className="form-control"
+                                    value={newWorker.name}
+                                    onChange={(e) => setNewWorker({ ...newWorker, name: e.target.value })}
+                                    placeholder="Enter worker's full name"
+                                    required
+                                />
+                            </div>
+                            <div className="form-group">
+                                <label>Category (Trade) *</label>
+                                <select
+                                    className="form-control"
+                                    value={newWorker.category}
+                                    onChange={(e) => setNewWorker({ ...newWorker, category: e.target.value })}
+                                    required
+                                >
+                                    {categories.map(c => <option key={c} value={c}>{c}</option>)}
+                                </select>
+                            </div>
+                            <div className="form-group">
+                                <label>Phone</label>
+                                <input
+                                    type="text"
+                                    className="form-control"
+                                    value={newWorker.phone}
+                                    onChange={(e) => setNewWorker({ ...newWorker, phone: e.target.value })}
+                                    placeholder="e.g. +91 99999 88888"
+                                />
+                            </div>
+                            <div className="form-group">
+                                <label>Availability</label>
+                                <select
+                                    className="form-control"
+                                    value={newWorker.availability}
+                                    onChange={(e) => setNewWorker({ ...newWorker, availability: e.target.value })}
+                                >
+                                    <option value="Available">Available</option>
+                                    <option value="Busy">Busy</option>
+                                    <option value="Off">Off</option>
+                                </select>
+                            </div>
+                            <div className="modal-footer">
+                                <button type="button" className="btn-cancel" onClick={() => setAddModalOpen(false)}>Cancel</button>
+                                <button type="submit" className="btn-submit" disabled={isSubmitting}>
+                                    {isSubmitting ? 'Creating...' : 'Create Worker'}
+                                </button>
                             </div>
                         </form>
                     </div>
