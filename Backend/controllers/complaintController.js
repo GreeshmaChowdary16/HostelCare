@@ -206,6 +206,38 @@ export const updateComplaintStatus = async (req, res) => {
   }
 };
 
+export const reopenComplaint = async (req, res) => {
+  try {
+    const complaint = await Complaint.findOne({
+      _id: req.params.id,
+      student: req.user._id,
+    });
+
+    if (!complaint) {
+      return res.status(404).json({ message: "Complaint not found" });
+    }
+
+    if (!["Resolved", "Rejected"].includes(complaint.status)) {
+      return res.status(400).json({ message: "Only resolved or rejected complaints can be reopened" });
+    }
+
+    complaint.status = "Pending";
+    addHistoryEntry(
+      complaint,
+      req.body.reason || "Complaint reopened by student",
+      "Pending",
+      req.user.name,
+      req.user.role
+    );
+    await complaint.save();
+    emitRealtimeEvent("complaint_updated", complaint);
+
+    res.status(200).json({ message: "Complaint reopened successfully", complaint });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 export const escalateComplaint = async (req, res) => {
   try {
     const complaint = await Complaint.findById(req.params.id);

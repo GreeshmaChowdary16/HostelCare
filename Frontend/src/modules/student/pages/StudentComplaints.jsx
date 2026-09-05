@@ -90,6 +90,11 @@ const StudentComplaints = () => {
             return;
         }
 
+        if (!data.problem.trim()) {
+            alert('Please describe the problem before submitting.');
+            return;
+        }
+
         // Map section name to backend category casing (Capitalized string)
         let category = section.charAt(0).toUpperCase() + section.slice(1);
         if (category === 'Electrician') category = 'Electrician';
@@ -98,18 +103,18 @@ const StudentComplaints = () => {
         if (category === 'Cleaning') category = 'Cleaning';
 
         try {
+            const formData = new FormData();
+            formData.append('category', category);
+            formData.append('subCategory', subSection || '');
+            formData.append('problem', data.problem.trim());
+            if (data.proof) formData.append('proof', data.proof);
+
             const response = await fetch(`${API_BASE_URL}/complaints`, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`
                 },
-                body: JSON.stringify({
-                    category: category,
-                    subCategory: subSection,
-                    problem: data.problem,
-                    proof: data.proof ? data.proof.name : null
-                })
+                body: formData
             });
 
             if (response.ok) {
@@ -124,6 +129,28 @@ const StudentComplaints = () => {
         } catch (error) {
             console.error('Error submitting complaint:', error);
             alert('Server error while submitting complaint.');
+        }
+    };
+
+    const handleReopen = async (complaint) => {
+        const reason = window.prompt('Why should this complaint be reopened?', 'The issue is still unresolved.');
+        if (!reason?.trim()) return;
+
+        const token = localStorage.getItem('token');
+        try {
+            const response = await fetch(`${API_BASE_URL}/complaints/${complaint._id}/reopen`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`
+                },
+                body: JSON.stringify({ reason: reason.trim() })
+            });
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.message || 'Unable to reopen complaint.');
+            setPastComplaints(prev => prev.map(item => item._id === complaint._id ? data.complaint : item));
+        } catch (error) {
+            alert(error.message);
         }
     };
 
@@ -354,13 +381,14 @@ const StudentComplaints = () => {
                                     <th style={{ textAlign: 'left', padding: '12px 15px', background: '#f8f9fc', color: '#858796', fontSize: '12px', fontWeight: 700, textTransform: 'uppercase' }}>Category</th>
                                     <th style={{ textAlign: 'left', padding: '12px 15px', background: '#f8f9fc', color: '#858796', fontSize: '12px', fontWeight: 700, textTransform: 'uppercase' }}>Issue Details</th>
                                     <th style={{ textAlign: 'left', padding: '12px 15px', background: '#f8f9fc', color: '#858796', fontSize: '12px', fontWeight: 700, textTransform: 'uppercase' }}>Date Submitted</th>
-                                    <th style={{ textAlign: 'left', padding: '12px 15px', background: '#f8f9fc', color: '#858796', fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', borderRadius: '0 10px 10px 0' }}>Status</th>
+                                    <th style={{ textAlign: 'left', padding: '12px 15px', background: '#f8f9fc', color: '#858796', fontSize: '12px', fontWeight: 700, textTransform: 'uppercase' }}>Status</th>
+                                    <th style={{ textAlign: 'left', padding: '12px 15px', background: '#f8f9fc', color: '#858796', fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', borderRadius: '0 10px 10px 0' }}>Action</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {pastComplaints.length === 0 ? (
                                     <tr>
-                                        <td colSpan="5" style={{ padding: '15px', textAlign: 'center', color: '#858796' }}>No complaints filed yet.</td>
+                                        <td colSpan="6" style={{ padding: '15px', textAlign: 'center', color: '#858796' }}>No complaints filed yet.</td>
                                     </tr>
                                 ) : (
                                     pastComplaints.map((past) => {
@@ -409,6 +437,13 @@ const StudentComplaints = () => {
                                                     }}>
                                                         <i className="fas fa-check-circle"></i> {past.status}
                                                     </span>
+                                                </td>
+                                                <td style={{ padding: '15px' }}>
+                                                    {['Resolved', 'Rejected'].includes(past.status) && (
+                                                        <button type="button" className="btn-sm" onClick={() => handleReopen(past)}>
+                                                            Reopen
+                                                        </button>
+                                                    )}
                                                 </td>
                                             </tr>
                                         );

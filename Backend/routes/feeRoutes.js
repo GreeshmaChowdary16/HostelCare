@@ -26,7 +26,7 @@ router.post("/", protect, authorizeRoles("admin", "rector"), createFee);
 router.post("/bulk", protect, authorizeRoles("admin", "rector"), bulkCreateFees);
 
 // Payment Recording
-router.put("/:id/pay", protect, recordPayment);
+router.put("/:id/pay", protect, authorizeRoles("admin", "rector"), recordPayment);
 
 // Admin & Rector Manage Routes
 router.put("/:id", protect, authorizeRoles("admin", "rector"), updateFee);

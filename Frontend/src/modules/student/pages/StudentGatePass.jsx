@@ -190,6 +190,23 @@ const StudentGatePass = () => {
         }
     };
 
+    const handleCancel = async (id) => {
+        if (!window.confirm('Cancel this pending gate pass request?')) return;
+
+        const token = localStorage.getItem('token');
+        try {
+            const response = await fetch(`${API_BASE_URL}/gatepass/${id}/cancel`, {
+                method: 'PUT',
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.message || 'Unable to cancel gate pass.');
+            setRequests(prev => prev.map(request => request._id === id ? data.gatePass : request));
+        } catch (error) {
+            alert(error.message);
+        }
+    };
+
     return (
         <>
             <Header title="Gate Pass Management" />
@@ -300,12 +317,13 @@ const StudentGatePass = () => {
                                 <th>Destination</th>
                                 <th>Reason</th>
                                 <th>Status</th>
+                                <th>Action</th>
                             </tr>
                         </thead>
                         <tbody>
                             {requests.length === 0 ? (
                                 <tr>
-                                    <td colSpan="5" style={{ textAlign: 'center', padding: '25px', color: '#858796' }}>
+                                    <td colSpan="6" style={{ textAlign: 'center', padding: '25px', color: '#858796' }}>
                                         No gate pass requests found. Fill in the form above to submit your first pass request.
                                     </td>
                                 </tr>
@@ -322,6 +340,13 @@ const StudentGatePass = () => {
                                             <span className={`status-badge ${req.status === 'Approved' ? 'status-resolved' : req.status === 'Pending' ? 'status-progress' : 'status-pending'}`}>
                                                 {req.status}
                                             </span>
+                                        </td>
+                                        <td>
+                                            {req.status === 'Pending' && (
+                                                <button type="button" className="btn-sm" onClick={() => handleCancel(req._id)}>
+                                                    Cancel
+                                                </button>
+                                            )}
                                         </td>
                                     </tr>
                                 ))
