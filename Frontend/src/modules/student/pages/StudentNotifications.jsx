@@ -28,7 +28,13 @@ function StudentNotifications() {
 
             if (response.ok) {
                 const backendNotifications = await response.json();
-                const sorted = (backendNotifications || []).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+                const userId = localStorage.getItem('userId');
+                const visible = (backendNotifications || []).filter(notification =>
+                    !userId || !(notification.readBy || []).some(reader =>
+                        String(reader?._id || reader) === userId
+                    )
+                );
+                const sorted = visible.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
                 setNotifications(sorted);
             } else {
                 const err = await response.json();
@@ -47,11 +53,20 @@ function StudentNotifications() {
         fetchNotifications();
     }, []);
 
-    const handleDismiss = (id) => {
-        const updated = notifications.filter(n => n._id !== id);
-        setNotifications(updated);
-        setStatusMessage('Notification dismissed.');
-        setTimeout(() => setStatusMessage(''), 2500);
+    const handleDismiss = async (id) => {
+        const token = localStorage.getItem('token');
+        try {
+            const response = await fetch(`${API_BASE_URL}/notifications/${id}/read`, {
+                method: 'PUT',
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            if (!response.ok) throw new Error('Unable to dismiss notification.');
+            setNotifications(prev => prev.filter(n => n._id !== id));
+            setStatusMessage('Notification dismissed.');
+            setTimeout(() => setStatusMessage(''), 2500);
+        } catch (error) {
+            setStatusMessage(error.message);
+        }
     };
 
     const handleNotifClick = (notif) => {
@@ -66,12 +81,24 @@ function StudentNotifications() {
         }
     };
 
-    const handleDismissAll = () => {
+    const handleDismissAll = async () => {
         if (notifications.length === 0) return;
         if (!window.confirm('Dismiss all alerts?')) return;
-        setNotifications([]);
-        setStatusMessage('All notifications cleared.');
-        setTimeout(() => setStatusMessage(''), 2500);
+        const token = localStorage.getItem('token');
+        try {
+            const results = await Promise.all(notifications.map(notification =>
+                fetch(`${API_BASE_URL}/notifications/${notification._id}/read`, {
+                    method: 'PUT',
+                    headers: { Authorization: `Bearer ${token}` }
+                })
+            ));
+            if (results.some(response => !response.ok)) throw new Error('Some notifications could not be cleared.');
+            setNotifications([]);
+            setStatusMessage('All notifications cleared.');
+            setTimeout(() => setStatusMessage(''), 2500);
+        } catch (error) {
+            setStatusMessage(error.message);
+        }
     };
 
     const getIcon = (type, category) => {

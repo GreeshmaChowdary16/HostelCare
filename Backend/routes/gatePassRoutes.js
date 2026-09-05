@@ -6,12 +6,14 @@ import {
   applyGatePass,
   getGatePasses,
   updateGatePassStatus,
+  cancelGatePass,
 } from "../controllers/gatePassController.js";
 
 const router = express.Router();
 
 router.post("/", protect, authorizeRoles("student"), upload.single("proof"), applyGatePass);
 router.get("/", protect, authorizeRoles("student", "rector", "admin"), getGatePasses);
+router.put("/:id/cancel", protect, authorizeRoles("student"), cancelGatePass);
 router.put(
   "/:id/status",
   protect,

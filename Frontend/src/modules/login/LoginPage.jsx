@@ -15,11 +15,6 @@ function LoginPage() {
     const [isLoading, setIsLoading] = useState(false);
     const [isLoadingGoogle, setIsLoadingGoogle] = useState(false);
 
-    // Mock Modal states
-    const [showMockModal, setShowMockModal] = useState(false);
-    const [mockEmail, setMockEmail] = useState('');
-    const [mockEmailError, setMockEmailError] = useState('');
-
     const navigate = useNavigate();
 
     // Verify if GOOGLE_CLIENT_ID is valid or a placeholder
@@ -64,6 +59,7 @@ function LoginPage() {
                 }
 
                 localStorage.setItem('token', data.token);
+                localStorage.setItem('userId', data.userId || '');
                 localStorage.setItem('role', data.role);
                 localStorage.setItem('name', data.name);
                 localStorage.setItem('email', username);
@@ -124,6 +120,7 @@ function LoginPage() {
             }
 
             localStorage.setItem('token', googleData.token);
+            localStorage.setItem('userId', googleData.userId || '');
             localStorage.setItem('role', googleData.role);
             localStorage.setItem('name', googleData.name);
             localStorage.setItem('email', googleData.email || '');
@@ -174,76 +171,6 @@ function LoginPage() {
             return () => clearTimeout(timer);
         }
     }, [role, isGoogleClientIdConfigured]);
-
-    // Handle Mock Dialog Actions
-    const openMockLoginDialog = () => {
-        setLoginError(null);
-        if (!role) {
-            setLoginError('Please select your role first.');
-            return;
-        }
-        setMockEmail(
-            role === 'Admin' ? 'admin@hostel.edu' : 
-            role === 'Rector' ? 'rector@hostelcare.com' : 
-            'student@hostelcare.com'
-        );
-        setMockEmailError('');
-        setShowMockModal(true);
-    };
-
-    const handleMockLoginSubmit = async (e) => {
-        e.preventDefault();
-        setMockEmailError('');
-
-        // Simple email validation regex
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(mockEmail)) {
-            setMockEmailError('Please enter a valid email address.');
-            return;
-        }
-
-        setShowMockModal(false);
-        setIsLoadingGoogle(true);
-        try {
-            // Generate mock token: mock-google-token-{email}-{role}
-            const mockToken = `mock-google-token-${mockEmail.trim()}-${role}`;
-            
-            const googleRes = await fetch(`${API_BASE_URL}/auth/google-login`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    idToken: mockToken,
-                    role: role.toLowerCase(),
-                }),
-            });
-
-            const googleData = await googleRes.json();
-            if (!googleRes.ok) {
-                setLoginError(googleData.message || 'Google login failed');
-                return;
-            }
-
-            localStorage.setItem('token', googleData.token);
-            localStorage.setItem('role', googleData.role);
-            localStorage.setItem('name', googleData.name);
-            localStorage.setItem('email', googleData.email || '');
-
-            if (googleData.role === 'admin') {
-                navigate('/admin/dashboard');
-            } else if (googleData.role === 'rector') {
-                navigate('/rector/dashboard');
-            } else if (googleData.role === 'student') {
-                navigate('/student/dashboard');
-            }
-        } catch (error) {
-            console.error('Simulated Google login connection error:', error);
-            setLoginError('Google login connection failed.');
-        } finally {
-            setIsLoadingGoogle(false);
-        }
-    };
 
     const resetForm = () => {
         setRole(null);
@@ -502,19 +429,13 @@ function LoginPage() {
                                 {isLoading ? 'Signing In...' : 'Sign In'}
                             </button>
 
-                            {/* Render either the official Google button or our custom simulated button fallback */}
+                            {/* Render the official Google button only when credentials are configured. */}
                             {isGoogleClientIdConfigured ? (
                                 <div id="google-signin-btn" style={{ width: '100%', display: 'flex', justifyContent: 'center', marginTop: '15px' }} />
                             ) : (
-                                <button 
-                                    type="button" 
-                                    className="google-btn-custom" 
-                                    onClick={openMockLoginDialog}
-                                    disabled={isLoadingGoogle}
-                                >
-                                    <i className="fab fa-google"></i>
-                                    {isLoadingGoogle ? 'Signing in with Google...' : 'Continue with Google'}
-                                </button>
+                                <p style={{ margin: '15px 0 0', color: '#858796', fontSize: '12px', textAlign: 'center' }}>
+                                    Google sign-in is unavailable until OAuth credentials are configured.
+                                </p>
                             )}
                         </form>
                         {role === 'Student' && (
@@ -526,49 +447,6 @@ function LoginPage() {
                 )}
             </div>
 
-            {/* MOCK GOOGLE LOGIN DIALOG MODAL */}
-            {showMockModal && (
-                <div className="mock-overlay">
-                    <div className="mock-modal">
-                        <div className="mock-title">
-                            <i className="fab fa-google"></i> Google Account Selection
-                        </div>
-                        <div className="mock-role-badge">Role: {role}</div>
-                        <form onSubmit={handleMockLoginSubmit}>
-                            <div className="mock-form-group">
-                                <label className="mock-label">Google Account Email</label>
-                                <input
-                                    type="email"
-                                    className="mock-input"
-                                    value={mockEmail}
-                                    onChange={(e) => setMockEmail(e.target.value)}
-                                    placeholder="Enter your email e.g. user@gmail.com"
-                                    required
-                                    autoFocus
-                                />
-                                {mockEmailError && (
-                                    <div className="mock-error">{mockEmailError}</div>
-                                )}
-                            </div>
-                            <div className="mock-footer">
-                                <button 
-                                    type="button" 
-                                    className="mock-btn mock-btn-cancel" 
-                                    onClick={() => setShowMockModal(false)}
-                                >
-                                    Cancel
-                                </button>
-                                <button 
-                                    type="submit" 
-                                    className="mock-btn mock-btn-submit"
-                                >
-                                    Continue
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            )}
         </div>
     );
 }

@@ -9,6 +9,7 @@ import {
   updateComplaint,
   deleteComplaint,
   updateComplaintStatus,
+  reopenComplaint,
   escalateComplaint,
   getComplaintTimeline,
 } from "../controllers/complaintController.js";
@@ -28,5 +29,6 @@ router.put(
 );
 router.post("/:id/escalate", protect, authorizeRoles("rector", "admin"), escalateComplaint);
 router.get("/:id/timeline", protect, authorizeRoles("student", "rector", "admin"), getComplaintTimeline);
+router.post("/:id/reopen", protect, authorizeRoles("student"), reopenComplaint);
 
 export default router;

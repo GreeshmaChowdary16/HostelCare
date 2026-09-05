@@ -113,15 +113,17 @@ const Header = ({ title }) => {
                                     <div className="small-text">Check the Fee Portal to view and pay outstanding dues.</div>
                                 </div>
                             </Link>
-                            <Link to={getModulePath('/attendance')} className="dropdown-list-item">
-                                <div className="icon-circle" style={{ background: '#e74a3b' }}>
-                                    <i className="fas fa-calendar-check"></i>
-                                </div>
-                                <div className="content">
-                                    <span style={{ fontWeight: 600, fontSize: '13px', color: '#333' }}>Attendance Record</span>
-                                    <div className="small-text">View verified hostel attendance records.</div>
-                                </div>
-                            </Link>
+                            {!location.pathname.startsWith('/admin') && (
+                                <Link to={getModulePath('/attendance')} className="dropdown-list-item">
+                                    <div className="icon-circle" style={{ background: '#e74a3b' }}>
+                                        <i className="fas fa-calendar-check"></i>
+                                    </div>
+                                    <div className="content">
+                                        <span style={{ fontWeight: 600, fontSize: '13px', color: '#333' }}>Attendance Record</span>
+                                        <div className="small-text">View verified hostel attendance records.</div>
+                                    </div>
+                                </Link>
+                            )}
                             <Link to={getModulePath('/notifications')} style={{ display: 'block', textAlign: 'center', padding: '10px', fontSize: '12px', color: '#858796', textDecoration: 'none' }}>
                                 Read More Messages
                             </Link>

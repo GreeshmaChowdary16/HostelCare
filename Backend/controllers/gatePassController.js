@@ -118,3 +118,28 @@ export const updateGatePassStatus = async (req, res) => {
     });
   }
 };
+
+export const cancelGatePass = async (req, res) => {
+  try {
+    const gatePass = await GatePass.findOne({
+      _id: req.params.id,
+      student: req.user._id,
+    });
+
+    if (!gatePass) {
+      return res.status(404).json({ message: "Gate pass request not found" });
+    }
+
+    if (gatePass.status !== "Pending") {
+      return res.status(400).json({ message: "Only pending gate pass requests can be cancelled" });
+    }
+
+    gatePass.status = "Cancelled";
+    await gatePass.save();
+    emitRealtimeEvent("gatepass_updated", gatePass);
+
+    res.status(200).json({ message: "Gate pass request cancelled", gatePass });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};

@@ -731,13 +731,9 @@ const StudentFees = () => {
                                                         </td>
                                                         <td>
                                                             {!isPaid ? (
-                                                                <button
-                                                                    type="button"
-                                                                    className="btn-pay-now"
-                                                                    onClick={() => openPaymentModal(fee)}
-                                                                >
-                                                                    <i className="fas fa-credit-card"></i> Pay Now
-                                                                </button>
+                                                                <span style={{ color: '#858796', fontSize: '12px' }}>
+                                                                    Online payment unavailable
+                                                                </span>
                                                             ) : (
                                                                 <span style={{ color: '#1cc88a', fontSize: '13px', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                                                                     <i className="fas fa-check-double"></i> Settled
