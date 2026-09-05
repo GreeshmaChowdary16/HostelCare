@@ -51,6 +51,21 @@ import AdminFees from './modules/admin/pages/AdminFees';
 // Rector Module
 import Reports from './modules/rector/pages/Reports';
 
+function RoleRoute({ role, children }) {
+    const token = localStorage.getItem('token');
+    const currentRole = (localStorage.getItem('role') || '').toLowerCase();
+
+    if (!token) {
+        return <Navigate to="/login" replace />;
+    }
+
+    if (currentRole !== role) {
+        return <Navigate to={currentRole ? `/${currentRole}/dashboard` : '/login'} replace />;
+    }
+
+    return children;
+}
+
 function App() {
     return (
         <Router>
@@ -65,43 +80,43 @@ function App() {
 
 
                 {/* Rector Routes */}
-                <Route path="/rector/dashboard" element={<Dashboard />} />
-                <Route path="/rector/notifications" element={<Notifications />} />
-                <Route path="/rector/students" element={<StudentManagement />} />
-                <Route path="/rector/gatepass" element={<GatePass />} />
-                <Route path="/rector/complaints" element={<Complaints />} />
-                <Route path="/rector/announcements" element={<Announcements />} />
-                <Route path="/rector/settings" element={<Settings />} />
-                <Route path="/rector/mess-menu" element={<RectorMessMenu />} />
-                <Route path="/rector/reports" element={<Reports />} />
-                <Route path="/rector/fees" element={<RectorFees />} />
-                <Route path="/rector/attendance" element={<RectorAttendance />} />
+                <Route path="/rector/dashboard" element={<RoleRoute role="rector"><Dashboard /></RoleRoute>} />
+                <Route path="/rector/notifications" element={<RoleRoute role="rector"><Notifications /></RoleRoute>} />
+                <Route path="/rector/students" element={<RoleRoute role="rector"><StudentManagement /></RoleRoute>} />
+                <Route path="/rector/gatepass" element={<RoleRoute role="rector"><GatePass /></RoleRoute>} />
+                <Route path="/rector/complaints" element={<RoleRoute role="rector"><Complaints /></RoleRoute>} />
+                <Route path="/rector/announcements" element={<RoleRoute role="rector"><Announcements /></RoleRoute>} />
+                <Route path="/rector/settings" element={<RoleRoute role="rector"><Settings /></RoleRoute>} />
+                <Route path="/rector/mess-menu" element={<RoleRoute role="rector"><RectorMessMenu /></RoleRoute>} />
+                <Route path="/rector/reports" element={<RoleRoute role="rector"><Reports /></RoleRoute>} />
+                <Route path="/rector/fees" element={<RoleRoute role="rector"><RectorFees /></RoleRoute>} />
+                <Route path="/rector/attendance" element={<RoleRoute role="rector"><RectorAttendance /></RoleRoute>} />
 
 
 
                 {/* Student Route */}
-                <Route path="/student/dashboard" element={<StudentDashboard />} />
-                <Route path="/student/mess-menu" element={<StudentMessMenu />} />
-                <Route path="/student/settings" element={<StudentSettings />} />
-                <Route path="/student/gatepass" element={<StudentGatePass />} />
-                <Route path="/student/announcements" element={<StudentAnnouncements />} />
-                <Route path="/student/attendance" element={<StudentAttendance />} />
-                <Route path="/student/complaints" element={<StudentComplaints />} />
-                <Route path="/student/notifications" element={<StudentNotifications />} />
-                <Route path="/student/fees" element={<StudentFees />} />
+                <Route path="/student/dashboard" element={<RoleRoute role="student"><StudentDashboard /></RoleRoute>} />
+                <Route path="/student/mess-menu" element={<RoleRoute role="student"><StudentMessMenu /></RoleRoute>} />
+                <Route path="/student/settings" element={<RoleRoute role="student"><StudentSettings /></RoleRoute>} />
+                <Route path="/student/gatepass" element={<RoleRoute role="student"><StudentGatePass /></RoleRoute>} />
+                <Route path="/student/announcements" element={<RoleRoute role="student"><StudentAnnouncements /></RoleRoute>} />
+                <Route path="/student/attendance" element={<RoleRoute role="student"><StudentAttendance /></RoleRoute>} />
+                <Route path="/student/complaints" element={<RoleRoute role="student"><StudentComplaints /></RoleRoute>} />
+                <Route path="/student/notifications" element={<RoleRoute role="student"><StudentNotifications /></RoleRoute>} />
+                <Route path="/student/fees" element={<RoleRoute role="student"><StudentFees /></RoleRoute>} />
 
 
                 {/* Admin Route */}
-                <Route path="/admin/dashboard" element={<AdminDashboard />} />
-                <Route path="/admin/rectors" element={<AdminRectors />} />
-                <Route path="/admin/complaints" element={<AdminComplaints />} />
-                <Route path="/admin/settings" element={<AdminSettings />} />
-                <Route path="/admin/mess-menu" element={<AdminMessMenu />} />
-                <Route path="/admin/workers" element={<AdminWorkers />} />
-                <Route path="/admin/announcements" element={<AdminAnnouncements />} />
-                <Route path="/admin/reports" element={<AdminReports />} />
-                <Route path="/admin/notifications" element={<AdminNotifications />} />
-                <Route path="/admin/fees" element={<AdminFees />} />
+                <Route path="/admin/dashboard" element={<RoleRoute role="admin"><AdminDashboard /></RoleRoute>} />
+                <Route path="/admin/rectors" element={<RoleRoute role="admin"><AdminRectors /></RoleRoute>} />
+                <Route path="/admin/complaints" element={<RoleRoute role="admin"><AdminComplaints /></RoleRoute>} />
+                <Route path="/admin/settings" element={<RoleRoute role="admin"><AdminSettings /></RoleRoute>} />
+                <Route path="/admin/mess-menu" element={<RoleRoute role="admin"><AdminMessMenu /></RoleRoute>} />
+                <Route path="/admin/workers" element={<RoleRoute role="admin"><AdminWorkers /></RoleRoute>} />
+                <Route path="/admin/announcements" element={<RoleRoute role="admin"><AdminAnnouncements /></RoleRoute>} />
+                <Route path="/admin/reports" element={<RoleRoute role="admin"><AdminReports /></RoleRoute>} />
+                <Route path="/admin/notifications" element={<RoleRoute role="admin"><AdminNotifications /></RoleRoute>} />
+                <Route path="/admin/fees" element={<RoleRoute role="admin"><AdminFees /></RoleRoute>} />
 
 
                 {/* Catch-all to redirect back to login */}

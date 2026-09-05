@@ -68,3 +68,28 @@ export const deleteNotification = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+export const markNotificationRead = async (req, res) => {
+  try {
+    const notification = await Notification.findById(req.params.id);
+    if (!notification) {
+      return res.status(404).json({ message: "Notification not found" });
+    }
+
+    if (
+      req.user.role === "student" &&
+      !["All", "Students"].includes(notification.target)
+    ) {
+      return res.status(403).json({ message: "Access denied" });
+    }
+
+    await Notification.updateOne(
+      { _id: notification._id },
+      { $addToSet: { readBy: req.user._id } }
+    );
+
+    res.status(200).json({ message: "Notification marked as read" });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};

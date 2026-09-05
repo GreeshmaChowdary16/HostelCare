@@ -9,10 +9,6 @@ const StudentDashboard = () => {
     const [complaints, setComplaints] = useState([]);
     const [gatepasses, setGatepasses] = useState([]);
     const [announcements, setAnnouncements] = useState([]);
-    const [attendancePercent, setAttendancePercent] = useState('92%');
-    const [todayPresent, setTodayPresent] = useState(true);
-    const [feeAmount, setFeeAmount] = useState('₹12,500');
-    const [feeDueDate, setFeeDueDate] = useState('15 Feb 2026');
     const [isLoading, setIsLoading] = useState(true);
     const [feeSummary, setFeeSummary] = useState({ totalPending: 0 });
     const [nextDueDate, setNextDueDate] = useState(null);
@@ -147,8 +143,6 @@ const StudentDashboard = () => {
     const presentDays = attendanceRecord?.records?.filter(r => r.status === 'present') || [];
     const attendancePercentage = markedDays.length ? Math.round((presentDays.length / markedDays.length) * 100) : 0;
 
-    const profilePhoto = 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=80&w=200&h=200'; // Placeholder profile image
-
     return (
         <>
             <Header title="Student Dashboard" />
@@ -263,7 +257,7 @@ const StudentDashboard = () => {
                             {studentInfo.profileImage ? (
                                 <img src={getImageUrl(studentInfo.profileImage)} alt="Student Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                             ) : (
-                                <img src={profilePhoto} alt="Student Placeholder" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                <i className="fas fa-user-graduate" aria-label="Student profile placeholder" style={{ fontSize: '48px', color: '#4e73df' }}></i>
                             )}
                         </div>
                         <Link to="/student/settings" style={{ fontSize: '12px', color: '#4e73df', textDecoration: 'none', fontWeight: 600, marginTop: '-10px', marginBottom: '15px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
