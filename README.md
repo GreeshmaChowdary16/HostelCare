@@ -772,3 +772,10 @@ This structure makes the project easier to maintain, test, and extend.
 
 
 <p align="center"> <strong>🏢 HostelCare</strong> </p> <p align="center"> Smarter Hostel Management • Better Complaint Tracking • Faster Resolution </p> <p align="center"> Built with ❤️ for better hostel management. </p> ```
+
+Live Application:
+Frontend (Home): https://hostel-care-nu.vercel.app
+Frontend (Login Page): https://hostel-care-nu.vercel.app/login
+Backend (Render): https://hostelcarebackend.onrender.com
+
+
